@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "module": "umd",
+        "target": "es2018",
+        "baseUrl": ".",
+        "outDir": "/build",
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "downlevelIteration": true,
+        "paths": {
+            "gulp-typescript": ["node_modules/gulp-typescript/release/main.d.ts"]
+        },
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}
