@@ -1,15 +1,14 @@
 {
     "compilerOptions": {
-        "module": "umd",
-        "target": "es2018",
-        "baseUrl": ".",
-        "outDir": "/build",
-        "skipLibCheck": true,
+        "module": "commonjs",
+        "lib": [
+            "webworker"
+        ],
+        "target": "es5",
+        "baseUrl": "./src",
+        "outDir": "/dist",
         "strictNullChecks": true,
-        "downlevelIteration": true,
-        "paths": {
-            "gulp-typescript": ["node_modules/gulp-typescript/release/main.d.ts"]
-        },
+        "strict": true
     },
     "exclude": [
         "node_modules"

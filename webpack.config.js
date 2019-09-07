@@ -3,21 +3,34 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
-    entry: './src/index.ts',
+    context: __dirname,
+    entry: {
+        'worker-runner': './src/main/index.ts',
+        'common': './src/test/common/index.ts',
+        'worker-test': './src/test/worker/index.ts',
+        test: './src/test/main/index.ts',
+    },
     module: {
         rules: [
             {
                 test: /\.ts$/,
+                exclude: /node_modules/,
                 use: 'ts-loader',
             },
         ],
     },
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist/scripts'),
+        filename: '[name].js',
+        path: path.resolve(__dirname, 'dist'),
+    },
+    resolve: {
+        extensions: ['.js', '.ts']
     },
     plugins: [
-        new HtmlWebpackPlugin({title: 'Worker instance'}),
+        new HtmlWebpackPlugin({
+            title: 'Worker instance',
+            excludeChunks: ['worker-test'],
+        }),
     ],
     watch: true,
     devtool: 'source-map',

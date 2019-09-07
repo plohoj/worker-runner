@@ -1,0 +1,2 @@
+export { WorkerResolver } from './resolver';
+
