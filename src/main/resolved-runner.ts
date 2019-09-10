@@ -1,12 +1,3 @@
-export class ResolvedRunner {
-    constructor(
-        private worker: Worker,
-        private instance: number,
-    ) {
-
-    }
-}
-
 type FilterFlags<T, C> = {
     [K in keyof T]: T[K] extends C ? K : never;
 };
@@ -23,4 +14,6 @@ type ExcludeMethodWithPromise<T> = Pick<T, Exclude<keyof T, AllowedNames<T, (...
 
 type ResolveRunnerMethod<T> = WrapMethodsInPromises<Pick<T, AllowedNames<ExcludeMethodWithPromise<T>, Function>>>;
 
-export type ResolveRunner<T> = ResolveRunnerPromises<T> & ResolveRunnerMethod<T>;
+type RunnerWithDestroyer = {destroy(): Promise<void>};
+
+export type ResolveRunner<T> = ResolveRunnerPromises<T> & ResolveRunnerMethod<T> & RunnerWithDestroyer;

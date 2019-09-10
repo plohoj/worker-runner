@@ -5,8 +5,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
     context: __dirname,
     entry: {
-        'worker-runner': './src/main/index.ts',
-        'common': './src/test/common/index.ts',
+        // 'worker-runner': './src/main/index.ts',
+        // 'common': './src/test/common/index.ts',
         'worker-test': './src/test/worker/index.ts',
         test: './src/test/main/index.ts',
     },

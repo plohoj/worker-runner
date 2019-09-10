@@ -2,8 +2,9 @@
   "name": "worker-instance",
   "version": "0.0.1",
   "scripts": {
-    "start": "webpack-dev-server",
-    "build": "webpack-cli"
+    "start": "webpack-dev-server --mode=development",
+    "build": "webpack-cli --mode=development",
+    "build-prod": "webpack-cli --mode=production"
   },
   "repository": {
     "type": "git",

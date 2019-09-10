@@ -1,6 +1,6 @@
 
 export class ExampleRunner {
-    public run(): void {
+    public sayHello(): void {
         console.log('Hello from worker example runner');
     }
 }

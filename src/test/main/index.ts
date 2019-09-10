@@ -2,4 +2,10 @@
 import { resolver } from "../common";
 import { ExampleRunner } from "../common/example-runner";
 
-resolver.run().then(() => resolver.resolve(ExampleRunner));
+async function main(): Promise<void> {
+    await resolver.run();
+    const exampleRunner = await resolver.resolve(ExampleRunner);
+    exampleRunner.sayHello();
+}
+
+main();

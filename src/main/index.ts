@@ -1,2 +1,2 @@
-export { WorkerResolver } from './resolver';
+export { RunnerResolver } from './resolver';
 
