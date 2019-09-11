@@ -1,31 +1,27 @@
-import { IWorkerCommand } from "main/commands/worker-commands";
-import { INodeCommand, NodeCommand } from "../commands/node-commands";
+import { WorkerBridge } from "../bridge/worker-bridge";
+import { NodeCommand } from "../commands/node-commands";
+import { WorkerCommand } from "../commands/worker-commands";
 import { ResolveRunner } from "../resolved-runner";
 import { WorkerRunner } from "../worker-runner";
 import { RunnerResolverBase } from "./base-resolver";
 
 export function nodeResolverMixin<R extends WorkerRunner, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
-        private workers?: Worker[];
-        private initIndex?: number;
+        private workers?: WorkerBridge[];
+        private workerIndex = 0;
 
         public run(): Promise<void> {
             const workers = new Array<Worker>();
             return new Promise(resolve => {
                 for (let i = 0; i < this.config.totalWorkers; i++) {
                     const worker = new Worker(this.config.workerPath, { name: `${this.config.namePrefix}${i}` });
-                    worker.onmessage = () => {
-                        workers.push(worker);
-                        if (workers.length === this.config.totalWorkers) {
-                            this.workers = workers;
-                            for (let i = 0; i < workers.length; i++) {
-                                workers[i].onmessage = this.onWorkerMessage.bind(this, i);
-                                
+                    worker.onmessage = (message) => {
+                        if (message.data && message.data.type === WorkerCommand.ON_WORKER_INIT) {
+                            workers.push(worker);
+                            if (workers.length === this.config.totalWorkers) {
+                                this.workers = workers.map(worker => new WorkerBridge(worker));
+                                resolve();
                             }
-                            for (const worker of workers) {
-                                worker.onmessage = this.onWorkerMessage.bind(this, i);
-                            }
-                            resolve();
                         }
                     };
                 }
@@ -33,33 +29,33 @@ export function nodeResolverMixin<R extends WorkerRunner, T extends new (...args
         }
   
         public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<ResolveRunner<InstanceType<RR>>> {
-            if (!this.workers || this.workers.length === 0) {
-                await this.run();
-            }
             const runnerId = this.config.runners.indexOf(runner);
             if (runnerId < 0) {
                 throw new Error('Runner not found');
             }
-            if (this.workers) {
-                this.workers[0].postMessage({
-                    type: NodeCommand.INIT,
-                    runner: runnerId,
-                    arguments: args,
-                } as INodeCommand<NodeCommand.INIT>);
-            };
-            // @ts-ignore
-            return new runner as RR;
+            const workerBridge = this.getNextWorkerBridge();
+            const initResult = await workerBridge.execCommand({
+                type: NodeCommand.INIT,
+                runnerId: workerBridge.resolveRunnerId(),
+                arguments: args,
+            });
+            console.log(initResult);
+            return new runner(args) as any;
         }
 
         public destroy(): void {
         }
-    
-        private onWorkerMessage(workerId: number, message: MessageEvent) {
-            const command: IWorkerCommand = message.data;
+
+        private getNextWorkerBridge(): WorkerBridge {
+            if (!this.workers || this.workers.length === 0) {
+                throw new Error('Workers was not started');
+            }
+            const workerIndex = this.workerIndex++;
+            if (this.workerIndex >= this.workers.length) {
+                this.workerIndex = 0;
+            }
+            return this.workers[workerIndex];
         }
 
-        private sendCommand(worker: Worker, command: INodeCommand): void {
-            worker.postMessage(command);
-        }
     }
 }

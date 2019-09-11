@@ -5,17 +5,26 @@ import { RunnerResolverBase } from "./base-resolver";
 
 export function workerResolverMixin<R extends WorkerRunner, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
+        private runners = new Map<number, R>();
 
         public runInWorker(): void {
             self.addEventListener('message', this.onMessage.bind(this));
-            this.sendCommand({type: WorkerCommand.ON_INIT});
+            this.sendCommand({type: WorkerCommand.ON_WORKER_INIT});
         }
 
         private onMessage(message: MessageEvent) {
             const data: INodeCommand = message.data;
-            if (data.type === NodeCommand.INIT) {
-                //@ts-ignore
-                console.log(message.data.runner, this.config.runners[message.data.runner]);
+            switch (data.type) {
+                case NodeCommand.INIT: 
+                    const runnerConstructor = this.config.runners[data.runnerId];
+                    if (runnerConstructor) {
+                        this.runners.set(data.runnerId, new runnerConstructor(...data.arguments) as R);
+                    } // TODO else Error
+                    this.sendCommand({
+                        type: WorkerCommand.ON_RUNNER_INIT,
+                        runnerId: data.runnerId,
+                    });
+                    break;
             }
         }
 

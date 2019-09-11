@@ -3,15 +3,16 @@ export enum NodeCommand {
     RUN,
 }
 
-interface INodeCommandInit {
+export interface INodeCommandInit {
     type: NodeCommand.INIT;
-    runner: number;
+    runnerId: number;
     arguments: any[];
 }
 
-interface INodeCommandRun {
+export interface INodeCommandRun {
     type: NodeCommand.RUN;
-    runner: number;
+    id: number;
+    runnerId: number;
     method: string;
 }
 
