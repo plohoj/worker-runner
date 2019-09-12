@@ -1,5 +1,4 @@
-
-export class RunnerPromises<T> {
+export class PromisesResolver<T> {
     private promises = new Map<number, {resolve: (data: T) => void, reject: Function}>();
 
     public promise(id: number): Promise<T> {

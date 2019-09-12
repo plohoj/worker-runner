@@ -1,11 +1,11 @@
-import { NodeCommandResponse } from "../commands/node-command-response";
-import { INodeCommand, NodeCommand } from "../commands/node-commands";
-import { IWorkerCommand, IWorkerCommandOnRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "../commands/worker-commands";
-import { RunnerPromises } from "./runner-promises";
+import { NodeCommandResponse } from "./commands/node-command-response";
+import { INodeCommand, NodeCommand } from "./commands/node-commands";
+import { IWorkerCommand, IWorkerCommandOnRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
+import { PromisesResolver } from "./runner-promises";
 
 export class WorkerBridge {
-    private runnersPromises = new Map<number, RunnerPromises<IWorkerCommandRunnerResponse>>();
-    private initPromises = new RunnerPromises<IWorkerCommandOnRunnerInit>();
+    private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
+    private initPromises = new PromisesResolver<IWorkerCommandOnRunnerInit>();
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     private newRunnerId = 0;
 
@@ -34,12 +34,12 @@ export class WorkerBridge {
         this.worker.removeEventListener('message', this.workerMessageHandler);
     }
 
-    private getRunnerPromises(id: number): RunnerPromises<IWorkerCommandRunnerResponse> {
+    private getRunnerPromises(id: number): PromisesResolver<IWorkerCommandRunnerResponse> {
         const runnerPromises = this.runnersPromises.get(id);
         if (runnerPromises) {
             return runnerPromises;
         }
-        const newRunnerPromises = new RunnerPromises<IWorkerCommandRunnerResponse>();
+        const newRunnerPromises = new PromisesResolver<IWorkerCommandRunnerResponse>();
         this.runnersPromises.set(id, newRunnerPromises);
         return newRunnerPromises;
     }

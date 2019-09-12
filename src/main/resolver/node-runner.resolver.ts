@@ -1,18 +1,21 @@
-import { WorkerBridge } from "../bridge/worker-bridge";
+import { RunnerBridge } from "main/runner/runner-bridge";
 import { NodeCommand } from "../commands/node-commands";
 import { WorkerCommand } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
-import { resolveNodeRunnerConstructor } from "../runner/node-runner-constructor.resolver";
+import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { ResolveRunner } from "../runner/resolved-runner";
+import { WorkerBridge } from "../worker-bridge";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
-export function nodeResolverMixin<R extends Constructor, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
+export function nodeRunnerResolverMixin<R extends Constructor, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
         private workers?: WorkerBridge[];
         private workerIndex = 0;
+        private runnerBridgeConstructors = new Array<typeof RunnerBridge & Constructor<ResolveRunner<InstanceType<R>>>>();
 
         public run(): Promise<void> {
             const workers = new Array<Worker>();
+            this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
             return new Promise(resolve => {
                 for (let i = 0; i < this.config.totalWorkers; i++) {
                     const worker = new Worker(this.config.workerPath, { name: `${this.config.namePrefix}${i}` });
@@ -41,7 +44,7 @@ export function nodeResolverMixin<R extends Constructor, T extends new (...args:
                 runnerId,
                 arguments: args,
             });
-            return new (resolveNodeRunnerConstructor(runner))(workerBridge, initResult.runnerId);
+            return new (this.runnerBridgeConstructors[runnerId])(workerBridge, initResult.runnerId);
         }
 
         public destroy(): void {

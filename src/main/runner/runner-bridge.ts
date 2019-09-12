@@ -1,7 +1,11 @@
-import { WorkerBridge } from "../bridge/worker-bridge";
 import { NodeCommand } from "../commands/node-commands";
+import { Constructor } from "../constructor";
+import { WorkerBridge } from "../worker-bridge";
+import { ResolveRunner } from "./resolved-runner";
 
-export class RunnerInstance {
+export type IRunnerBridge<T extends Constructor> = Constructor<ResolveRunner<InstanceType<T>>>;
+
+export class RunnerBridge {
     private _lastCommandId = 0;
 
     constructor(
