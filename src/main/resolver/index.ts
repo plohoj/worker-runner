@@ -1,5 +1,5 @@
-import { RunnerResolverBase } from "./base-resolver";
-import { nodeResolverMixin } from "./node-resolver";
-import { workerResolverMixin } from "./worker-resolver";
+import { RunnerResolverBase } from "./base-runner.resolver";
+import { nodeResolverMixin } from "./node-runner.resolver";
+import { workerRunnerResolverMixin } from "./worker-runner.resolver";
 
-export const RunnerResolver = workerResolverMixin(nodeResolverMixin(RunnerResolverBase));
+export const RunnerResolver = workerRunnerResolverMixin(nodeResolverMixin(RunnerResolverBase));

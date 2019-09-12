@@ -7,8 +7,7 @@ export class WorkerBridge {
     private runnersPromises = new Map<number, RunnerPromises<IWorkerCommandRunnerResponse>>();
     private initPromises = new RunnerPromises<IWorkerCommandOnRunnerInit>();
     private workerMessageHandler = this.onWorkerMessage.bind(this);
-    private commandIds = new Map<number, number>();
-    private runnerId = 0;
+    private newRunnerId = 0;
 
     constructor(private worker: Worker) {
         this.worker.addEventListener('message', this.workerMessageHandler);
@@ -22,23 +21,13 @@ export class WorkerBridge {
             case NodeCommand.RUN:
                 this.sendCommand(command);
                 const runnerPromises = this.getRunnerPromises(command.runnerId);
-                return runnerPromises.promise(command.runnerId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+                return runnerPromises.promise(command.id) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
         throw Error(`Command "${command.type}" not found`);
     }
 
-    public resolveCommandId(runnerId: number): number {
-        const commandId = this.commandIds.get(runnerId);
-        if (typeof commandId === 'number') {
-            this.commandIds.set(runnerId,commandId + 1);
-            return commandId;
-        }
-        this.commandIds.set(runnerId, 1);
-        return 0;
-    };
-
-    public resolveRunnerId(): number {
-        return this.runnerId++;
+    public resolveNewRunnerId(): number {
+        return this.newRunnerId++;
     };
 
     public destroy(): void {

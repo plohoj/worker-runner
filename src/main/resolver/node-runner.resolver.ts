@@ -1,11 +1,12 @@
 import { WorkerBridge } from "../bridge/worker-bridge";
 import { NodeCommand } from "../commands/node-commands";
 import { WorkerCommand } from "../commands/worker-commands";
-import { ResolveRunner } from "../resolved-runner";
-import { WorkerRunner } from "../worker-runner";
-import { RunnerResolverBase } from "./base-resolver";
+import { Constructor } from "../constructor";
+import { resolveNodeRunnerConstructor } from "../runner/node-runner-constructor.resolver";
+import { ResolveRunner } from "../runner/resolved-runner";
+import { RunnerResolverBase } from "./base-runner.resolver";
 
-export function nodeResolverMixin<R extends WorkerRunner, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
+export function nodeResolverMixin<R extends Constructor, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
         private workers?: WorkerBridge[];
         private workerIndex = 0;
@@ -36,11 +37,11 @@ export function nodeResolverMixin<R extends WorkerRunner, T extends new (...args
             const workerBridge = this.getNextWorkerBridge();
             const initResult = await workerBridge.execCommand({
                 type: NodeCommand.INIT,
-                runnerId: workerBridge.resolveRunnerId(),
+                id: workerBridge.resolveNewRunnerId(),
+                runnerId,
                 arguments: args,
             });
-            console.log(initResult);
-            return new runner(args) as any;
+            return new (resolveNodeRunnerConstructor(runner))(workerBridge, initResult.runnerId);
         }
 
         public destroy(): void {

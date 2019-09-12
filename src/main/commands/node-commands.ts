@@ -5,6 +5,7 @@ export enum NodeCommand {
 
 export interface INodeCommandInit {
     type: NodeCommand.INIT;
+    id: number;
     runnerId: number;
     arguments: any[];
 }
@@ -14,6 +15,7 @@ export interface INodeCommandRun {
     id: number;
     runnerId: number;
     method: string;
+    arguments: any[];
 }
 
 export type INodeCommand<T extends NodeCommand = NodeCommand> = Extract<(INodeCommandInit | INodeCommandRun), {type: T}>;

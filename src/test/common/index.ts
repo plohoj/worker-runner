@@ -1,9 +1,11 @@
 
 import { RunnerResolver } from "../../main";
 import { ExampleRunner } from "./example-runner";
+import { PerfectRunner } from "./perfect-runner";
 import { SimpleRunner } from "./simple-runner";
 
 export const resolver = new RunnerResolver({
-    runners: [SimpleRunner, ExampleRunner],
+    totalWorkers: 1,
+    runners: [SimpleRunner, ExampleRunner, PerfectRunner],
     workerPath: 'worker-test.js'
 })
