@@ -1,4 +1,4 @@
-import { Constructor } from "main/constructor";
+import { Constructor } from "../constructor";
 import { IRunnerBridge, RunnerBridge } from "./runner-bridge";
 
 function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {

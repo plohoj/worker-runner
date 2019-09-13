@@ -4,7 +4,8 @@
   "scripts": {
     "start": "webpack-dev-server --mode=development",
     "build": "webpack-cli --mode=development",
-    "build-prod": "webpack-cli --mode=production"
+    "build-prod": "webpack-cli --mode=production",
+    "test": "karma start"
   },
   "repository": {
     "type": "git",
@@ -17,8 +18,14 @@
   },
   "homepage": "https://github.com/plohoj/worker-instance#readme",
   "devDependencies": {
+    "@types/jasmine": "^3.4.0",
+    "@types/karma-webpack": "^2.0.7",
     "@types/webpack": "^4.39.1",
     "html-webpack-plugin": "^3.2.0",
+    "jasmine": "^3.4.0",
+    "karma": "^4.3.0",
+    "karma-jasmine": "^2.0.1",
+    "karma-webpack": "^4.0.2",
     "ts-loader": "^6.0.4",
     "typescript": "^3.6.2",
     "webpack": "^4.39.3",

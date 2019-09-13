@@ -1,9 +1,9 @@
-import { RunnerBridge } from "main/runner/runner-bridge";
 import { NodeCommand } from "../commands/node-commands";
 import { WorkerCommand } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
 import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { ResolveRunner } from "../runner/resolved-runner";
+import { RunnerBridge } from "../runner/runner-bridge";
 import { WorkerBridge } from "../worker-bridge";
 import { RunnerResolverBase } from "./base-runner.resolver";
 

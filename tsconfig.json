@@ -4,8 +4,7 @@
         "lib": [
             "webworker"
         ],
-        "target": "es5",
-        "baseUrl": "./src",
+        "target": "esnext",
         "outDir": "/dist",
         "strictNullChecks": true,
         "strict": true

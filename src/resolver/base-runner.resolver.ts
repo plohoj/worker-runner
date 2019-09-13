@@ -1,4 +1,4 @@
-import { Constructor } from "main/constructor";
+import { Constructor } from "../constructor";
 
 interface IRunnerResolverBaseConfig<R extends Constructor> {
     totalWorkers?: number;
