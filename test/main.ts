@@ -1,8 +1,10 @@
 
+import { Constructor } from "../src/constructor";
 import { resolver } from "./common";
-import { CalcAmountRunner } from "./common/calc-amount-runner";
-import { DelayRunner } from "./common/delay-runner";
-import { SumOfArrayRunner } from "./common/sum-of-array-runner";
+import { CalcAmountRunner } from "./common/calc-amount.runner";
+import { DelayRunner } from "./common/delay.runner";
+import { StorageRunner } from "./common/storage.runner";
+import { SumOfArrayRunner } from "./common/sum-of-array.runner";
 
 describe("Runner tests", function() {
     it("simple amount calculation", async function() {
@@ -32,6 +34,18 @@ describe("Runner tests", function() {
         if (actualDelayDuration > delayDuration + 35) {
             fail('the delay was too long');
         }
+    });
+
+    it ("constructor arguments", async function() {
+        await resolver.run();
+        const storageData = {
+            id: 5326,
+            type: 'STORAGE_DATA',
+        };
+        const storageRunner = await resolver
+            .resolve(StorageRunner as Constructor<StorageRunner<typeof storageData>>, storageData);
+        const returnedStorageData = await storageRunner.getStorage();
+        expect(storageData).toEqual(returnedStorageData);
     });
 });
 

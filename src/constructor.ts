@@ -1,1 +1,1 @@
-export type Constructor<T extends {} = {}> = new (...args: any[]) => T;
+export type Constructor<T extends {} = {}, A extends any[] = any[]> = new (...args: A) => T;
