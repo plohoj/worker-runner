@@ -1,5 +1,5 @@
 import { NodeCommand } from "../commands/node-commands";
-import { WorkerCommand } from "../commands/worker-commands";
+import { IWorkerCommandRunnerInitError, WorkerCommand } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
 import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
@@ -19,7 +19,7 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
                 for (let i = 0; i < this.config.totalWorkers; i++) {
                     const worker = new Worker(this.config.workerPath, { name: `${this.config.namePrefix}${i}` });
                     worker.onmessage = (message) => {
-                        if (message.data && message.data.type === WorkerCommand.ON_WORKER_INIT) {
+                        if (message.data && message.data.type === WorkerCommand.WORKER_INIT) {
                             workers.push(worker);
                             if (workers.length === this.config.totalWorkers) {
                                 this.workers = workers.map(worker => new WorkerBridge(worker));
@@ -37,12 +37,16 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
                 throw new Error('Runner not found');
             }
             const workerBridge = this.getNextWorkerBridge();
-            await workerBridge.execCommand({
-                type: NodeCommand.INIT,
-                instanceId: workerBridge.resolveNewRunnerInstanceId(),
-                runnerId,
-                arguments: args,
-            });
+            try {
+                await workerBridge.execCommand({
+                    type: NodeCommand.INIT,
+                    instanceId: workerBridge.resolveNewRunnerInstanceId(),
+                    runnerId,
+                    arguments: args,
+                });
+            } catch (error) {
+                throw (error as IWorkerCommandRunnerInitError).error;
+            }
             return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId);
         }
 

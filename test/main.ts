@@ -3,6 +3,7 @@ import { Constructor } from "../src/constructor";
 import { resolver } from "./common";
 import { CalcAmountRunner } from "./common/calc-amount.runner";
 import { DelayRunner } from "./common/delay.runner";
+import { RunnerWithConstructorError } from "./common/runner-width-constructor-error";
 import { StorageRunner } from "./common/storage.runner";
 import { SumOfArrayRunner } from "./common/sum-of-array.runner";
 
@@ -67,5 +68,9 @@ describe("Runner tests", function() {
         expect(storageData).toEqual(destroyData);
     });
 
+    it ("constructor exception", async function() {
+        await resolver.run();
+        await expectAsync(resolver.resolve(RunnerWithConstructorError)).toBeRejectedWith({});
+    });
 });
 

@@ -3,13 +3,13 @@ import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
-export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: any}>   , T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
+export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: any}>, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
         private runners = new Map<number, InstanceType<R>>();
 
         public runInWorker(): void {
             self.addEventListener('message', this.onMessage.bind(this));
-            this.sendCommand({type: WorkerCommand.ON_WORKER_INIT});
+            this.sendCommand({type: WorkerCommand.WORKER_INIT});
         }
 
         private onMessage(message: MessageEvent): void {
@@ -18,7 +18,7 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 case NodeCommand.INIT: 
                     this.initRunnerInstance(command);                 
                     break;
-                case NodeCommand.RUN:
+                case NodeCommand.EXECUTE:
                     this.executeCommand(command);
                     break;
                 case NodeCommand.DESTROY:
@@ -30,9 +30,20 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
         private initRunnerInstance(command: INodeCommandInit): void {
             const runnerConstructor = this.config.runners[command.runnerId];
             if (runnerConstructor) {
-                this.runners.set(command.runnerId, new runnerConstructor(...command.arguments) as InstanceType<R>);
+                let instance: InstanceType<R> ;
+                try {
+                    instance = new runnerConstructor(...command.arguments) as InstanceType<R>;
+                } catch (error) {
+                    this.sendCommand({
+                        type: WorkerCommand.RUNNER_INIT_ERROR,
+                        instanceId: command.instanceId,
+                        error: this.transformError(error),
+                    });
+                    return;
+                }
+                this.runners.set(command.runnerId, instance);
                 this.sendCommand({
-                    type: WorkerCommand.ON_RUNNER_INIT,
+                    type: WorkerCommand.RUNNER_INIT,
                     instanceId: command.instanceId,
                 });
             } // TODO else Error 
@@ -46,14 +57,14 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 if (response instanceof Promise) {
                     // TODO catch error
                     response.then(resolvedResponse => this.sendCommand({
-                        type: WorkerCommand.RUNNER_RESPONSE,
+                        type: WorkerCommand.RUNNER_EXECUTED,
                         commandId: command.commandId,
                         instanceId: command.instanceId,
                         response: resolvedResponse
                     }));
                 } else {
                     this.sendCommand({
-                        type: WorkerCommand.RUNNER_RESPONSE,
+                        type: WorkerCommand.RUNNER_EXECUTED,
                         commandId: command.commandId,
                         instanceId: command.instanceId,
                         response: response,
@@ -72,25 +83,29 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                     if (response instanceof Promise) {
                         // TODO catch error
                         response.then(resolvedResponse => this.sendCommand({
-                            type: WorkerCommand.ON_RUNNER_DESTROYED,
+                            type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
                             response: resolvedResponse
                         }));
                     } else {
                         this.sendCommand({
-                            type: WorkerCommand.ON_RUNNER_DESTROYED,
+                            type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
                             response: response,
                         });
                     }
                 } else {
                     this.sendCommand({
-                        type: WorkerCommand.ON_RUNNER_DESTROYED,
+                        type: WorkerCommand.RUNNER_DESTROYED,
                         instanceId: command.instanceId,
                         response: undefined,
                     });
                 }
             }  // TODO else Error
+        }
+
+        private transformError(error: any): any {
+            return JSON.parse(JSON.stringify(error))
         }
 
         private sendCommand(command: IWorkerCommand): void {

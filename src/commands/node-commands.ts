@@ -1,6 +1,6 @@
 export enum NodeCommand {
     INIT,
-    RUN,
+    EXECUTE,
     DESTROY,
 }
 
@@ -12,7 +12,7 @@ export interface INodeCommandInit {
 }
 
 export interface INodeCommandRun {
-    type: NodeCommand.RUN;
+    type: NodeCommand.EXECUTE;
     commandId: number;
     instanceId: number;
     method: string;

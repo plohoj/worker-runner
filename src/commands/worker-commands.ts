@@ -1,40 +1,51 @@
 export enum WorkerCommand {
-    ON_WORKER_INIT,
-    ON_RUNNER_INIT,
-    RUNNER_RESPONSE,
-    ON_RUNNER_DESTROYED,
+    WORKER_INIT,
+    RUNNER_INIT,
+    RUNNER_EXECUTED,
+    RUNNER_DESTROYED,
+    
+    RUNNER_INIT_ERROR,
+    RUNNER_EXECUTE_ERROR,
+    RUNNER_DESTROY_ERROR,
 }
 
-export interface IWorkerCommandOnWorkerInit {
-    type: WorkerCommand.ON_WORKER_INIT;
+export interface IWorkerCommandWorkerInit {
+    type: WorkerCommand.WORKER_INIT;
 }
 
-export interface IWorkerCommandOnRunnerInit {
-    type: WorkerCommand.ON_RUNNER_INIT;
+export interface IWorkerCommandRunnerInit {
+    type: WorkerCommand.RUNNER_INIT;
     instanceId: number;
 }
 
 export interface IWorkerCommandRunnerResponse {
-    type: WorkerCommand.RUNNER_RESPONSE;
+    type: WorkerCommand.RUNNER_EXECUTED;
     commandId: number;
     instanceId: number;
     response: any;
 }
 
 export interface IWorkerCommandRunnerResponse {
-    type: WorkerCommand.RUNNER_RESPONSE;
+    type: WorkerCommand.RUNNER_EXECUTED;
     commandId: number;
     instanceId: number;
     response: any;
 }
 
-export interface IWorkerCommandRunnerOnDestroyed {
-    type: WorkerCommand.ON_RUNNER_DESTROYED;
+export interface IWorkerCommandRunnerDestroyed {
+    type: WorkerCommand.RUNNER_DESTROYED;
     instanceId: number;
     response: any;
+}
+
+export interface IWorkerCommandRunnerInitError {
+    type: WorkerCommand.RUNNER_INIT_ERROR,
+    error: any;
+    instanceId: number;
 }
 
 export type IWorkerCommand<T extends WorkerCommand = WorkerCommand> = Extract<
-    IWorkerCommandOnWorkerInit | IWorkerCommandOnRunnerInit | IWorkerCommandRunnerResponse | IWorkerCommandRunnerOnDestroyed,
+    IWorkerCommandWorkerInit | IWorkerCommandRunnerInit | IWorkerCommandRunnerResponse
+        | IWorkerCommandRunnerDestroyed | IWorkerCommandRunnerInitError,
     {type: T}
 >;

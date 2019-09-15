@@ -15,7 +15,7 @@ export class RunnerBridge {
 
     protected async _executeMethod(methodName: string, args: any[]): Promise<any> {
         const workerCommand = await this._workerBridge.execCommand({
-            type: NodeCommand.RUN,
+            type: NodeCommand.EXECUTE,
             commandId: this._lastCommandId++,
             instanceId: this._instanceId,
             method: methodName,

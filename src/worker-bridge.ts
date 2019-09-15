@@ -1,12 +1,12 @@
 import { NodeCommandResponse } from "./commands/node-command-response";
 import { checkCommandType, INodeCommand, NodeCommand } from "./commands/node-commands";
-import { IWorkerCommand, IWorkerCommandOnRunnerInit, IWorkerCommandRunnerOnDestroyed, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
+import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
 import { PromisesResolver } from "./runner-promises";
 
 export class WorkerBridge {
     private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
-    private initPromises = new PromisesResolver<IWorkerCommandOnRunnerInit>();
-    private destroyPromises = new PromisesResolver<IWorkerCommandRunnerOnDestroyed>();
+    private initPromises = new PromisesResolver<IWorkerCommandRunnerInit>();
+    private destroyPromises = new PromisesResolver<IWorkerCommandRunnerDestroyed>();
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     private newRunnerInstanceId = 0;
 
@@ -19,7 +19,7 @@ export class WorkerBridge {
         if (checkCommandType(command, NodeCommand.INIT)) {
             return this.initPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
-        if (checkCommandType(command, NodeCommand.RUN)) {
+        if (checkCommandType(command, NodeCommand.EXECUTE)) {
             const runnerPromises = this.getRunnerPromises(command.instanceId);
             return runnerPromises.promise(command.commandId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
@@ -50,16 +50,19 @@ export class WorkerBridge {
     private onWorkerMessage(message: MessageEvent): void {
         const command: IWorkerCommand = message.data;
         switch (command.type) {
-            case WorkerCommand.ON_RUNNER_INIT:
+            case WorkerCommand.RUNNER_INIT:
                 this.initPromises.resolve(command.instanceId, command)
                 break;
-            case WorkerCommand.RUNNER_RESPONSE:
+            case WorkerCommand.RUNNER_INIT_ERROR:
+                this.initPromises.reject(command.instanceId, command);
+                break;
+            case WorkerCommand.RUNNER_EXECUTED:
                 const runnerPromises = this.runnersPromises.get(command.instanceId);
                 if (runnerPromises) {
                     runnerPromises.resolve(command.commandId, command);
                 }
                 break;
-            case WorkerCommand.ON_RUNNER_DESTROYED:
+            case WorkerCommand.RUNNER_DESTROYED:
                 this.destroyPromises.resolve(command.instanceId, command);
                 break;
         }
