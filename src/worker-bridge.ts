@@ -1,11 +1,12 @@
 import { NodeCommandResponse } from "./commands/node-command-response";
 import { checkCommandType, INodeCommand, NodeCommand } from "./commands/node-commands";
-import { IWorkerCommand, IWorkerCommandOnRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
+import { IWorkerCommand, IWorkerCommandOnRunnerInit, IWorkerCommandRunnerOnDestroyed, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
 import { PromisesResolver } from "./runner-promises";
 
 export class WorkerBridge {
     private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
     private initPromises = new PromisesResolver<IWorkerCommandOnRunnerInit>();
+    private destroyPromises = new PromisesResolver<IWorkerCommandRunnerOnDestroyed>();
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     private newRunnerInstanceId = 0;
 
@@ -14,16 +15,18 @@ export class WorkerBridge {
     }
 
     public execCommand<T extends NodeCommand>(command: INodeCommand<T>): Promise<IWorkerCommand<NodeCommandResponse<T>>> {
+        this.sendCommand(command);
         if (checkCommandType(command, NodeCommand.INIT)) {
-            this.sendCommand(command);
             return this.initPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
         if (checkCommandType(command, NodeCommand.RUN)) {
-            this.sendCommand(command);
             const runnerPromises = this.getRunnerPromises(command.instanceId);
             return runnerPromises.promise(command.commandId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
-        throw Error(`Command "${command.type}" not found`);
+        if (checkCommandType(command, NodeCommand.DESTROY)) {
+            return this.destroyPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+        }
+        throw Error(`Command "${command['type']}" not found`);
     }
 
     public resolveNewRunnerInstanceId(): number {
@@ -55,6 +58,9 @@ export class WorkerBridge {
                 if (runnerPromises) {
                     runnerPromises.resolve(command.commandId, command);
                 }
+                break;
+            case WorkerCommand.ON_RUNNER_DESTROYED:
+                this.destroyPromises.resolve(command.instanceId, command);
                 break;
         }
     }

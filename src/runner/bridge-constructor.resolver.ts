@@ -1,9 +1,9 @@
 import { Constructor } from "../constructor";
-import { IRunnerBridge, RunnerBridge } from "./runner-bridge";
+import { IRunnerBridgeConstructor, RunnerBridge } from "./runner-bridge";
 
 function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
     for (const key of Object.getOwnPropertyNames(proto.prototype)) {
-        if (key !== 'constructor') {
+        if (key !== 'constructor' && key !== 'destroy') {
             construct.prototype[key] = function(this: RunnerBridge, ...args: any[]) {
                 return this._executeMethod(key, args);
             }
@@ -15,8 +15,7 @@ function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
     }
 }
 
-export function resolveRunnerBridgeConstructor<T extends Constructor>(runner: T):
-        typeof RunnerBridge & IRunnerBridge<T> {
+export function resolveRunnerBridgeConstructor<T extends Constructor>(runner: T): IRunnerBridgeConstructor<T> {
     const constructor = class extends RunnerBridge {}
     recursiveOverrideProperty(constructor, runner);
     return constructor as any;

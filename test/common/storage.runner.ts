@@ -5,4 +5,8 @@ export class StorageRunner<T> {
     public getStorage(): T {
         return this.initData;
     }
+
+    public destroy(): T {
+        return this.initData;
+    }
 }

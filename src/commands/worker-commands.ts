@@ -28,7 +28,13 @@ export interface IWorkerCommandRunnerResponse {
     response: any;
 }
 
+export interface IWorkerCommandRunnerOnDestroyed {
+    type: WorkerCommand.ON_RUNNER_DESTROYED;
+    instanceId: number;
+    response: any;
+}
+
 export type IWorkerCommand<T extends WorkerCommand = WorkerCommand> = Extract<
-    IWorkerCommandOnWorkerInit | IWorkerCommandOnRunnerInit | IWorkerCommandRunnerResponse,
+    IWorkerCommandOnWorkerInit | IWorkerCommandOnRunnerInit | IWorkerCommandRunnerResponse | IWorkerCommandRunnerOnDestroyed,
     {type: T}
 >;

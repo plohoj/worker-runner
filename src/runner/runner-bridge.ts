@@ -3,7 +3,7 @@ import { Constructor } from "../constructor";
 import { WorkerBridge } from "../worker-bridge";
 import { ResolveRunner } from "./resolved-runner";
 
-export type IRunnerBridge<T extends Constructor> = Constructor<ResolveRunner<InstanceType<T>>>;
+export type IRunnerBridgeConstructor<T extends Constructor> = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export class RunnerBridge {
     private _lastCommandId = 0;
@@ -21,6 +21,16 @@ export class RunnerBridge {
             method: methodName,
             arguments: args,
         })
+        return workerCommand.response;
+    }
+
+    /** Remove runner instance from Worker Runners list */
+    public async destroy(...args: any): Promise<void> {
+        const workerCommand = await this._workerBridge.execCommand({
+            type: NodeCommand.DESTROY,
+            instanceId: this._instanceId,
+            arguments: args,
+        });
         return workerCommand.response;
     }
 }

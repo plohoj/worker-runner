@@ -47,5 +47,25 @@ describe("Runner tests", function() {
         const returnedStorageData = await storageRunner.getStorage();
         expect(storageData).toEqual(returnedStorageData);
     });
+    
+    it ("simple destroy", async function() {
+        await resolver.run();
+        const calcRunner = await resolver.resolve(CalcAmountRunner);
+        const destroyData = await calcRunner.destroy();
+        expect(destroyData).toBe(undefined);
+    });
+
+    it ("extended destroy method", async function() {
+        await resolver.run();
+        const storageData = {
+            id: 6572,
+            type: 'STORAGE_DATA',
+        };
+        const storageRunner = await resolver
+            .resolve(StorageRunner as Constructor<StorageRunner<typeof storageData>>, storageData);
+        const destroyData = await storageRunner.destroy();
+        expect(storageData).toEqual(destroyData);
+    });
+
 });
 

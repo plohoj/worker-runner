@@ -22,6 +22,7 @@ export interface INodeCommandRun {
 export interface INodeCommandDestroy {
     type: NodeCommand.DESTROY;
     instanceId: number;
+    arguments: any[];
 }
 
 export type INodeCommand<T extends NodeCommand = NodeCommand>

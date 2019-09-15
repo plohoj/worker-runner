@@ -14,4 +14,9 @@ type ExcludeMethodWithPromise<T> = Pick<T, Exclude<keyof T, AllowedNames<T, (...
 
 type ResolveRunnerMethod<T> = WrapMethodsInPromises<Pick<T, AllowedNames<ExcludeMethodWithPromise<T>, Function>>>;
 
-export type ResolveRunner<T> = ResolveRunnerPromises<T> & ResolveRunnerMethod<T>;
+type RunnerWithDestroyer = {
+    /** Remove runner instance from list in Worker Runners */
+    destroy(): Promise<void>
+};
+
+export type ResolveRunner<T> = ResolveRunnerPromises<T> & ResolveRunnerMethod<T> & RunnerWithDestroyer;
