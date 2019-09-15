@@ -10,16 +10,17 @@ export class RunnerBridge {
 
     constructor(
         private _workerBridge: WorkerBridge,
-        private _runnerId:number,
+        private _instanceId:number,
     ) {}
 
-    protected _executeMethod(methodName: string, args: any[]) {
-        return this._workerBridge.execCommand({
+    protected async _executeMethod(methodName: string, args: any[]): Promise<any> {
+        const workerCommand = await this._workerBridge.execCommand({
             type: NodeCommand.RUN,
-            id: this._lastCommandId++,
-            runnerId: this._runnerId,
+            commandId: this._lastCommandId++,
+            instanceId: this._instanceId,
             method: methodName,
             arguments: args,
-        }).then(command => command.response);
+        })
+        return workerCommand.response;
     }
 }

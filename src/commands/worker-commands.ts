@@ -1,7 +1,8 @@
 export enum WorkerCommand {
     ON_WORKER_INIT,
     ON_RUNNER_INIT,
-    RUNNER_RESPONSE
+    RUNNER_RESPONSE,
+    ON_RUNNER_DESTROYED,
 }
 
 export interface IWorkerCommandOnWorkerInit {
@@ -10,13 +11,20 @@ export interface IWorkerCommandOnWorkerInit {
 
 export interface IWorkerCommandOnRunnerInit {
     type: WorkerCommand.ON_RUNNER_INIT;
-    runnerId: number;
+    instanceId: number;
 }
 
 export interface IWorkerCommandRunnerResponse {
     type: WorkerCommand.RUNNER_RESPONSE;
-    id: number;
-    runnerId: number;
+    commandId: number;
+    instanceId: number;
+    response: any;
+}
+
+export interface IWorkerCommandRunnerResponse {
+    type: WorkerCommand.RUNNER_RESPONSE;
+    commandId: number;
+    instanceId: number;
     response: any;
 }
 

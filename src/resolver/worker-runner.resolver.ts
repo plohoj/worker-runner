@@ -21,28 +21,28 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                         this.runners.set(command.runnerId, new runnerConstructor(...command.arguments) as InstanceType<R>);
                         this.sendCommand({
                             type: WorkerCommand.ON_RUNNER_INIT,
-                            runnerId: command.runnerId,
+                            instanceId: command.instanceId,
                         });
                     } // TODO else Error                    
                     break;
                 case NodeCommand.RUN:
-                    const runner = this.runners.get(command.runnerId);
+                    const runner = this.runners.get(command.instanceId);
                     if (runner) {
                         // TODO catch error
                         const response = runner[command.method](...command.arguments);
                         if (response instanceof Promise) {
                             // TODO catch error
-                            response.then(resolvedResponsed => this.sendCommand({
+                            response.then(resolvedResponse => this.sendCommand({
                                 type: WorkerCommand.RUNNER_RESPONSE,
-                                id: command.id,
-                                runnerId: command.runnerId,
-                                response: resolvedResponsed
+                                commandId: command.commandId,
+                                instanceId: command.instanceId,
+                                response: resolvedResponse
                             }));
                         } else {
                             this.sendCommand({
                                 type: WorkerCommand.RUNNER_RESPONSE,
-                                id: command.id,
-                                runnerId: command.runnerId,
+                                commandId: command.commandId,
+                                instanceId: command.instanceId,
                                 response: response,
                             });
                         }

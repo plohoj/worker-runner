@@ -40,11 +40,11 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
             const workerBridge = this.getNextWorkerBridge();
             const initResult = await workerBridge.execCommand({
                 type: NodeCommand.INIT,
-                id: workerBridge.resolveNewRunnerId(),
+                instanceId: workerBridge.resolveNewRunnerInstanceId(),
                 runnerId,
                 arguments: args,
             });
-            return new (this.runnerBridgeConstructors[runnerId])(workerBridge, initResult.runnerId);
+            return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId);
         }
 
         public destroy(): void {

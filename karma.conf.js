@@ -18,6 +18,7 @@ module.exports = (config) => {
       webpack: {
         ...webpackConfig,
         mode: 'development',
+        devtool: 'eval-source-map',
       },
       webpackMiddleware: {
         stats: 'errors-only',
