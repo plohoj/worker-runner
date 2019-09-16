@@ -16,6 +16,7 @@
   "bugs": {
     "url": "https://github.com/plohoj/worker-instance/issues"
   },
+  "main": "./src/index",
   "homepage": "https://github.com/plohoj/worker-instance#readme",
   "devDependencies": {
     "@types/jasmine": "^3.4.0",

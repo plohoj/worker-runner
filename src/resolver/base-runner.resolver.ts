@@ -10,7 +10,7 @@ interface IRunnerResolverBaseConfig<R extends Constructor> {
 const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<IRunnerResolverBaseConfig<never>> = {
     totalWorkers: 4,
     namePrefix: 'Runners Worker #',
-    runners: [],
+    runners: [] as never[],
     workerPath: 'worker.js',
 }
 

@@ -159,10 +159,11 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
         }
 
         private transformError(error: any): any {
-            return JSON.parse(JSON.stringify(error))
+            return JSON.parse(JSON.stringify(error));
         }
 
         private sendCommand(command: IWorkerCommand): void {
+            // @ts-ignore
             postMessage(command);
         }
     }

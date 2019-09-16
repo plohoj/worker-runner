@@ -62,8 +62,19 @@ export class WorkerBridge {
                     runnerPromises.resolve(command.commandId, command);
                 }
                 break;
+            case WorkerCommand.RUNNER_EXECUTE_ERROR:
+                const promises = this.runnersPromises.get(command.instanceId);
+                if (promises) {
+                    promises.reject(command.commandId, command);
+                }
+                break;
             case WorkerCommand.RUNNER_DESTROYED:
                 this.destroyPromises.resolve(command.instanceId, command);
+                this.runnersPromises.delete(command.instanceId);
+                break;
+            case WorkerCommand.RUNNER_DESTROY_ERROR:
+                this.destroyPromises.reject(command.instanceId, command);
+                this.runnersPromises.delete(command.instanceId);
                 break;
         }
     }

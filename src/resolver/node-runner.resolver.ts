@@ -1,6 +1,7 @@
 import { NodeCommand } from "../commands/node-commands";
-import { errorCommandToRunnerError } from "../commands/runner-error";
+import { errorCommandToRunnerError, IRunnerError } from "../commands/runner-error";
 import { WorkerCommand } from "../commands/worker-commands";
+import { WorkerErrorCode } from "../commands/worker-error-code";
 import { Constructor } from "../constructor";
 import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
@@ -35,7 +36,10 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
         public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
             const runnerId = this.config.runners.indexOf(runner);
             if (runnerId < 0) {
-                throw new Error('Runner not found');
+                throw {
+                    error: 'Runner not found',
+                    errorCode: WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
+                } as IRunnerError;
             }
             const workerBridge = this.getNextWorkerBridge();
             try {
