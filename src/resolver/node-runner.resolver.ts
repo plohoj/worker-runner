@@ -1,5 +1,6 @@
 import { NodeCommand } from "../commands/node-commands";
-import { IWorkerCommandRunnerInitError, WorkerCommand } from "../commands/worker-commands";
+import { errorCommandToRunnerError } from "../commands/runner-error";
+import { WorkerCommand } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
 import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
@@ -45,7 +46,7 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
                     arguments: args,
                 });
             } catch (error) {
-                throw (error as IWorkerCommandRunnerInitError).error;
+                throw errorCommandToRunnerError(error);
             }
             return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId);
         }

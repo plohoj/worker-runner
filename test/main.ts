@@ -1,4 +1,6 @@
 
+import { IRunnerError } from "../src/commands/runner-error";
+import { WorkerErrorCode } from "../src/commands/worker-error-code";
 import { Constructor } from "../src/constructor";
 import { resolver } from "./common";
 import { CalcAmountRunner } from "./common/calc-amount.runner";
@@ -70,7 +72,8 @@ describe("Runner tests", function() {
 
     it ("constructor exception", async function() {
         await resolver.run();
-        await expectAsync(resolver.resolve(RunnerWithConstructorError)).toBeRejectedWith({});
+        await expectAsync(resolver.resolve(RunnerWithConstructorError)).toBeRejectedWith(
+            { error: {}, errorCode: WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR } as IRunnerError);
     });
 });
 
