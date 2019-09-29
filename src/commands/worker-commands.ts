@@ -1,4 +1,5 @@
-import { WorkerErrorCode } from "./worker-error-code";
+import { RunnerErrorCode } from "../errors/runners-errors";
+import { StackTraceError } from "../errors/stacktrace-error";
 
 export enum WorkerCommand {
     WORKER_INIT,
@@ -33,27 +34,27 @@ export interface IWorkerCommandRunnerDestroyed {
     response: any;
 }
 
-export interface IWorkerCommandRunnerInitError {
+export type IWorkerCommandRunnerInitError = StackTraceError<{
     type: WorkerCommand.RUNNER_INIT_ERROR;
     error: any;
-    errorCode: WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR | WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND;
+    errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR | RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND;
     instanceId: number;
-}
+}>;
 
-export interface IWorkerCommandRunnerExecuteError {
+export type IWorkerCommandRunnerExecuteError = StackTraceError<{
     type: WorkerCommand.RUNNER_EXECUTE_ERROR;
     error: any;
-    errorCode: WorkerErrorCode.RUNNER_EXECUTE_ERROR | WorkerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
+    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR | RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
     commandId: number;
     instanceId: number;
-}
+}>;
 
-export interface IWorkerCommandRunnerDestroyError {
+export type IWorkerCommandRunnerDestroyError = StackTraceError<{
     type: WorkerCommand.RUNNER_DESTROY_ERROR;
     error: any;
-    errorCode: WorkerErrorCode.RUNNER_DESTROY_ERROR | WorkerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
+    errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR | RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
     instanceId: number;
-}
+}>;
 
 export type IWorkerCommand<T extends WorkerCommand = WorkerCommand> = Extract<
     IWorkerCommandWorkerInit | IWorkerCommandRunnerInit | IWorkerCommandRunnerResponse

@@ -1,2 +1,2 @@
-export { WorkerErrorCode } from './commands/worker-error-code';
+export { RunnerErrorCode } from './errors/runners-errors';
 export { RunnerResolver } from './resolver';
