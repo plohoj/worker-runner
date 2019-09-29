@@ -1,6 +1,4 @@
-import { RunnerResolver } from "../../src";
-import { IRunnerError } from "../../src/commands/runner-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "../../src/errors/runners-errors";
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages, RunnerResolver } from "../../src";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 
 let resolver: InstanceType<typeof RunnerResolver>;

@@ -1,6 +1,6 @@
 import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError } from "../commands/runner-error";
-import { IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerResponse } from "../commands/worker-commands";
+import { IWorkerCommandRunnerResponse } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
 import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { ResolveRunner } from "./resolved-runner";
@@ -32,16 +32,14 @@ export class RunnerBridge {
     }
 
     /** Remove runner instance from Worker Runners list */
-    public async destroy(...args: any): Promise<void> {
-        let workerCommand: IWorkerCommandRunnerDestroyed;
+    public async destroy(): Promise<void> {
         try {
-            workerCommand = await this._workerBridge.execCommand({
+            await this._workerBridge.execCommand({
                 type: NodeCommand.DESTROY,
                 instanceId: this._instanceId,
             });
         } catch (error) {
             throw errorCommandToRunnerError(error);
         }
-        return workerCommand.response;
     }
 }

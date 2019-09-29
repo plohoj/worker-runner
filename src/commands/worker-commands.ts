@@ -34,7 +34,6 @@ export interface IWorkerCommandRunnerResponse {
 export interface IWorkerCommandRunnerDestroyed {
     type: WorkerCommand.RUNNER_DESTROYED;
     instanceId: number;
-    response: any;
 }
 
 export type IWorkerCommandRunnerInitError = StackTraceError<{
@@ -45,7 +44,6 @@ export type IWorkerCommandRunnerInitError = StackTraceError<{
 
 export type IWorkerCommandRunnerExecuteError = StackTraceError<{
     type: WorkerCommand.RUNNER_EXECUTE_ERROR;
-
     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR | RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
     commandId: number;
     instanceId: number;

@@ -134,7 +134,6 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                         response.then(resolvedResponse => this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
-                            response: resolvedResponse
                         })).catch(error => this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROY_ERROR,
                             errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
@@ -145,14 +144,12 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                         this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
-                            response: response,
                         });
                     }
                 } else {
                     this.sendCommand({
                         type: WorkerCommand.RUNNER_DESTROYED,
                         instanceId: command.instanceId,
-                        response: undefined,
                     });
                 }
             }  else {

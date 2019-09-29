@@ -1,7 +1,5 @@
-import { RunnerErrorCode } from "../../src";
-import { IRunnerError } from "../../src/commands/runner-error";
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from "../../src";
 import { Constructor } from "../../src/constructor";
-import { RunnerErrorMessages } from "../../src/errors/runners-errors";
 import { resolver } from "../common";
 import { RunnerWithConstructorError } from "../common/runner-width-constructor-error";
 import { StorageRunner } from "../common/storage.runner";

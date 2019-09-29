@@ -1,13 +1,9 @@
-import { RunnerErrorCode } from "../../src";
-import { IRunnerError } from "../../src/commands/runner-error";
-import { Constructor } from "../../src/constructor";
-import { RunnerErrorMessages } from "../../src/errors/runners-errors";
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages, RunnerResolver } from "../../src";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 import { RunnerWidthException } from "../common/runner-with-exception";
-import { StorageRunner } from "../common/storage.runner";
 
-describe("Destroy", function() {
+describe("Destroy runner", function() {
 
     beforeAll(async function () {
         await resolver.run();
@@ -23,21 +19,29 @@ describe("Destroy", function() {
         expect(destroyData).toBe(undefined);
     });
 
-    it ("with extended method", async function() {
-        const storageData = {
-            id: 6572,
-            type: 'STORAGE_DATA',
-        };
-        const storageRunner = await resolver
-            .resolve(StorageRunner as Constructor<StorageRunner<typeof storageData>>, storageData);
-        const destroyData = await storageRunner.destroy();
-        expect(storageData).toEqual(destroyData);
-    });
-
     it ("with exception in method", async function() {
         const runnerWithException = await resolver.resolve(RunnerWidthException);
-        await expectAsync(runnerWithException.destroy('DESTROY_EXCEPTION')).toBeRejectedWith(
-            { error: undefined, errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR } as IRunnerError);
+        await expectAsync(runnerWithException.destroy()).toBeRejectedWith(jasmine.objectContaining({
+            error: {},
+            errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
+            message: 'DESTROY_EXCEPTION',
+        } as IRunnerError));
+    });
+
+    it ("with extended method", async function() {
+        class DestroyableRunner {
+            public destroy(): void {}
+        }
+        const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
+        const resolver = new RunnerResolver({
+            workerPath: '',
+            devMode: true,
+            runners: [DestroyableRunner],
+        });
+        await resolver.run();
+        const destroyableRunner = await resolver.resolve(DestroyableRunner);
+        destroyableRunner.destroy();
+        expect(destroySpy).toHaveBeenCalled();
     });
 
     it ("destroyed runner", async function() {

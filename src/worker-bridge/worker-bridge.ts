@@ -30,12 +30,12 @@ export class WorkerBridge extends WorkerBridgeBase {
         this.worker.addEventListener('message', this.workerMessageHandler);
     }
 
-    public destroy(force = false): Promise<IWorkerCommandWorkerDestroyed> {
+    public async destroy(force = false): Promise<IWorkerCommandWorkerDestroyed> {
         if (this.worker) {
-            const destroyResult$: Promise<IWorkerCommandWorkerDestroyed> = super.destroy(force);
+            const destroyResult: IWorkerCommandWorkerDestroyed = await super.destroy(force);
             this.worker.terminate();
             this.worker = undefined;
-            return destroyResult$;
+            return destroyResult;
         } else {
             throw extractError(new Error(RunnerErrorMessages.WORKER_BRIDGE_NOT_INIT));
         }
@@ -45,7 +45,6 @@ export class WorkerBridge extends WorkerBridgeBase {
         if (this.worker) {
             this.worker.postMessage(command);
         } else {
-            // TODO Test
             const error = new Error(RunnerErrorMessages.WORKER_BRIDGE_NOT_INIT)
             this.handleWorkerCommand({
                 type: WorkerCommand.WORKER_ERROR,

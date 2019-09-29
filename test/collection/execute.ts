@@ -1,6 +1,4 @@
-import { RunnerErrorCode } from "../../src";
-import { IRunnerError } from "../../src/commands/runner-error";
-import { RunnerErrorMessages } from "../../src/errors/runners-errors";
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from "../../src";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 import { DelayRunner } from "../common/delay.runner";

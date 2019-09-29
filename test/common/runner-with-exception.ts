@@ -9,7 +9,7 @@ export class RunnerWidthException {
         })
     }
 
-    public destroy(errorMessage: string): void {
-        throw errorMessage;
+    public destroy(): void {
+        throw new Error('DESTROY_EXCEPTION');
     }
 }
