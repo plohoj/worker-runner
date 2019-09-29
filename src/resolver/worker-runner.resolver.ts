@@ -1,7 +1,8 @@
 import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../commands/node-commands";
 import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
-import { WorkerErrorCode } from "../commands/worker-error-code";
 import { Constructor } from "../constructor";
+import { extractError } from "../errors/extract-error";
+import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
 export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: any}>, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
@@ -14,7 +15,10 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
         }
 
         private onMessage(message: MessageEvent): void {
-            const command: INodeCommand = message.data;
+            this.handleCommand(message.data)
+        }
+
+        public handleCommand(command: INodeCommand): void {
             switch (command.type) {
                 case NodeCommand.INIT: 
                     this.initRunnerInstance(command);                 
@@ -24,6 +28,9 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                     break;
                 case NodeCommand.DESTROY:
                     this.destroyRunnerInstance(command);
+                    break;
+                case NodeCommand.DESTROY_WORKER:
+                    this.destroyWorker(command.force);
                     break;
             }
         }
@@ -38,8 +45,8 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                     this.sendCommand({
                         type: WorkerCommand.RUNNER_INIT_ERROR,
                         instanceId: command.instanceId,
-                        errorCode: WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR,
-                        error: this.transformError(error),
+                        errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR,
+                        ...extractError(error),
                     });
                     return;
                 }
@@ -52,8 +59,8 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 this.sendCommand({
                     type: WorkerCommand.RUNNER_INIT_ERROR,
                     instanceId: command.instanceId,
-                    errorCode: WorkerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
-                    error: this.transformError(new Error('Runner constructor not found')),
+                    errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
+                    error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
                 });
             }
         }
@@ -67,8 +74,8 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 } catch (error) {
                     this.sendCommand({
                         type: WorkerCommand.RUNNER_EXECUTE_ERROR,
-                        errorCode: WorkerErrorCode.RUNNER_EXECUTE_ERROR,
-                        error: this.transformError(error),
+                        errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                        ...extractError(error),
                         commandId: command.commandId,
                         instanceId: command.instanceId,
                     });
@@ -82,8 +89,8 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                         response: resolvedResponse
                     })).catch(error => this.sendCommand({
                         type: WorkerCommand.RUNNER_EXECUTE_ERROR,
-                        errorCode: WorkerErrorCode.RUNNER_EXECUTE_ERROR,
-                        error: this.transformError(error),
+                        errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                        ...extractError(error),
                         commandId: command.commandId,
                         instanceId: command.instanceId,
                     }));
@@ -98,8 +105,8 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
             }  else {
                 this.sendCommand({
                     type: WorkerCommand.RUNNER_EXECUTE_ERROR,
-                    errorCode: WorkerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
-                    error: this.transformError(new Error('Runner instance not found')),
+                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
+                    error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
                     commandId: command.commandId,
                     instanceId: command.instanceId,
                 });
@@ -113,12 +120,12 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 let response: any;
                 if (destroyRunner.destroy) {
                     try {
-                        response = (destroyRunner.destroy as Function)(...command.arguments);
+                        response = (destroyRunner.destroy as Function)();
                     } catch (error) {
                         this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROY_ERROR,
-                            errorCode: WorkerErrorCode.RUNNER_DESTROY_ERROR,
-                            error: this.transformError(error),
+                            errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
+                            ...extractError(error),
                             instanceId: command.instanceId,
                         });
                         return;
@@ -127,42 +134,57 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                         response.then(resolvedResponse => this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
-                            response: resolvedResponse
                         })).catch(error => this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROY_ERROR,
-                            errorCode: WorkerErrorCode.RUNNER_DESTROY_ERROR,
-                            error: this.transformError(error),
+                            errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
+                            ...extractError(error),
                             instanceId: command.instanceId,
                         }));
                     } else {
                         this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROYED,
                             instanceId: command.instanceId,
-                            response: response,
                         });
                     }
                 } else {
                     this.sendCommand({
                         type: WorkerCommand.RUNNER_DESTROYED,
                         instanceId: command.instanceId,
-                        response: undefined,
                     });
                 }
             }  else {
                 this.sendCommand({
                     type: WorkerCommand.RUNNER_DESTROY_ERROR,
-                    errorCode: WorkerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
-                    error: this.transformError(new Error('Runner instance not found')),
+                    errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
+                    error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
                     instanceId: command.instanceId,
                 });
             }
         }
 
-        private transformError(error: any): any {
-            return JSON.parse(JSON.stringify(error));
+        public async destroyWorker(force = false): Promise<void> {
+            if (!force) {
+                const destroying$ = new Array<Promise<any>>();
+                for (const runnerIt of this.runnerInstances) {
+                    const runner =  runnerIt[1];
+                    if ('destroy' in runner) {
+                        let destroyResult: any;
+                        try {
+                            destroyResult = runner.destroy();
+                        } catch {
+                            continue;
+                        }
+                        if (destroyResult instanceof Promise) {
+                            destroying$.push(destroyResult.catch())
+                        }
+                    }
+                }
+                await Promise.all(destroying$);
+            }
+            this.sendCommand({ type: WorkerCommand.WORKER_DESTROYED });
         }
 
-        private sendCommand(command: IWorkerCommand): void {
+        public sendCommand(command: IWorkerCommand): void {
             // @ts-ignore
             postMessage(command);
         }

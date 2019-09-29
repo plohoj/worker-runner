@@ -5,6 +5,12 @@ interface IRunnerResolverBaseConfig<R extends Constructor> {
     namePrefix?: string;
     runners: R[];
     workerPath: string;
+    /**
+     * Executing runners in the main thread for simplified debugging  
+     * **Warning!** In this mode, a call to the runInWorker method is not required.
+     * @default false
+     */
+    devMode?: boolean,
 }
 
 const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<IRunnerResolverBaseConfig<never>> = {
@@ -12,6 +18,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<IRunnerResolverBaseConfig<ne
     namePrefix: 'Runners Worker #',
     runners: [] as never[],
     workerPath: 'worker.js',
+    devMode: false,
 }
 
 export class RunnerResolverBase<R extends Constructor> {

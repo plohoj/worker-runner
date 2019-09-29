@@ -1,5 +1,5 @@
 type FilterFlags<T, C> = {
-    [K in keyof T]: T[K] extends C ? K : never;
+    [P in keyof T]: T[P] extends C ? P : never;
 };
 
 type AllowedNames<T, C> = FilterFlags<T, C>[keyof T];
@@ -14,9 +14,16 @@ type ExcludeMethodWithPromise<T> = Pick<T, Exclude<keyof T, AllowedNames<T, (...
 
 type ResolveRunnerMethod<T> = WrapMethodsInPromises<Pick<T, AllowedNames<ExcludeMethodWithPromise<T>, Function>>>;
 
-type RunnerWithDestroyer = {
+interface RunnerWithDestroyer {
     /** Remove runner instance from list in Worker Runners */
     destroy(): Promise<void>
 };
 
-export type ResolveRunner<T> = ResolveRunnerPromises<T> & ResolveRunnerMethod<T> & RunnerWithDestroyer;
+type SerializeRunnerDestroyer<T> = 
+    T extends RunnerWithDestroyer
+        ? (Parameters<T['destroy']> extends never[]
+            ? T
+            : Omit<T, 'destroy'> & RunnerWithDestroyer )
+        : T & RunnerWithDestroyer;
+
+export type ResolveRunner<T> = SerializeRunnerDestroyer<ResolveRunnerPromises<T> & ResolveRunnerMethod<T>>;
