@@ -1,12 +1,13 @@
 import { NodeCommandResponse } from "../commands/node-command-response";
 import { checkCommandType, INodeCommand, NodeCommand } from "../commands/node-commands";
-import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "../commands/worker-commands";
+import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, IWorkerCommandWorkerDestroyed, WorkerCommand } from "../commands/worker-commands";
 import { PromisesResolver } from "../runner-promises";
 
 export abstract class WorkerBridgeBase {
     private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
     private initPromises = new PromisesResolver<IWorkerCommandRunnerInit>();
     private destroyPromises = new PromisesResolver<IWorkerCommandRunnerDestroyed>();
+    private destroyWorkerResolver?: () => void;
     private newRunnerInstanceId = 0;
 
     public execCommand<T extends NodeCommand>(command: INodeCommand<T>): Promise<IWorkerCommand<NodeCommandResponse<T>>> {
@@ -21,6 +22,11 @@ export abstract class WorkerBridgeBase {
         if (checkCommandType(command, NodeCommand.DESTROY)) {
             promise$ = this.destroyPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
+        if (checkCommandType(command, NodeCommand.DESTROY_WORKER)) {
+            promise$ = new Promise(resolver => {
+                this.destroyWorkerResolver = resolver;
+            });
+        }
         if (promise$) {
             this.sendCommand(command);
             return promise$;
@@ -32,7 +38,9 @@ export abstract class WorkerBridgeBase {
         return this.newRunnerInstanceId++;
     };
 
-    public abstract destroy(): void
+    public destroy(force = false): Promise<IWorkerCommandWorkerDestroyed> {
+        return this.execCommand({type: NodeCommand.DESTROY_WORKER, force});
+    }
 
     private getRunnerPromises(id: number): PromisesResolver<IWorkerCommandRunnerResponse> {
         const runnerPromises = this.runnersPromises.get(id);
@@ -75,6 +83,12 @@ export abstract class WorkerBridgeBase {
             case WorkerCommand.RUNNER_DESTROY_ERROR:
                 this.destroyPromises.reject(command.instanceId, command);
                 this.runnersPromises.delete(command.instanceId);
+                break;
+            case WorkerCommand.WORKER_DESTROYED:
+                if (this.destroyWorkerResolver) {
+                    this.destroyWorkerResolver();
+                    this.destroyWorkerResolver = undefined;
+                }
                 break;
         }
     }

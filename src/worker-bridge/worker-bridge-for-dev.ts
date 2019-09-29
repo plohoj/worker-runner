@@ -8,10 +8,7 @@ export class WorkerBridgeForDev extends WorkerBridgeBase {
         runnerResolver.sendCommand = this.handleWorkerCommand.bind(this);
     }
 
-    public destroy(): void {}
-
     protected sendCommand(command: INodeCommand): void {
-        debugger;
         this.runnerResolver.handleCommand(command);
     }
 }

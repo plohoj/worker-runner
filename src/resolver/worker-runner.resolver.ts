@@ -29,6 +29,9 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 case NodeCommand.DESTROY:
                     this.destroyRunnerInstance(command);
                     break;
+                case NodeCommand.DESTROY_WORKER:
+                    this.destroyWorker(command.force);
+                    break;
             }
         }
 
@@ -117,7 +120,7 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                 let response: any;
                 if (destroyRunner.destroy) {
                     try {
-                        response = (destroyRunner.destroy as Function)(...command.arguments);
+                        response = (destroyRunner.destroy as Function)();
                     } catch (error) {
                         this.sendCommand({
                             type: WorkerCommand.RUNNER_DESTROY_ERROR,
@@ -160,6 +163,28 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
                     instanceId: command.instanceId,
                 });
             }
+        }
+
+        public async destroyWorker(force = false): Promise<void> {
+            if (!force) {
+                const destroying$ = new Array<Promise<any>>();
+                for (const runnerIt of this.runnerInstances) {
+                    const runner =  runnerIt[1];
+                    if ('destroy' in runner) {
+                        let destroyResult: any;
+                        try {
+                            destroyResult = runner.destroy();
+                        } catch {
+                            continue;
+                        }
+                        if (destroyResult instanceof Promise) {
+                            destroying$.push(destroyResult.catch())
+                        }
+                    }
+                }
+                await Promise.all(destroying$);
+            }
+            this.sendCommand({ type: WorkerCommand.WORKER_DESTROYED });
         }
 
         public sendCommand(command: IWorkerCommand): void {

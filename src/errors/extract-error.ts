@@ -1,8 +1,9 @@
 import { IStacktraceError, StackTraceError } from "./stacktrace-error";
 
 export function extractError(error: any): StackTraceError {
+
     const extractedError: StackTraceError = {
-        error: JSON.parse(JSON.stringify(error)),
+        error: error ? JSON.parse(JSON.stringify(error)): error,
     };
     if (error instanceof Error) {
         (extractedError as IStacktraceError).stacktrace = error.stack;

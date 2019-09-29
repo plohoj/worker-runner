@@ -36,9 +36,8 @@ describe("Destroy", function() {
 
     it ("with exception in method", async function() {
         const runnerWithException = await resolver.resolve(RunnerWidthException);
-        const exceptionError = 'DESTROY_EXCEPTION';
-        await expectAsync(runnerWithException.destroy(exceptionError)).toBeRejectedWith(
-            { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR } as IRunnerError);
+        await expectAsync(runnerWithException.destroy('DESTROY_EXCEPTION')).toBeRejectedWith(
+            { error: undefined, errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR } as IRunnerError);
     });
 
     it ("destroyed runner", async function() {

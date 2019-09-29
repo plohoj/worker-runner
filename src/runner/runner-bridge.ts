@@ -38,7 +38,6 @@ export class RunnerBridge {
             workerCommand = await this._workerBridge.execCommand({
                 type: NodeCommand.DESTROY,
                 instanceId: this._instanceId,
-                arguments: args,
             });
         } catch (error) {
             throw errorCommandToRunnerError(error);
