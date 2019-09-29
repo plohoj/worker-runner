@@ -15,7 +15,10 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
         }
 
         private onMessage(message: MessageEvent): void {
-            const command: INodeCommand = message.data;
+            this.handleCommand(message.data)
+        }
+
+        public handleCommand(command: INodeCommand): void {
             switch (command.type) {
                 case NodeCommand.INIT: 
                     this.initRunnerInstance(command);                 
@@ -159,7 +162,7 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
             }
         }
 
-        private sendCommand(command: IWorkerCommand): void {
+        public sendCommand(command: IWorkerCommand): void {
             // @ts-ignore
             postMessage(command);
         }

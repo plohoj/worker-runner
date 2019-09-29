@@ -2,7 +2,7 @@ import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError } from "../commands/runner-error";
 import { IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerResponse } from "../commands/worker-commands";
 import { Constructor } from "../constructor";
-import { WorkerBridge } from "../worker-bridge";
+import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { ResolveRunner } from "./resolved-runner";
 
 export type IRunnerBridgeConstructor<T extends Constructor> = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
@@ -11,7 +11,7 @@ export class RunnerBridge {
     private _lastCommandId = 0;
 
     constructor(
-        private _workerBridge: WorkerBridge,
+        private _workerBridge: WorkerBridgeBase,
         private _instanceId:number,
     ) {}
 

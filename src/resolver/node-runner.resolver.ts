@@ -5,19 +5,25 @@ import { Constructor } from "../constructor";
 import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
 import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
 import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
-import { WorkerBridge } from "../worker-bridge";
+import { WorkerBridge } from "../worker-bridge/worker-bridge";
+import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
+import { WorkerBridgeForDev } from "../worker-bridge/worker-bridge-for-dev";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
 export function nodeRunnerResolverMixin<R extends Constructor, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
     return class extends runnerResolver {
-        private workers?: WorkerBridge[];
+        private workers?: WorkerBridgeBase[];
         private workerIndex = 0;
         private runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
 
-        public run(): Promise<void> {
+        public async run(): Promise<void> {
             const workers = new Array<Worker>();
             this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
-            return new Promise(resolve => {
+            if (this.config.devMode) {
+                this.workers = [new WorkerBridgeForDev(this as any)];
+                return;
+            }
+            await new Promise(resolve => {
                 for (let i = 0; i < this.config.totalWorkers; i++) {
                     const worker = new Worker(this.config.workerPath, { name: `${this.config.namePrefix}${i}` });
                     worker.onmessage = (message) => {
@@ -58,7 +64,7 @@ export function nodeRunnerResolverMixin<R extends Constructor, T extends new (..
         public destroy(): void {
         }
 
-        private getNextWorkerBridge(): WorkerBridge {
+        private getNextWorkerBridge(): WorkerBridgeBase {
             if (!this.workers || this.workers.length === 0) {
                 throw new Error('Workers was not started');
             }

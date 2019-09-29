@@ -1,30 +1,29 @@
-import { NodeCommandResponse } from "./commands/node-command-response";
-import { checkCommandType, INodeCommand, NodeCommand } from "./commands/node-commands";
-import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "./commands/worker-commands";
-import { PromisesResolver } from "./runner-promises";
+import { NodeCommandResponse } from "../commands/node-command-response";
+import { checkCommandType, INodeCommand, NodeCommand } from "../commands/node-commands";
+import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, WorkerCommand } from "../commands/worker-commands";
+import { PromisesResolver } from "../runner-promises";
 
-export class WorkerBridge {
+export abstract class WorkerBridgeBase {
     private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
     private initPromises = new PromisesResolver<IWorkerCommandRunnerInit>();
     private destroyPromises = new PromisesResolver<IWorkerCommandRunnerDestroyed>();
-    private workerMessageHandler = this.onWorkerMessage.bind(this);
     private newRunnerInstanceId = 0;
 
-    constructor(private worker: Worker) {
-        this.worker.addEventListener('message', this.workerMessageHandler);
-    }
-
     public execCommand<T extends NodeCommand>(command: INodeCommand<T>): Promise<IWorkerCommand<NodeCommandResponse<T>>> {
-        this.sendCommand(command);
+        let promise$: Promise<IWorkerCommand<NodeCommandResponse<T>>> | undefined;
         if (checkCommandType(command, NodeCommand.INIT)) {
-            return this.initPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+            promise$ = this.initPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
         if (checkCommandType(command, NodeCommand.EXECUTE)) {
             const runnerPromises = this.getRunnerPromises(command.instanceId);
-            return runnerPromises.promise(command.commandId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+            promise$ = runnerPromises.promise(command.commandId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
         }
         if (checkCommandType(command, NodeCommand.DESTROY)) {
-            return this.destroyPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+            promise$ = this.destroyPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+        }
+        if (promise$) {
+            this.sendCommand(command);
+            return promise$;
         }
         throw Error(`Command "${command['type']}" not found`);
     }
@@ -33,9 +32,7 @@ export class WorkerBridge {
         return this.newRunnerInstanceId++;
     };
 
-    public destroy(): void {
-        this.worker.removeEventListener('message', this.workerMessageHandler);
-    }
+    public abstract destroy(): void
 
     private getRunnerPromises(id: number): PromisesResolver<IWorkerCommandRunnerResponse> {
         const runnerPromises = this.runnersPromises.get(id);
@@ -47,8 +44,11 @@ export class WorkerBridge {
         return newRunnerPromises;
     }
 
-    private onWorkerMessage(message: MessageEvent): void {
-        const command: IWorkerCommand = message.data;
+    protected onWorkerMessage(message: MessageEvent): void {
+        this.handleWorkerCommand(message.data);
+    }
+
+    protected handleWorkerCommand(command: IWorkerCommand) {
         switch (command.type) {
             case WorkerCommand.RUNNER_INIT:
                 this.initPromises.resolve(command.instanceId, command)
@@ -79,7 +79,5 @@ export class WorkerBridge {
         }
     }
 
-    private sendCommand(command: INodeCommand): void {
-        this.worker.postMessage(command);
-    }
+    protected abstract sendCommand(command: INodeCommand): void
 }
