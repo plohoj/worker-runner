@@ -1,6 +1,3 @@
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-
 /** @type {import('webpack').Configuration} */
 module.exports = {
     context: __dirname,
@@ -16,24 +13,9 @@ module.exports = {
             },
         ],
     },
-    output: {
-        filename: '[name].js',
-        path: path.resolve(__dirname, 'dist'),
-    },
+    output: {filename: '[name].js'},
     resolve: {
         extensions: ['.js', '.ts']
     },
-    plugins: [
-        new HtmlWebpackPlugin({
-            title: 'Worker instance',
-            excludeChunks: ['worker-test'],
-        }),
-    ],
-    watch: true,
     devtool: 'source-map',
-    devServer: {
-        contentBase: path.join(__dirname, 'dist'),
-        compress: true,
-        port: 3400,
-    },
 };

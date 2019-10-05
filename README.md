@@ -1,0 +1,63 @@
+# Worker Runner
+A tool to assist in using Web Worker.
+## Usage
+Declare your classes with the methods you need.
+``` ts
+export class LibraryRunner {
+    public books: string[]
+    constructor (books: string[]) {
+        this.books = books;
+    }
+
+    public addBook(book: string): void {
+        this.books.push(book);
+    }
+
+    public checkBook(book: string): boolean {
+        return this.books.indexOf(book) !== -1;
+    }
+
+    public reserveBook(book: string, time: number): Promise<string> {
+        return new Promise(resolve => setTimeout(() => resolve(book), time))
+    }
+}
+```
+Declare your control instance of WorkerResolver in a common module. The control instance must be declared with specific classes that will be executed in the workspace.
+``` ts
+import { RunnerResolver } from '../src';
+
+export const resolver = new RunnerResolver({
+    runners: [LibraryRunner],
+    workerPath: 'worker.js'
+});
+```
+Import your control instance anywhere in the code, as well as in the Worker area. Call the `run()` and `runInWorker()` method.
+``` ts
+// Main area
+import { resolver } from "./common";
+// ...
+resolver.run();
+
+// Worker area
+import { resolver } from "./common";
+// ...
+resolver.runInWorker();
+```
+Now you can use the control instance to resolve instances of the Runner class that will be used in the main area and executed in the worker area.
+``` ts
+async function main() {
+    await resolver.run();
+    const libraryRunner = await resolver.resolve(LibraryRunner, ['Book №1']);
+
+    await libraryRunner.addBook('Book №2');
+
+    const isExist = await libraryRunner.checkBook('Book №2');
+    console.log('Book №2 exist:', isExist); // => Book №2 exist: true
+
+    const reservedBook = await libraryRunner.reserveBook('Book №1', 100);
+    console.log('Reserve ended for:', reservedBook); // => Reserve ended for: Book №1
+
+    await libraryRunner.destroy();
+}
+main();
+```

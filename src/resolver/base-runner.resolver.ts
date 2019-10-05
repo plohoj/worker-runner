@@ -1,6 +1,7 @@
 import { Constructor } from "../constructor";
 
 interface IRunnerResolverBaseConfig<R extends Constructor> {
+    /** @default 1 */
     totalWorkers?: number;
     namePrefix?: string;
     runners: R[];
@@ -14,7 +15,7 @@ interface IRunnerResolverBaseConfig<R extends Constructor> {
 }
 
 const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<IRunnerResolverBaseConfig<never>> = {
-    totalWorkers: 4,
+    totalWorkers: 1,
     namePrefix: 'Runners Worker #',
     runners: [] as never[],
     workerPath: 'worker.js',
