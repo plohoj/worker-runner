@@ -6,7 +6,7 @@ import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
 export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: any}>, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
-    return class extends runnerResolver {
+    return class WorkerRunnerResolver extends runnerResolver {
         private runnerInstances = new Map<number, InstanceType<R>>();
 
         public runInWorker(): void {

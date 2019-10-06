@@ -1,5 +1,7 @@
+import { Constructor } from "../constructor";
 import { RunnerResolverBase } from "./base-runner.resolver";
 import { nodeRunnerResolverMixin } from "./node-runner.resolver";
 import { workerRunnerResolverMixin } from "./worker-runner.resolver";
 
-export const RunnerResolver = workerRunnerResolverMixin(nodeRunnerResolverMixin(RunnerResolverBase));
+export class RunnerResolver<R extends Constructor<{[key: string]: any}>>
+    extends workerRunnerResolverMixin(nodeRunnerResolverMixin(RunnerResolverBase))<R> {};

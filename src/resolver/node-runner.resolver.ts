@@ -10,7 +10,7 @@ import { WorkerBridgeForDev } from "../worker-bridge/worker-bridge-for-dev";
 import { RunnerResolverBase } from "./base-runner.resolver";
 
 export function nodeRunnerResolverMixin<R extends Constructor, T extends new (...args: any[]) => RunnerResolverBase<R>>(runnerResolver: T) {
-    return class extends runnerResolver {
+    return class NodeRunnerResolver extends runnerResolver {
         private workerBridges?: WorkerBridgeBase[];
         private workerIndex = 0;
         private runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
