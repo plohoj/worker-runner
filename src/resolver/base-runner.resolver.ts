@@ -5,7 +5,8 @@ interface IRunnerResolverBaseConfig<R extends Constructor> {
     totalWorkers?: number;
     namePrefix?: string;
     runners: R[];
-    workerPath: string;
+    /** @default 'worker.js' */
+    workerPath?: string;
     /**
      * Executing runners in the main thread for simplified debugging  
      * **Warning!** In this mode, a call to the runInWorker method is not required.

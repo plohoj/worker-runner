@@ -165,20 +165,19 @@ export function workerRunnerResolverMixin<R extends Constructor<{[key: string]: 
         public async destroyWorker(force = false): Promise<void> {
             if (!force) {
                 const destroying$ = new Array<Promise<any>>();
-                for (const runnerIt of this.runnerInstances) {
-                    const runner =  runnerIt[1];
+                this.runnerInstances.forEach(runner => {
                     if ('destroy' in runner) {
                         let destroyResult: any;
                         try {
                             destroyResult = runner.destroy();
                         } catch {
-                            continue;
+                            return;
                         }
                         if (destroyResult instanceof Promise) {
                             destroying$.push(destroyResult.catch())
                         }
                     }
-                }
+                });
                 await Promise.all(destroying$);
             }
             this.sendCommand({ type: WorkerCommand.WORKER_DESTROYED });
