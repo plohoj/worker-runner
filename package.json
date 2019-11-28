@@ -7,26 +7,26 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://plohoj@github.com/plohoj/worker-instance.git"
+    "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/plohoj/worker-instance/issues"
+    "url": "https://github.com/plohoj/worker-runner/issues"
   },
   "main": "./src/index",
-  "homepage": "https://github.com/plohoj/worker-instance#readme",
+  "homepage": "https://github.com/plohoj/worker-runner#readme",
   "devDependencies": {
-    "@types/jasmine": "^3.4.0",
+    "@types/jasmine": "^3.5.0",
     "@types/karma-webpack": "^2.0.7",
-    "@types/webpack": "^4.39.1",
-    "jasmine": "^3.4.0",
-    "karma": "^4.3.0",
+    "@types/webpack": "^4.41.0",
+    "jasmine": "^3.5.0",
+    "karma": "^4.4.1",
     "karma-jasmine": "^2.0.1",
     "karma-webpack": "^4.0.2",
-    "ts-loader": "^6.0.4",
-    "typescript": "^3.6.2",
-    "webpack": "^4.39.3",
-    "webpack-cli": "^3.3.7"
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.2",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10"
   }
 }
