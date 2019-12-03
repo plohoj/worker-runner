@@ -8,7 +8,7 @@ describe("Dev mode", function() {
     beforeAll(async function () {
         resolver = new RunnerResolver({
             workerPath: '',
-            devMode: true,
+            // devMode: true,
             runners: [CalcAmountRunner],
         });
         await resolver.run();

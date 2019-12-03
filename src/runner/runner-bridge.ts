@@ -1,7 +1,7 @@
+import { Constructor } from "@core/constructor";
 import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError } from "../commands/runner-error";
 import { IWorkerCommandRunnerResponse } from "../commands/worker-commands";
-import { Constructor } from "../constructor";
 import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { ResolveRunner } from "./resolved-runner";
 

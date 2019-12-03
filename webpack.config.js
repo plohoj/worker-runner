@@ -1,3 +1,5 @@
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+
 /** @type {import('webpack').Configuration} */
 module.exports = {
     context: __dirname,
@@ -15,7 +17,8 @@ module.exports = {
     },
     output: {filename: '[name].js'},
     resolve: {
-        extensions: ['.js', '.ts']
+        extensions: ['.js', '.ts'],
+        plugins: [new TsconfigPathsPlugin()]
     },
     devtool: 'source-map',
 };

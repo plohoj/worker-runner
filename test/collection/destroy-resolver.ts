@@ -18,7 +18,7 @@ describe("Destroy resolver", function() {
     it ("for restart with dev mode", async function() {
         const resolver = new RunnerResolver({
             workerPath: '',
-            devMode: true,
+            // devMode: true,
             runners: [CalcAmountRunner],
         });
         await resolver.run();
@@ -39,7 +39,7 @@ describe("Destroy resolver", function() {
         const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
         const resolver = new RunnerResolver({
             workerPath: '',
-            devMode: true,
+            // devMode: true,
             runners: [ForceDestroy],
         });
         await resolver.run();
@@ -55,7 +55,7 @@ describe("Destroy resolver", function() {
         const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
         const resolver = new RunnerResolver({
             workerPath: '',
-            devMode: true,
+            // devMode: true,
             runners: [ForceDestroy],
         });
         await resolver.run();

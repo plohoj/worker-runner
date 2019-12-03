@@ -35,7 +35,7 @@ describe("Destroy runner", function() {
         const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
         const resolver = new RunnerResolver({
             workerPath: '',
-            devMode: true,
+            // devMode: true,
             runners: [DestroyableRunner],
         });
         await resolver.run();

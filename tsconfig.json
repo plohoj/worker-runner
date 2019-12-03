@@ -1,13 +1,18 @@
 {
     "compilerOptions": {
+        "baseUrl": "./",
         "module": "commonjs",
         "lib": [
             "webworker"
         ],
         "target": "esnext",
-        "outDir": "/dist",
+        "outDir": "./dist",
         "strictNullChecks": true,
-        "strict": true
+        "strict": true,        
+        "paths": {
+            "@core/*": ["./modules/core/*"],
+            "@modules/*": ["./modules/*"],
+        }
     },
     "exclude": [
         "node_modules"
