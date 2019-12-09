@@ -1,6 +1,6 @@
 import { Constructor } from "@core/constructor";
 import { INodeRunnerResolverConfigBase } from '@core/resolver/node-runner.resolver';
-import { IRunnerBridgeConstructor } from "src/runner/runner-bridge";
+import { IRunnerBridgeConstructor } from "@core/runner/runner-bridge";
 import { NodeRunnerResolver } from "./node-runner.resolver";
 import { WorkerRunnerResolver } from "./worker-runner.resolver";
 

@@ -4,7 +4,11 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 module.exports = {
     context: __dirname,
     entry: {
-        'worker-runner': './src/index.ts',
+        core: [
+            './modules/core/resolver/node-runner.resolver.ts',
+            './modules/core/resolver/worker-runner.resolver.ts',
+        ],
+        promise: './modules/core/runner-promises.ts',
     },
     module: {
         rules: [

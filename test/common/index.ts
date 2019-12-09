@@ -1,5 +1,5 @@
 
-import { RunnerResolver } from "../../src";
+import { RunnerResolver } from "@modules/promise/runner.resolver";
 import { CalcAmountRunner } from "./calc-amount.runner";
 import { DelayRunner } from "./delay.runner";
 import { RunnerWithConstructorError } from "./runner-width-constructor-error";

@@ -1,4 +1,4 @@
-import { RunnerResolver } from "../../src";
+import { RunnerResolver } from "@modules/promise/runner.resolver";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 
@@ -37,7 +37,7 @@ describe("Destroy resolver", function() {
             }
         }
         const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-        const resolver = new RunnerResolver({
+        const resolver = new RunnerResolver ({
             workerPath: '',
             // devMode: true,
             runners: [ForceDestroy],

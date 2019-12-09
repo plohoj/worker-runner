@@ -1,4 +1,6 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages, RunnerResolver } from "../../src";
+import { IRunnerError } from "@core/commands/runner-error";
+import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
+import { RunnerResolver } from "@modules/promise/runner.resolver";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 
 let resolver: InstanceType<typeof RunnerResolver>;

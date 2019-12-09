@@ -1,8 +1,8 @@
 import { Constructor } from "@core/constructor";
-import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../../../src/commands/node-commands";
-import { IWorkerCommand, WorkerCommand } from "../../../src/commands/worker-commands";
-import { extractError } from "../../../src/errors/extract-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "../../../src/errors/runners-errors";
+import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../commands/node-commands";
+import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
+import { extractError } from "../errors/extract-error";
+import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: string]: any}>>{

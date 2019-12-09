@@ -1,11 +1,11 @@
 import { Constructor } from "@core/constructor";
-import { NodeCommand } from "../../../src/commands/node-commands";
-import { errorCommandToRunnerError, IRunnerError } from "../../../src/commands/runner-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "../../../src/errors/runners-errors";
-import { resolveRunnerBridgeConstructor } from "../../../src/runner/bridge-constructor.resolver";
-import { IRunnerBridgeConstructor } from "../../../src/runner/runner-bridge";
-import { WorkerBridge } from "../../../src/worker-bridge/worker-bridge";
-import { WorkerBridgeBase } from "../../../src/worker-bridge/worker-bridge-base";
+import { NodeCommand } from "../commands/node-commands";
+import { errorCommandToRunnerError, IRunnerError } from "../commands/runner-error";
+import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
+import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
+import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
+import { WorkerBridge } from "../worker-bridge/worker-bridge";
+import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { IRunnerResolverConfigBase } from "./base-runner.resolver";
 
 export interface INodeRunnerResolverConfigBase<R extends Constructor> extends IRunnerResolverConfigBase<R> {
