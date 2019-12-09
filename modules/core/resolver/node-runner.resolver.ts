@@ -24,9 +24,9 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 }
 
 export abstract class NodeRunnerResolverBase<R extends Constructor> {
-    private workerBridges?: WorkerBridgeBase[];
     private workerIndex = 0;
     private runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
+    protected workerBridges?: WorkerBridgeBase[];
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
     constructor(config: INodeRunnerResolverConfigBase<R>) {
@@ -38,20 +38,7 @@ export abstract class NodeRunnerResolverBase<R extends Constructor> {
 
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
-        // if (this.config.devMode) {
-        //     this.workerBridges = [new WorkerBridgeForDev(this as any)];
-        //     return;
-        // }
-        const workerBridgesInits$ = new Array<Promise<WorkerBridge>>();
-        for (let i = 0; i < this.config.totalWorkers; i++) {
-            const bridge = new WorkerBridge({
-                workerPath: this.config.workerPath,
-                workerName: `${this.config.namePrefix}${i}`,
-            });
-            workerBridgesInits$.push(bridge.init().then(() => bridge))
-        }
-        const workerBridges = await Promise.all(workerBridgesInits$);
-        this.workerBridges = workerBridges;
+        await this.buildWorkerBridge();        
     }
 
     public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
@@ -85,6 +72,19 @@ export abstract class NodeRunnerResolverBase<R extends Constructor> {
             await Promise.all(this.workerBridges.map(workerBridge => workerBridge.destroy(force)));
         }
         this.workerBridges = undefined;
+    }
+
+    protected async buildWorkerBridge(): Promise<void> {
+        const workerBridgesInits$ = new Array<Promise<WorkerBridge>>();
+        for (let i = 0; i < this.config.totalWorkers; i++) {
+            const bridge = new WorkerBridge({
+                workerPath: this.config.workerPath,
+                workerName: `${this.config.namePrefix}${i}`,
+            });
+            workerBridgesInits$.push(bridge.init().then(() => bridge))
+        }
+        const workerBridges = await Promise.all(workerBridgesInits$);
+        this.workerBridges = workerBridges;
     }
 
     private getNextWorkerBridge(): WorkerBridgeBase {

@@ -1,6 +1,6 @@
 import { IRunnerError } from "@core/commands/runner-error";
 import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
-import { RunnerResolver } from "@modules/promise/runner.resolver";
+import { DevRunnerResolver } from "@modules/promise/dev-runner.resolver";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 import { RunnerWidthException } from "../common/runner-with-exception";
@@ -35,9 +35,8 @@ describe("Destroy runner", function() {
             public destroy(): void {}
         }
         const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-        const resolver = new RunnerResolver({
+        const resolver = new DevRunnerResolver({
             workerPath: '',
-            // devMode: true,
             runners: [DestroyableRunner],
         });
         await resolver.run();

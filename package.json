@@ -14,7 +14,6 @@
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
   },
-  "main": "./src/index",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "devDependencies": {
     "@types/jasmine": "^3.5.0",

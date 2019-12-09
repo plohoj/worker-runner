@@ -1,4 +1,4 @@
-import { RunnerResolver } from "@modules/promise/runner.resolver";
+import { DevRunnerResolver } from "@modules/promise/dev-runner.resolver";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 
@@ -16,9 +16,8 @@ describe("Destroy resolver", function() {
     });
 
     it ("for restart with dev mode", async function() {
-        const resolver = new RunnerResolver({
+        const resolver = new DevRunnerResolver({
             workerPath: '',
-            // devMode: true,
             runners: [CalcAmountRunner],
         });
         await resolver.run();
@@ -37,9 +36,8 @@ describe("Destroy resolver", function() {
             }
         }
         const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-        const resolver = new RunnerResolver ({
+        const resolver = new DevRunnerResolver ({
             workerPath: '',
-            // devMode: true,
             runners: [ForceDestroy],
         });
         await resolver.run();
@@ -53,9 +51,8 @@ describe("Destroy resolver", function() {
             public destroy(): void {}
         }
         const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-        const resolver = new RunnerResolver({
+        const resolver = new DevRunnerResolver({
             workerPath: '',
-            // devMode: true,
             runners: [ForceDestroy],
         });
         await resolver.run();

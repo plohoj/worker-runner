@@ -1,16 +1,15 @@
 import { IRunnerError } from "@core/commands/runner-error";
 import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
-import { RunnerResolver } from "@modules/promise/runner.resolver";
+import { DevRunnerResolver } from "@modules/promise/dev-runner.resolver";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 
-let resolver: InstanceType<typeof RunnerResolver>;
+let resolver: DevRunnerResolver<typeof CalcAmountRunner>;
 
 describe("Dev mode", function() {
 
     beforeAll(async function () {
-        resolver = new RunnerResolver({
+        resolver = new DevRunnerResolver({
             workerPath: '',
-            // devMode: true,
             runners: [CalcAmountRunner],
         });
         await resolver.run();
@@ -27,6 +26,7 @@ describe("Dev mode", function() {
     });
 
     it ("constructor not exist", async function() {
+        // @ts-ignore
         await expectAsync(resolver.resolve(class {})).toBeRejectedWith({
             error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
             errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND
