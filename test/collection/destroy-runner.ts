@@ -1,27 +1,27 @@
-import { IRunnerError } from "@core/commands/runner-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
-import { DevRunnerResolver } from "@modules/promise/dev/runner.resolver";
-import { resolver } from "../common";
-import { CalcAmountRunner } from "../common/calc-amount.runner";
-import { RunnerWidthException } from "../common/runner-with-exception";
+import { IRunnerError } from '@core/commands/runner-error';
+import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
+import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
+import { CalcAmountRunner } from '../common/calc-amount.runner';
+import { resolver } from '../common/promise';
+import { RunnerWidthException } from '../common/runner-with-exception';
 
-describe("Destroy runner", function() {
+describe('Destroy runner', () => {
 
-    beforeAll(async function () {
+    beforeAll(async () => {
         await resolver.run();
     });
 
-    afterAll(async function() {
+    afterAll(async () => {
         resolver.destroy();
     });
-    
-    it ("simple", async function() {
+
+    it ('simple', async () => {
         const calcRunner = await resolver.resolve(CalcAmountRunner);
         const destroyData = await calcRunner.destroy();
         expect(destroyData).toBe(undefined);
     });
 
-    it ("with exception in method", async function() {
+    it ('with exception in method', async () => {
         const runnerWithException = await resolver.resolve(RunnerWidthException);
         await expectAsync(runnerWithException.destroy()).toBeRejectedWith(jasmine.objectContaining({
             error: {},
@@ -30,27 +30,30 @@ describe("Destroy runner", function() {
         } as IRunnerError));
     });
 
-    it ("with extended method", async function() {
+    it ('with extended method', async () => {
         class DestroyableRunner {
-            public destroy(): void {}
+            public destroy(): void {
+                // stub
+            }
         }
         const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-        const resolver = new DevRunnerResolver({
+        const devResolver = new DevRunnerResolver({
             workerPath: '',
             runners: [DestroyableRunner],
         });
-        await resolver.run();
-        const destroyableRunner = await resolver.resolve(DestroyableRunner);
+        await devResolver.run();
+        const destroyableRunner = await devResolver.resolve(DestroyableRunner);
         destroyableRunner.destroy();
         expect(destroySpy).toHaveBeenCalled();
+        devResolver.destroy();
     });
 
-    it ("destroyed runner", async function() {
+    it ('destroyed runner', async () => {
         const calcRunner = await resolver.resolve(CalcAmountRunner);
         await calcRunner.destroy();
         await expectAsync(calcRunner.destroy()).toBeRejectedWith({
             error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-            errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND
+            errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
         } as IRunnerError);
     });
 });

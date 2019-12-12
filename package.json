@@ -3,7 +3,8 @@
   "version": "0.1.2",
   "scripts": {
     "build": "webpack-cli --mode=production",
-    "test": "karma start"
+    "test": "karma start",
+    "tslint": "tslint -p . -t codeFrame"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
     "karma-webpack": "^4.0.2",
     "ts-loader": "^6.2.1",
     "tsconfig-paths-webpack-plugin": "^3.2.0",
+    "tslint": "^5.20.1",
     "typescript": "^3.7.3",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10"

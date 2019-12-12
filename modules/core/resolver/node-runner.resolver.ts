@@ -1,12 +1,12 @@
-import { RunnerConstructor } from "@core/types/constructor";
-import { NodeCommand } from "../commands/node-commands";
-import { errorCommandToRunnerError, IRunnerError } from "../commands/runner-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
-import { resolveRunnerBridgeConstructor } from "../runner/bridge-constructor.resolver";
-import { IRunnerBridgeConstructor } from "../runner/runner-bridge";
-import { WorkerBridge } from "../worker-bridge/worker-bridge";
-import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
-import { IRunnerResolverConfigBase } from "./base-runner.resolver";
+import { RunnerConstructor } from '@core/types/constructor';
+import { NodeCommand } from '../commands/node-commands';
+import { errorCommandToRunnerError, IRunnerError } from '../commands/runner-error';
+import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
+import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
+import { WorkerBridge } from '../worker-bridge/worker-bridge';
+import { WorkerBridgeBase } from '../worker-bridge/worker-bridge-base';
+import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
     /** @default 1 */
@@ -21,11 +21,11 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
     namePrefix: 'Runners Worker #',
     runners: [] as never[],
     workerPath: 'worker.js',
-}
+};
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
     private workerIndex = 0;
-    private runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
+    protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected workerBridges?: WorkerBridgeBase[];
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
@@ -33,16 +33,18 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
         this.config = {
             ...DEFAULT_RUNNER_RESOLVER_BASE_CONFIG,
             ...config,
-        }
+        };
     }
 
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
-        this.workerBridges = await this.buildWorkerBridge();        
+        this.workerBridges = await this.buildWorkerBridge();
     }
 
-    public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
-        const runnerId = this.config.runners.indexOf(runner);
+    public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
+
+    protected async sendInitCommand(runnerId: number, ...args: ConstructorParameters<R>): Promise<WorkerBridgeBase> {
+
         if (runnerId < 0) {
             throw {
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
@@ -60,7 +62,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
         } catch (error) {
             throw errorCommandToRunnerError(error);
         }
-        return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId);
+        return workerBridge;
     }
 
     /**
@@ -81,9 +83,9 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
                 workerPath: this.config.workerPath,
                 workerName: `${this.config.namePrefix}${i}`,
             });
-            workerBridgesInits$.push(bridge.init().then(() => bridge))
+            workerBridgesInits$.push(bridge.init().then(() => bridge));
         }
-        return Promise.all(workerBridgesInits$);;
+        return Promise.all(workerBridgesInits$);
     }
 
     private getNextWorkerBridge(): WorkerBridgeBase {

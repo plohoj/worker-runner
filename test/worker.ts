@@ -1,3 +1,3 @@
-import { resolver } from "./common";
+import { resolver } from './common/promise';
 
 resolver.runInWorker();

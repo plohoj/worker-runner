@@ -1,22 +1,22 @@
-import { IRunnerError } from "@core/commands/runner-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
-import { Constructor } from "@core/types/constructor";
-import { resolver } from "../common";
-import { RunnerWithConstructorError } from "../common/runner-width-constructor-error";
-import { StorageRunner } from "../common/storage.runner";
-import { SumOfArrayRunner } from "../common/sum-of-array.runner";
+import { IRunnerError } from '@core/commands/runner-error';
+import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
+import { Constructor } from '@core/types/constructor';
+import { resolver } from '../common/promise';
+import { RunnerWithConstructorError } from '../common/runner-width-constructor-error';
+import { StorageRunner } from '../common/storage.runner';
+import { SumOfArrayRunner } from '../common/sum-of-array.runner';
 
-describe("Constructor", function() {
+describe('Constructor', () => {
 
-    beforeAll(async function () {
+    beforeAll(async () => {
         await resolver.run();
     });
 
-    afterAll(async function() {
+    afterAll(async () => {
         resolver.destroy();
     });
 
-    it ("with arguments", async function() {
+    it ('with arguments', async () => {
         const storageData = {
             id: 5326,
             type: 'STORAGE_DATA',
@@ -27,22 +27,25 @@ describe("Constructor", function() {
         expect(storageData).toEqual(returnedStorageData);
     });
 
-    
-    it("with extended class", async function() {
+
+    it('with extended class', async () => {
         const sumOfArrayCalcRunner = await resolver.resolve(SumOfArrayRunner);
-        const result = await sumOfArrayCalcRunner.calcArray([7,35,64]);
+        const result = await sumOfArrayCalcRunner.calcArray([7, 35, 64]);
         expect(result).toBe(106);
     });
- 
-    it ("with exception", async function() {
+
+    it ('with exception', async () => {
         await expectAsync(resolver.resolve(RunnerWithConstructorError)).toBeRejectedWith(
-            jasmine.objectContaining({ error: {}, errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR } as IRunnerError));
+            jasmine.objectContaining({
+                error: {},
+                errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR,
+            } as IRunnerError));
     });
 
-    it ("not exist", async function() {
+    it ('not exist', async () => {
         await expectAsync(resolver.resolve(class {})).toBeRejectedWith({
             error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-            errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND
+            errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
         } as IRunnerError);
     });
 
