@@ -1,4 +1,4 @@
-import { JsonObject } from "@core/json-object";
+import { JsonObject } from "@core/types/json-object";
 
 export enum NodeCommand {
     INIT,

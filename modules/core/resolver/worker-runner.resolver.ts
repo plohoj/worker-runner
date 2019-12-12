@@ -1,5 +1,5 @@
-import { Constructor } from "@core/constructor";
-import { JsonObject } from "@core/json-object";
+import { Constructor } from "@core/types/constructor";
+import { JsonObject } from "@core/types/json-object";
 import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../commands/node-commands";
 import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
 import { extractError } from "../errors/extract-error";
@@ -97,12 +97,7 @@ export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: stri
                     instanceId: command.instanceId,
                 }));
             } else {
-                this.sendCommand({
-                    type: WorkerCommand.RUNNER_EXECUTED,
-                    commandId: command.commandId,
-                    instanceId: command.instanceId,
-                    response: response,
-                });
+                this.handleExecuteResponse(command, response);
             }
         }  else {
             this.sendCommand({
@@ -113,6 +108,15 @@ export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: stri
                 instanceId: command.instanceId,
             });
         }
+    }
+
+    protected handleExecuteResponse(command: INodeCommandRun, response: any): void {
+        this.sendCommand({
+            type: WorkerCommand.RUNNER_EXECUTED,
+            commandId: command.commandId,
+            instanceId: command.instanceId,
+            response: response,
+        });
     }
 
     private destroyRunnerInstance(command: INodeCommandDestroy): void {

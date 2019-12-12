@@ -1,5 +1,5 @@
-import { Constructor } from "@core/constructor";
-import { JsonObject } from "@core/json-object";
+import { Constructor, RunnerConstructor } from "@core/types/constructor";
+import { JsonObject } from "@core/types/json-object";
 import { IRunnerBridgeConstructor, RunnerBridge } from "./runner-bridge";
 
 function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
@@ -16,7 +16,7 @@ function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
     }
 }
 
-export function resolveRunnerBridgeConstructor<T extends Constructor>(runner: T): IRunnerBridgeConstructor<T> {
+export function resolveRunnerBridgeConstructor<T extends RunnerConstructor>(runner: T): IRunnerBridgeConstructor<T> {
     const constructor = class extends RunnerBridge {}
     recursiveOverrideProperty(constructor, runner);
     return constructor as any;

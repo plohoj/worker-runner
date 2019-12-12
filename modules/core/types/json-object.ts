@@ -3,5 +3,6 @@ export type JsonObject =
     | number
     | boolean
     | null
+    | undefined
     | { [property: string]: JsonObject }
     | JsonObject[];

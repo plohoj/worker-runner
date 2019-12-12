@@ -1,12 +1,13 @@
-import { Constructor } from "@core/constructor";
-import { JsonObject } from "@core/json-object";
+import { Constructor, RunnerConstructor } from "@core/types/constructor";
+import { JsonObject } from "@core/types/json-object";
 import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError } from "../commands/runner-error";
 import { IWorkerCommandRunnerResponse } from "../commands/worker-commands";
 import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { ResolveRunner } from "./resolved-runner";
 
-export type IRunnerBridgeConstructor<T extends Constructor> = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
+export type IRunnerBridgeConstructor<T extends RunnerConstructor>
+    = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export class RunnerBridge {
     private _lastCommandId = 0;

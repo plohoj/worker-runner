@@ -1,6 +1,6 @@
-import { Constructor } from "@core/constructor";
 import { NodeRunnerResolverBase } from "@core/resolver/node-runner.resolver";
+import { RunnerConstructor } from "@core/types/constructor";
 
-export class NodeRunnerResolver<R extends Constructor> extends NodeRunnerResolverBase<R> {
+export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
     
 }

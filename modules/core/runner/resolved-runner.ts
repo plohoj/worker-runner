@@ -1,29 +1,25 @@
-type FilterFlags<T, C> = {
-    [P in keyof T]: T[P] extends C ? P : never;
-};
+import { ClearNever } from "@core/types/allowed-names";
+import { JsonObject } from "@core/types/json-object";
 
-type AllowedNames<T, C> = FilterFlags<T, C>[keyof T];
+export type SerializeRunnerMethod<T extends (...args: any) => any > = 
+    ReturnType<T> extends Promise<JsonObject | void>    ? T :
+    ReturnType<T> extends JsonObject | void             ? (...args: Parameters<T>) => Promise<ReturnType<T>>:
+    never;
 
-type ResolveRunnerPromises<T> = Pick<T, AllowedNames<T, (...any: any[]) => Promise<any>>>;
-
-type WrapMethodsInPromises<T> = {
-    [K in keyof T]: T[K] extends (...args: any[])=> any ? (...args: Parameters<T[K]>) => Promise<ReturnType<T[K]>> : never
-};
-
-type ExcludeMethodWithPromise<T> = Pick<T, Exclude<keyof T, AllowedNames<T, (...any: any[]) => Promise<any>>>>;
-
-type ResolveRunnerMethod<T> = WrapMethodsInPromises<Pick<T, AllowedNames<ExcludeMethodWithPromise<T>, Function>>>;
+type IterateRunnerMethods<T> = {
+    [P in keyof T]: T[P] extends (...args: any) => any ? SerializeRunnerMethod<T[P]> : never;
+}
 
 interface RunnerWithDestroyer {
     /** Remove runner instance from list in Worker Runners */
     destroy(): Promise<void>
 };
 
-type SerializeRunnerDestroyer<T> = 
+export type SerializeRunnerDestroyer<T> = 
     T extends RunnerWithDestroyer
         ? (Parameters<T['destroy']> extends never[]
             ? T
             : Omit<T, 'destroy'> & RunnerWithDestroyer )
         : T & RunnerWithDestroyer;
 
-export type ResolveRunner<T> = SerializeRunnerDestroyer<ResolveRunnerPromises<T> & ResolveRunnerMethod<T>>;
+export type ResolveRunner<T> = SerializeRunnerDestroyer<ClearNever<IterateRunnerMethods<T>>>;

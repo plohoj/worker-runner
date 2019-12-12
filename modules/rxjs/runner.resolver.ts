@@ -1,10 +1,10 @@
+import { Constructor } from "@core/constructor";
 import { INodeRunnerResolverConfigBase } from '@core/resolver/node-runner.resolver';
 import { IRunnerBridgeConstructor } from "@core/runner/runner-bridge";
-import { RunnerConstructor } from "@core/types/constructor";
 import { NodeRunnerResolver } from "./node-runner.resolver";
 import { WorkerRunnerResolver } from "./worker-runner.resolver";
 
-export class RunnerResolver<R extends RunnerConstructor> {
+export class RunnerResolver<R extends Constructor> {
     private nodeRunnerResolver: NodeRunnerResolver<R>;
     private workerRunnerResolver: WorkerRunnerResolver<R>;
 

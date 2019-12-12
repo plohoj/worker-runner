@@ -1,4 +1,4 @@
-import { Constructor } from "@core/constructor";
+import { RunnerConstructor } from "@core/types/constructor";
 import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError, IRunnerError } from "../commands/runner-error";
 import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
@@ -8,7 +8,7 @@ import { WorkerBridge } from "../worker-bridge/worker-bridge";
 import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
 import { IRunnerResolverConfigBase } from "./base-runner.resolver";
 
-export interface INodeRunnerResolverConfigBase<R extends Constructor> extends IRunnerResolverConfigBase<R> {
+export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
     /** @default 1 */
     totalWorkers?: number;
     namePrefix?: string;
@@ -23,7 +23,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
     workerPath: 'worker.js',
 }
 
-export abstract class NodeRunnerResolverBase<R extends Constructor> {
+export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
     private workerIndex = 0;
     private runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected workerBridges?: WorkerBridgeBase[];

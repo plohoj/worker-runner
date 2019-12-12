@@ -1,4 +1,4 @@
-import { JsonObject } from "@core/json-object";
+import { JsonObject } from "@core/types/json-object";
 import { RunnerErrorCode } from "../errors/runners-errors";
 import { StackTraceError } from "../errors/stacktrace-error";
 
