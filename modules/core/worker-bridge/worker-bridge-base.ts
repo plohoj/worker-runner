@@ -56,7 +56,7 @@ export abstract class WorkerBridgeBase {
         this.handleWorkerCommand(message.data);
     }
 
-    protected handleWorkerCommand(command: IWorkerCommand) {
+    protected handleWorkerCommand(command: IWorkerCommand): void {
         switch (command.type) {
             case WorkerCommand.RUNNER_INIT:
                 this.initPromises.resolve(command.instanceId, command)

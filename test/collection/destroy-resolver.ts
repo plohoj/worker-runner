@@ -1,4 +1,4 @@
-import { DevRunnerResolver } from "@modules/promise/dev-runner.resolver";
+import { DevRunnerResolver } from "@modules/promise/dev/runner.resolver";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 

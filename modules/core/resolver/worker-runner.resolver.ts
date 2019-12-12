@@ -1,4 +1,5 @@
 import { Constructor } from "@core/constructor";
+import { JsonObject } from "@core/json-object";
 import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../commands/node-commands";
 import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
 import { extractError } from "../errors/extract-error";
@@ -118,7 +119,7 @@ export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: stri
         const destroyRunner = this.runnerInstances.get(command.instanceId);
         if (destroyRunner) {
             this.runnerInstances.delete(command.instanceId);
-            let response: any;
+            let response: JsonObject;
             if (destroyRunner.destroy) {
                 try {
                     response = (destroyRunner.destroy as Function)();

@@ -38,7 +38,7 @@ export abstract class NodeRunnerResolverBase<R extends Constructor> {
 
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
-        await this.buildWorkerBridge();        
+        this.workerBridges = await this.buildWorkerBridge();        
     }
 
     public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
@@ -74,7 +74,7 @@ export abstract class NodeRunnerResolverBase<R extends Constructor> {
         this.workerBridges = undefined;
     }
 
-    protected async buildWorkerBridge(): Promise<void> {
+    protected async buildWorkerBridge(): Promise<WorkerBridgeBase[]> {
         const workerBridgesInits$ = new Array<Promise<WorkerBridge>>();
         for (let i = 0; i < this.config.totalWorkers; i++) {
             const bridge = new WorkerBridge({
@@ -83,8 +83,7 @@ export abstract class NodeRunnerResolverBase<R extends Constructor> {
             });
             workerBridgesInits$.push(bridge.init().then(() => bridge))
         }
-        const workerBridges = await Promise.all(workerBridgesInits$);
-        this.workerBridges = workerBridges;
+        return Promise.all(workerBridgesInits$);;
     }
 
     private getNextWorkerBridge(): WorkerBridgeBase {

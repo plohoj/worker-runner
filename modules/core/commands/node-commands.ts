@@ -1,3 +1,5 @@
+import { JsonObject } from "@core/json-object";
+
 export enum NodeCommand {
     INIT,
     EXECUTE,
@@ -9,7 +11,7 @@ export interface INodeCommandInit {
     type: NodeCommand.INIT;
     instanceId: number;
     runnerId: number;
-    arguments: any[];
+    arguments: JsonObject[];
 }
 
 export interface INodeCommandRun {
@@ -17,7 +19,7 @@ export interface INodeCommandRun {
     commandId: number;
     instanceId: number;
     method: string;
-    arguments: any[];
+    arguments: JsonObject[];
 }
 
 export interface INodeCommandDestroy {

@@ -1,3 +1,4 @@
+import { JsonObject } from "@core/json-object";
 import { RunnerErrorCode } from "../errors/runners-errors";
 import { StackTraceError } from "../errors/stacktrace-error";
 
@@ -28,7 +29,7 @@ export interface IWorkerCommandRunnerResponse {
     type: WorkerCommand.RUNNER_EXECUTED;
     commandId: number;
     instanceId: number;
-    response: any;
+    response: JsonObject;
 }
 
 export interface IWorkerCommandRunnerDestroyed {

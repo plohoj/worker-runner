@@ -1,4 +1,5 @@
 import { Constructor } from "@core/constructor";
+import { JsonObject } from "@core/json-object";
 import { NodeCommand } from "../commands/node-commands";
 import { errorCommandToRunnerError } from "../commands/runner-error";
 import { IWorkerCommandRunnerResponse } from "../commands/worker-commands";
@@ -15,7 +16,7 @@ export class RunnerBridge {
         private _instanceId:number,
     ) {}
 
-    protected async _executeMethod(methodName: string, args: any[]): Promise<any> {
+    protected async _executeMethod(methodName: string, args: JsonObject[]): Promise<JsonObject | undefined> {
         let workerCommand: IWorkerCommandRunnerResponse;
         try {
             workerCommand = await this._workerBridge.execCommand({

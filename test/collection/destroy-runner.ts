@@ -1,6 +1,6 @@
 import { IRunnerError } from "@core/commands/runner-error";
 import { RunnerErrorCode, RunnerErrorMessages } from "@core/errors/runners-errors";
-import { DevRunnerResolver } from "@modules/promise/dev-runner.resolver";
+import { DevRunnerResolver } from "@modules/promise/dev/runner.resolver";
 import { resolver } from "../common";
 import { CalcAmountRunner } from "../common/calc-amount.runner";
 import { RunnerWidthException } from "../common/runner-with-exception";

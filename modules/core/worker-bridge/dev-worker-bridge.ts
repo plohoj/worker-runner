@@ -1,3 +1,4 @@
+import { IWorkerCommand } from "@core/commands/worker-commands";
 import { WorkerRunnerResolverBase } from "@core/resolver/worker-runner.resolver";
 import { INodeCommand } from "../commands/node-commands";
 import { WorkerBridgeBase } from "./worker-bridge-base";
@@ -10,5 +11,9 @@ export class DevWorkerBridge extends WorkerBridgeBase {
 
     protected sendCommand(command: INodeCommand): void {
         this.workerRunnerResolver.handleCommand(command);
+    }
+
+    public handleWorkerCommand(command: IWorkerCommand): void {
+        super.handleWorkerCommand(command);
     }
 }
