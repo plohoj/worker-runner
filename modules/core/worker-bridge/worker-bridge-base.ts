@@ -1,6 +1,6 @@
 import { NodeActionResponse } from '../actions/node-action-response';
-import { checkActionType, INodeAction, NodeAction } from '../actions/node-actions';
-import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '../actions/worker-actions';
+import { checkActionType, INodeAction, NodeAction } from '../actions/node.actions';
+import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '../actions/worker.actions';
 import { PromisesResolver } from '../runner-promises';
 
 export abstract class WorkerBridgeBase {

@@ -1,9 +1,9 @@
-import { INodeExecuteAction } from '@core/actions/node-actions';
+import { INodeExecuteAction } from '@core/actions/node.actions';
 import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver';
 import { Constructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { Observable, Subscription } from 'rxjs';
-import { IRxWorkerAction, RxWorkerAction } from './worker-actions';
+import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
 
 export class WorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends WorkerRunnerResolverBase<R> {
     /**

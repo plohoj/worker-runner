@@ -1,8 +1,8 @@
 import { Constructor, RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
-import { NodeAction } from '../actions/node-actions';
+import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError } from '../actions/runner-error';
-import { IWorkerRunnerExecutedAction } from '../actions/worker-actions';
+import { IWorkerRunnerExecutedAction } from '../actions/worker.actions';
 import { WorkerBridgeBase } from '../worker-bridge/worker-bridge-base';
 import { ResolveRunner } from './resolved-runner';
 

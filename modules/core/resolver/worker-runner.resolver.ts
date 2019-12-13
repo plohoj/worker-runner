@@ -1,7 +1,7 @@
 import { RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
-import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, NodeAction } from '../actions/node-actions';
-import { IWorkerAction, WorkerAction } from '../actions/worker-actions';
+import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, NodeAction } from '../actions/node.actions';
+import { IWorkerAction, WorkerAction } from '../actions/worker.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';

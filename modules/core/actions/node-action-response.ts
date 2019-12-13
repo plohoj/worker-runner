@@ -1,5 +1,5 @@
-import { NodeAction } from './node-actions';
-import { WorkerAction } from './worker-actions';
+import { NodeAction } from './node.actions';
+import { WorkerAction } from './worker.actions';
 
 class NodeActionResponseMap implements Record<NodeAction, WorkerAction> {
     [NodeAction.INIT]: WorkerAction.RUNNER_INIT;

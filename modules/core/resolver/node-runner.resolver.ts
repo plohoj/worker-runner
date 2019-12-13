@@ -1,5 +1,5 @@
 import { RunnerConstructor } from '@core/types/constructor';
-import { NodeAction } from '../actions/node-actions';
+import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';

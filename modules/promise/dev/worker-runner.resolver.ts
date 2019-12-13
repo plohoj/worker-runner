@@ -1,4 +1,4 @@
-import { IWorkerAction } from '@core/actions/worker-actions';
+import { IWorkerAction } from '@core/actions/worker.actions';
 import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver';
 import { Constructor } from '@core/types/constructor';
 import { DevWorkerBridge } from '@core/worker-bridge/dev-worker-bridge';

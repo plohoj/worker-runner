@@ -1,4 +1,4 @@
-import { IWorkerAction, WorkerAction } from '@core/actions/worker-actions';
+import { IWorkerAction, WorkerAction } from '@core/actions/worker.actions';
 import { StackTraceError } from '@core/errors/stacktrace-error';
 import { JsonObject } from '@core/types/json-object';
 

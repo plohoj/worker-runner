@@ -1,6 +1,6 @@
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { IStacktraceError, StackTraceError } from '../errors/stacktrace-error';
-import { IWorkerRunnerDestroyErrorAction, IWorkerRunnerExecuteErrorAction, IWorkerRunnerInitErrorAction } from './worker-actions';
+import { IWorkerRunnerDestroyErrorAction, IWorkerRunnerExecuteErrorAction, IWorkerRunnerInitErrorAction } from './worker.actions';
 
 export type IRunnerError = StackTraceError<{
     errorCode: RunnerErrorCode;

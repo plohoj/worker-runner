@@ -1,5 +1,5 @@
-import { INodeAction } from '../actions/node-actions';
-import { IWorkerDestroyedAction, WorkerAction } from '../actions/worker-actions';
+import { INodeAction } from '../actions/node.actions';
+import { IWorkerDestroyedAction, WorkerAction } from '../actions/worker.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorMessages } from '../errors/runners-errors';
 import { WorkerBridgeBase } from './worker-bridge-base';
