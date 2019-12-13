@@ -1,4 +1,4 @@
-import { IRunnerError } from '@core/commands/runner-error';
+import { IRunnerError } from '@core/actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { Constructor } from '@core/types/constructor';
 import { resolver } from '../common/promise';

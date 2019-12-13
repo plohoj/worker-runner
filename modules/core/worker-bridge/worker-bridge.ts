@@ -1,8 +1,8 @@
-import { INodeCommand } from "../commands/node-commands";
-import { IWorkerCommandWorkerDestroyed, WorkerCommand } from "../commands/worker-commands";
-import { extractError } from "../errors/extract-error";
-import { RunnerErrorMessages } from "../errors/runners-errors";
-import { WorkerBridgeBase } from "./worker-bridge-base";
+import { INodeAction } from '../actions/node-actions';
+import { IWorkerDestroyedAction, WorkerAction } from '../actions/worker-actions';
+import { extractError } from '../errors/extract-error';
+import { RunnerErrorMessages } from '../errors/runners-errors';
+import { WorkerBridgeBase } from './worker-bridge-base';
 
 interface IWorkerBridgeConfig {
     workerPath: string;
@@ -21,7 +21,7 @@ export class WorkerBridge extends WorkerBridgeBase {
         const worker = new Worker(this.config.workerPath, { name: this.config.workerName });
         await new Promise(resolve => {
             worker.onmessage = (message) => {
-                if (message.data && message.data.type === WorkerCommand.WORKER_INIT) {
+                if (message.data && message.data.type === WorkerAction.WORKER_INIT) {
                     resolve();
                 }
             };
@@ -30,9 +30,9 @@ export class WorkerBridge extends WorkerBridgeBase {
         this.worker.addEventListener('message', this.workerMessageHandler);
     }
 
-    public async destroy(force = false): Promise<IWorkerCommandWorkerDestroyed> {
+    public async destroy(force = false): Promise<IWorkerDestroyedAction> {
         if (this.worker) {
-            const destroyResult: IWorkerCommandWorkerDestroyed = await super.destroy(force);
+            const destroyResult: IWorkerDestroyedAction = await super.destroy(force);
             this.worker.terminate();
             this.worker = undefined;
             return destroyResult;
@@ -41,17 +41,17 @@ export class WorkerBridge extends WorkerBridgeBase {
         }
     }
 
-    protected sendCommand(command: INodeCommand): void {
+    protected sendAction(action: INodeAction): void {
         if (this.worker) {
-            this.worker.postMessage(command);
+            this.worker.postMessage(action);
         } else {
-            const error = new Error(RunnerErrorMessages.WORKER_BRIDGE_NOT_INIT)
-            this.handleWorkerCommand({
-                type: WorkerCommand.WORKER_ERROR,
+            const error = new Error(RunnerErrorMessages.WORKER_BRIDGE_NOT_INIT);
+            this.handleWorkerAction({
+                type: WorkerAction.WORKER_ERROR,
                 error,
                 message: RunnerErrorMessages.WORKER_BRIDGE_NOT_INIT,
                 stacktrace: error.stack,
-            })
+            });
         }
     }
 }

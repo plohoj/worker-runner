@@ -1,19 +1,19 @@
-import { IWorkerCommand } from "@core/commands/worker-commands";
-import { WorkerRunnerResolverBase } from "@core/resolver/worker-runner.resolver";
-import { INodeCommand } from "../commands/node-commands";
-import { WorkerBridgeBase } from "./worker-bridge-base";
+import { IWorkerAction } from '@core/actions/worker-actions';
+import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver';
+import { INodeAction } from '../actions/node-actions';
+import { WorkerBridgeBase } from './worker-bridge-base';
 
 export class DevWorkerBridge extends WorkerBridgeBase {
     constructor(private workerRunnerResolver: WorkerRunnerResolverBase<any>) {
         super();
-        workerRunnerResolver.sendCommand = this.handleWorkerCommand.bind(this);
+        workerRunnerResolver.sendAction = this.handleWorkerAction.bind(this);
     }
 
-    protected sendCommand(command: INodeCommand): void {
-        this.workerRunnerResolver.handleCommand(command);
+    protected sendAction(action: INodeAction): void {
+        this.workerRunnerResolver.handleAction(action);
     }
 
-    public handleWorkerCommand(command: IWorkerCommand): void {
-        super.handleWorkerCommand(command);
+    public handleWorkerAction(action: IWorkerAction): void {
+        super.handleWorkerAction(action);
     }
 }

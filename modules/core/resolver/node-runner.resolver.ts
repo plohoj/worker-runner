@@ -1,6 +1,6 @@
 import { RunnerConstructor } from '@core/types/constructor';
-import { NodeCommand } from '../commands/node-commands';
-import { errorCommandToRunnerError, IRunnerError } from '../commands/runner-error';
+import { NodeAction } from '../actions/node-actions';
+import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
@@ -43,7 +43,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
 
     public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
 
-    protected async sendInitCommand(runnerId: number, ...args: ConstructorParameters<R>): Promise<WorkerBridgeBase> {
+    protected async sendInitAction(runnerId: number, ...args: ConstructorParameters<R>): Promise<WorkerBridgeBase> {
 
         if (runnerId < 0) {
             throw {
@@ -53,14 +53,14 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
         }
         const workerBridge = this.getNextWorkerBridge();
         try {
-            await workerBridge.execCommand({
-                type: NodeCommand.INIT,
+            await workerBridge.execute({
+                type: NodeAction.INIT,
                 instanceId: workerBridge.resolveNewRunnerInstanceId(),
                 runnerId,
                 arguments: args,
             });
         } catch (error) {
-            throw errorCommandToRunnerError(error);
+            throw errorActionToRunnerError(error);
         }
         return workerBridge;
     }

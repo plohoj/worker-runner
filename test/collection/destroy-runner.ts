@@ -1,4 +1,4 @@
-import { IRunnerError } from '@core/commands/runner-error';
+import { IRunnerError } from '@core/actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
 import { CalcAmountRunner } from '../common/calc-amount.runner';

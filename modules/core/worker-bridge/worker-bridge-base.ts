@@ -1,90 +1,90 @@
-import { NodeCommandResponse } from "../commands/node-command-response";
-import { checkCommandType, INodeCommand, NodeCommand } from "../commands/node-commands";
-import { IWorkerCommand, IWorkerCommandRunnerDestroyed, IWorkerCommandRunnerInit, IWorkerCommandRunnerResponse, IWorkerCommandWorkerDestroyed, WorkerCommand } from "../commands/worker-commands";
-import { PromisesResolver } from "../runner-promises";
+import { NodeActionResponse } from '../actions/node-action-response';
+import { checkActionType, INodeAction, NodeAction } from '../actions/node-actions';
+import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '../actions/worker-actions';
+import { PromisesResolver } from '../runner-promises';
 
 export abstract class WorkerBridgeBase {
-    private runnersPromises = new Map<number, PromisesResolver<IWorkerCommandRunnerResponse>>();
-    private initPromises = new PromisesResolver<IWorkerCommandRunnerInit>();
-    private destroyPromises = new PromisesResolver<IWorkerCommandRunnerDestroyed>();
+    private runnersPromises = new Map<number, PromisesResolver<IWorkerRunnerExecutedAction>>();
+    private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
+    private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
     private destroyWorkerResolver?: () => void;
     private newRunnerInstanceId = 0;
 
-    public execCommand<T extends NodeCommand>(command: INodeCommand<T>): Promise<IWorkerCommand<NodeCommandResponse<T>>> {
-        let promise$: Promise<IWorkerCommand<NodeCommandResponse<T>>> | undefined;
-        if (checkCommandType(command, NodeCommand.INIT)) {
-            promise$ = this.initPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+    public execute<T extends NodeAction>(action: INodeAction<T>): Promise<IWorkerAction<NodeActionResponse<T>>> {
+        let promise$: Promise<IWorkerAction<NodeActionResponse<T>>> | undefined;
+        if (checkActionType(action, NodeAction.INIT)) {
+            promise$ = this.initPromises.promise(action.instanceId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
         }
-        if (checkCommandType(command, NodeCommand.EXECUTE)) {
-            const runnerPromises = this.getRunnerPromises(command.instanceId);
-            promise$ = runnerPromises.promise(command.commandId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+        if (checkActionType(action, NodeAction.EXECUTE)) {
+            const runnerPromises = this.getRunnerPromises(action.instanceId);
+            promise$ = runnerPromises.promise(action.actionId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
         }
-        if (checkCommandType(command, NodeCommand.DESTROY)) {
-            promise$ = this.destroyPromises.promise(command.instanceId) as Promise<IWorkerCommand<NodeCommandResponse<T>>>;
+        if (checkActionType(action, NodeAction.DESTROY)) {
+            promise$ = this.destroyPromises.promise(action.instanceId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
         }
-        if (checkCommandType(command, NodeCommand.DESTROY_WORKER)) {
+        if (checkActionType(action, NodeAction.DESTROY_WORKER)) {
             promise$ = new Promise(resolver => {
                 this.destroyWorkerResolver = resolver;
             });
         }
         if (promise$) {
-            this.sendCommand(command);
+            this.sendAction(action);
             return promise$;
         }
-        throw Error(`Command "${command['type']}" not found`);
+        throw Error(`Action "${action.type}" not found`);
     }
 
     public resolveNewRunnerInstanceId(): number {
         return this.newRunnerInstanceId++;
-    };
-
-    public destroy(force = false): Promise<IWorkerCommandWorkerDestroyed> {
-        return this.execCommand({type: NodeCommand.DESTROY_WORKER, force});
     }
 
-    private getRunnerPromises(id: number): PromisesResolver<IWorkerCommandRunnerResponse> {
+    public destroy(force = false): Promise<IWorkerDestroyedAction> {
+        return this.execute({type: NodeAction.DESTROY_WORKER, force});
+    }
+
+    private getRunnerPromises(id: number): PromisesResolver<IWorkerRunnerExecutedAction> {
         const runnerPromises = this.runnersPromises.get(id);
         if (runnerPromises) {
             return runnerPromises;
         }
-        const newRunnerPromises = new PromisesResolver<IWorkerCommandRunnerResponse>();
+        const newRunnerPromises = new PromisesResolver<IWorkerRunnerExecutedAction>();
         this.runnersPromises.set(id, newRunnerPromises);
         return newRunnerPromises;
     }
 
     protected onWorkerMessage(message: MessageEvent): void {
-        this.handleWorkerCommand(message.data);
+        this.handleWorkerAction(message.data);
     }
 
-    protected handleWorkerCommand(command: IWorkerCommand): void {
-        switch (command.type) {
-            case WorkerCommand.RUNNER_INIT:
-                this.initPromises.resolve(command.instanceId, command)
+    protected handleWorkerAction(action: IWorkerAction): void {
+        switch (action.type) {
+            case WorkerAction.RUNNER_INIT:
+                this.initPromises.resolve(action.instanceId, action);
                 break;
-            case WorkerCommand.RUNNER_INIT_ERROR:
-                this.initPromises.reject(command.instanceId, command);
+            case WorkerAction.RUNNER_INIT_ERROR:
+                this.initPromises.reject(action.instanceId, action);
                 break;
-            case WorkerCommand.RUNNER_EXECUTED:
-                const runnerPromises = this.runnersPromises.get(command.instanceId);
+            case WorkerAction.RUNNER_EXECUTED:
+                const runnerPromises = this.runnersPromises.get(action.instanceId);
                 if (runnerPromises) {
-                    runnerPromises.resolve(command.commandId, command);
+                    runnerPromises.resolve(action.actionId, action);
                 }
                 break;
-            case WorkerCommand.RUNNER_EXECUTE_ERROR:
-                const promises = this.runnersPromises.get(command.instanceId);
+            case WorkerAction.RUNNER_EXECUTE_ERROR:
+                const promises = this.runnersPromises.get(action.instanceId);
                 if (promises) {
-                    promises.reject(command.commandId, command);
+                    promises.reject(action.actionId, action);
                 }
                 break;
-            case WorkerCommand.RUNNER_DESTROYED:
-                this.destroyPromises.resolve(command.instanceId, command);
-                this.runnersPromises.delete(command.instanceId);
+            case WorkerAction.RUNNER_DESTROYED:
+                this.destroyPromises.resolve(action.instanceId, action);
+                this.runnersPromises.delete(action.instanceId);
                 break;
-            case WorkerCommand.RUNNER_DESTROY_ERROR:
-                this.destroyPromises.reject(command.instanceId, command);
-                this.runnersPromises.delete(command.instanceId);
+            case WorkerAction.RUNNER_DESTROY_ERROR:
+                this.destroyPromises.reject(action.instanceId, action);
+                this.runnersPromises.delete(action.instanceId);
                 break;
-            case WorkerCommand.WORKER_DESTROYED:
+            case WorkerAction.WORKER_DESTROYED:
                 if (this.destroyWorkerResolver) {
                     this.destroyWorkerResolver();
                     this.destroyWorkerResolver = undefined;
@@ -93,5 +93,5 @@ export abstract class WorkerBridgeBase {
         }
     }
 
-    protected abstract sendCommand(command: INodeCommand): void
+    protected abstract sendAction(action: INodeAction): void;
 }

@@ -1,4 +1,4 @@
-import { CalcAmountRunner } from "./calc-amount.runner";
+import { CalcAmountRunner } from './calc-amount.runner';
 
 export class SumOfArrayRunner extends CalcAmountRunner {
     calcArray(values: number[]): number {

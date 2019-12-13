@@ -1,169 +1,169 @@
-import { Constructor } from "@core/types/constructor";
-import { JsonObject } from "@core/types/json-object";
-import { INodeCommand, INodeCommandDestroy, INodeCommandInit, INodeCommandRun, NodeCommand } from "../commands/node-commands";
-import { IWorkerCommand, WorkerCommand } from "../commands/worker-commands";
-import { extractError } from "../errors/extract-error";
-import { RunnerErrorCode, RunnerErrorMessages } from "../errors/runners-errors";
+import { RunnerConstructor } from '@core/types/constructor';
+import { JsonObject } from '@core/types/json-object';
+import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, NodeAction } from '../actions/node-actions';
+import { IWorkerAction, WorkerAction } from '../actions/worker-actions';
+import { extractError } from '../errors/extract-error';
+import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
-export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: string]: any}>>{
+export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     private runnerInstances = new Map<number, InstanceType<R>>();
 
     constructor(protected config: Required<IRunnerResolverConfigBase<R>>) {}
 
     public run(): void {
         self.addEventListener('message', this.onMessage.bind(this));
-        this.sendCommand({type: WorkerCommand.WORKER_INIT});
+        this.sendAction({type: WorkerAction.WORKER_INIT});
     }
 
     private onMessage(message: MessageEvent): void {
-        this.handleCommand(message.data)
+        this.handleAction(message.data);
     }
 
-    public handleCommand(command: INodeCommand): void {
-        switch (command.type) {
-            case NodeCommand.INIT: 
-                this.initRunnerInstance(command);                 
+    public handleAction(action: INodeAction): void {
+        switch (action.type) {
+            case NodeAction.INIT:
+                this.initRunnerInstance(action);
                 break;
-            case NodeCommand.EXECUTE:
-                this.executeCommand(command);
+            case NodeAction.EXECUTE:
+                this.execute(action);
                 break;
-            case NodeCommand.DESTROY:
-                this.destroyRunnerInstance(command);
+            case NodeAction.DESTROY:
+                this.destroyRunnerInstance(action);
                 break;
-            case NodeCommand.DESTROY_WORKER:
-                this.destroyWorker(command.force);
+            case NodeAction.DESTROY_WORKER:
+                this.destroyWorker(action.force);
                 break;
         }
     }
 
-    private initRunnerInstance(command: INodeCommandInit): void {
-        const runnerConstructor = this.config.runners[command.runnerId];
+    private initRunnerInstance(action: INodeInitAction): void {
+        const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
             let instance: InstanceType<R> ;
             try {
-                instance = new runnerConstructor(...command.arguments) as InstanceType<R>;
+                instance = new runnerConstructor(...action.arguments) as InstanceType<R>;
             } catch (error) {
-                this.sendCommand({
-                    type: WorkerCommand.RUNNER_INIT_ERROR,
-                    instanceId: command.instanceId,
+                this.sendAction({
+                    type: WorkerAction.RUNNER_INIT_ERROR,
+                    instanceId: action.instanceId,
                     errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR,
                     ...extractError(error),
                 });
                 return;
             }
-            this.runnerInstances.set(command.runnerId, instance);
-            this.sendCommand({
-                type: WorkerCommand.RUNNER_INIT,
-                instanceId: command.instanceId,
+            this.runnerInstances.set(action.runnerId, instance);
+            this.sendAction({
+                type: WorkerAction.RUNNER_INIT,
+                instanceId: action.instanceId,
             });
         } else {
-            this.sendCommand({
-                type: WorkerCommand.RUNNER_INIT_ERROR,
-                instanceId: command.instanceId,
+            this.sendAction({
+                type: WorkerAction.RUNNER_INIT_ERROR,
+                instanceId: action.instanceId,
                 errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
             });
         }
     }
 
-    private executeCommand(command: INodeCommandRun): void {
-        const runner = this.runnerInstances.get(command.instanceId);
+    private execute(action: INodeExecuteAction): void {
+        const runner = this.runnerInstances.get(action.instanceId);
         if (runner) {
             let response;
             try {
-                response = runner[command.method](...command.arguments);
+                response = runner[action.method](...action.arguments);
             } catch (error) {
-                this.sendCommand({
-                    type: WorkerCommand.RUNNER_EXECUTE_ERROR,
+                this.sendAction({
+                    type: WorkerAction.RUNNER_EXECUTE_ERROR,
                     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     ...extractError(error),
-                    commandId: command.commandId,
-                    instanceId: command.instanceId,
+                    actionId: action.actionId,
+                    instanceId: action.instanceId,
                 });
                 return;
             }
             if (response instanceof Promise) {
-                response.then(resolvedResponse => this.sendCommand({
-                    type: WorkerCommand.RUNNER_EXECUTED,
-                    commandId: command.commandId,
-                    instanceId: command.instanceId,
-                    response: resolvedResponse
-                })).catch(error => this.sendCommand({
-                    type: WorkerCommand.RUNNER_EXECUTE_ERROR,
+                response.then(resolvedResponse => this.sendAction({
+                    type: WorkerAction.RUNNER_EXECUTED,
+                    actionId: action.actionId,
+                    instanceId: action.instanceId,
+                    response: resolvedResponse,
+                })).catch(error => this.sendAction({
+                    type: WorkerAction.RUNNER_EXECUTE_ERROR,
                     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     ...extractError(error),
-                    commandId: command.commandId,
-                    instanceId: command.instanceId,
+                    actionId: action.actionId,
+                    instanceId: action.instanceId,
                 }));
             } else {
-                this.handleExecuteResponse(command, response);
+                this.handleExecuteResponse(action, response);
             }
         }  else {
-            this.sendCommand({
-                type: WorkerCommand.RUNNER_EXECUTE_ERROR,
+            this.sendAction({
+                type: WorkerAction.RUNNER_EXECUTE_ERROR,
                 errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
                 error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-                commandId: command.commandId,
-                instanceId: command.instanceId,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
             });
         }
     }
 
-    protected handleExecuteResponse(command: INodeCommandRun, response: any): void {
-        this.sendCommand({
-            type: WorkerCommand.RUNNER_EXECUTED,
-            commandId: command.commandId,
-            instanceId: command.instanceId,
-            response: response,
+    protected handleExecuteResponse(action: INodeExecuteAction, response: any): void {
+        this.sendAction({
+            type: WorkerAction.RUNNER_EXECUTED,
+            actionId: action.actionId,
+            instanceId: action.instanceId,
+            response,
         });
     }
 
-    private destroyRunnerInstance(command: INodeCommandDestroy): void {
-        const destroyRunner = this.runnerInstances.get(command.instanceId);
+    private destroyRunnerInstance(action: INodeDestroyAction): void {
+        const destroyRunner = this.runnerInstances.get(action.instanceId);
         if (destroyRunner) {
-            this.runnerInstances.delete(command.instanceId);
-            let response: JsonObject;
+            this.runnerInstances.delete(action.instanceId);
+            let response: JsonObject | Promise<JsonObject> | void;
             if (destroyRunner.destroy) {
                 try {
-                    response = (destroyRunner.destroy as Function)();
+                    response = (destroyRunner.destroy as () => void | Promise<JsonObject>)();
                 } catch (error) {
-                    this.sendCommand({
-                        type: WorkerCommand.RUNNER_DESTROY_ERROR,
+                    this.sendAction({
+                        type: WorkerAction.RUNNER_DESTROY_ERROR,
                         errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
                         ...extractError(error),
-                        instanceId: command.instanceId,
+                        instanceId: action.instanceId,
                     });
                     return;
                 }
                 if (response instanceof Promise) {
-                    response.then(resolvedResponse => this.sendCommand({
-                        type: WorkerCommand.RUNNER_DESTROYED,
-                        instanceId: command.instanceId,
-                    })).catch(error => this.sendCommand({
-                        type: WorkerCommand.RUNNER_DESTROY_ERROR,
+                    response.then(resolvedResponse => this.sendAction({
+                        type: WorkerAction.RUNNER_DESTROYED,
+                        instanceId: action.instanceId,
+                    })).catch(error => this.sendAction({
+                        type: WorkerAction.RUNNER_DESTROY_ERROR,
                         errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
                         ...extractError(error),
-                        instanceId: command.instanceId,
+                        instanceId: action.instanceId,
                     }));
                 } else {
-                    this.sendCommand({
-                        type: WorkerCommand.RUNNER_DESTROYED,
-                        instanceId: command.instanceId,
+                    this.sendAction({
+                        type: WorkerAction.RUNNER_DESTROYED,
+                        instanceId: action.instanceId,
                     });
                 }
             } else {
-                this.sendCommand({
-                    type: WorkerCommand.RUNNER_DESTROYED,
-                    instanceId: command.instanceId,
+                this.sendAction({
+                    type: WorkerAction.RUNNER_DESTROYED,
+                    instanceId: action.instanceId,
                 });
             }
         }  else {
-            this.sendCommand({
-                type: WorkerCommand.RUNNER_DESTROY_ERROR,
+            this.sendAction({
+                type: WorkerAction.RUNNER_DESTROY_ERROR,
                 errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
                 error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-                instanceId: command.instanceId,
+                instanceId: action.instanceId,
             });
         }
     }
@@ -180,17 +180,17 @@ export abstract class WorkerRunnerResolverBase<R extends Constructor<{[key: stri
                         return;
                     }
                     if (destroyResult instanceof Promise) {
-                        destroying$.push(destroyResult.catch())
+                        destroying$.push(destroyResult.catch());
                     }
                 }
             });
             await Promise.all(destroying$);
         }
-        this.sendCommand({ type: WorkerCommand.WORKER_DESTROYED });
+        this.sendAction({ type: WorkerAction.WORKER_DESTROYED });
     }
 
-    public sendCommand(command: IWorkerCommand): void {
+    public sendAction(action: IWorkerAction): void {
         // @ts-ignore
-        postMessage(command);
+        postMessage(action);
     }
 }

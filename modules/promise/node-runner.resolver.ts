@@ -6,7 +6,7 @@ export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerR
     public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>
     ): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
         const runnerId = this.config.runners.indexOf(runner);
-        const workerBridge = await this.sendInitCommand(runnerId, ...args);
+        const workerBridge = await this.sendInitAction(runnerId, ...args);
         return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId);
     }
 }

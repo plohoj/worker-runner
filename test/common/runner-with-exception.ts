@@ -5,8 +5,8 @@ export class RunnerWidthException {
 
     public throwExceptionWidthDelay(errorMessage: string, delayDuration: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            setTimeout(() => reject(errorMessage) ,delayDuration);
-        })
+            setTimeout(() => reject(errorMessage), delayDuration);
+        });
     }
 
     public destroy(): void {

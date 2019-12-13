@@ -1,47 +1,47 @@
-import { Constructor, RunnerConstructor } from "@core/types/constructor";
-import { JsonObject } from "@core/types/json-object";
-import { NodeCommand } from "../commands/node-commands";
-import { errorCommandToRunnerError } from "../commands/runner-error";
-import { IWorkerCommandRunnerResponse } from "../commands/worker-commands";
-import { WorkerBridgeBase } from "../worker-bridge/worker-bridge-base";
-import { ResolveRunner } from "./resolved-runner";
+import { Constructor, RunnerConstructor } from '@core/types/constructor';
+import { JsonObject } from '@core/types/json-object';
+import { NodeAction } from '../actions/node-actions';
+import { errorActionToRunnerError } from '../actions/runner-error';
+import { IWorkerRunnerExecutedAction } from '../actions/worker-actions';
+import { WorkerBridgeBase } from '../worker-bridge/worker-bridge-base';
+import { ResolveRunner } from './resolved-runner';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export class RunnerBridge {
-    private _lastCommandId = 0;
+    private _lastActionId = 0;
 
     constructor(
         private _workerBridge: WorkerBridgeBase,
-        private _instanceId:number,
+        private _instanceId: number,
     ) {}
 
     protected async _executeMethod(methodName: string, args: JsonObject[]): Promise<JsonObject | undefined> {
-        let workerCommand: IWorkerCommandRunnerResponse;
+        let workerAction: IWorkerRunnerExecutedAction;
         try {
-            workerCommand = await this._workerBridge.execCommand({
-                type: NodeCommand.EXECUTE,
-                commandId: this._lastCommandId++,
+            workerAction = await this._workerBridge.execute({
+                type: NodeAction.EXECUTE,
+                actionId: this._lastActionId++,
                 instanceId: this._instanceId,
                 method: methodName,
                 arguments: args,
             });
         } catch (error) {
-            throw errorCommandToRunnerError(error);
+            throw errorActionToRunnerError(error);
         }
-        return workerCommand.response;
+        return workerAction.response;
     }
 
     /** Remove runner instance from Worker Runners list */
     public async destroy(): Promise<void> {
         try {
-            await this._workerBridge.execCommand({
-                type: NodeCommand.DESTROY,
+            await this._workerBridge.execute({
+                type: NodeAction.DESTROY,
                 instanceId: this._instanceId,
             });
         } catch (error) {
-            throw errorCommandToRunnerError(error);
+            throw errorActionToRunnerError(error);
         }
     }
 }
