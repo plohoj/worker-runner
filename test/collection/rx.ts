@@ -14,7 +14,7 @@ describe('RxJs', () => {
 
     it('simple observable', async () => {
         const observer = await rxResolver.resolve(RxMessageRunner);
-        const result = await observer.send('test1', 'test2').pipe(
+        const result = await (await observer.send('test1', 'test2')).pipe(
             tap(message => console.log(message)),
         ).toPromise();
         expect(result).toBe('test2');

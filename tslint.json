@@ -79,6 +79,10 @@
                 "allow-leading-underscore",
                 "allow-pascal-case"
             ]
-        }
+        },
+        "no-unused-expression": [
+            true,
+            "allow-fast-null-checks"
+        ]
     }
 }

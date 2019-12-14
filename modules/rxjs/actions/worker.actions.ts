@@ -16,7 +16,7 @@ export interface IWorkerRunnerRxInitAction {
 }
 
 export interface IWorkerRunnerRxEmitAction {
-    type: RxWorkerAction.RUNNER_RX_INIT;
+    type: RxWorkerAction.RUNNER_RX_EMIT;
     actionId: number;
     instanceId: number;
     response: JsonObject;
@@ -32,7 +32,7 @@ export interface IWorkerRunnerRxCompletedAction {
     instanceId: number;
 }
 
-export type IRxWorkerAction<T extends WorkerAction | RxWorkerAction = WorkerAction | RxWorkerAction>
+export type IWorkerRxAction<T extends WorkerAction | RxWorkerAction = WorkerAction | RxWorkerAction>
     = T extends WorkerAction ? IWorkerAction<T> :
         Extract<IWorkerRunnerRxInitAction | IWorkerRunnerRxEmitAction
             | IWorkerRunnerRxErrorAction | IWorkerRunnerRxCompletedAction,

@@ -22,7 +22,7 @@ describe('Destroy resolver', () => {
         });
         await devResolver.run();
         await devResolver.destroy();
-        await resolver.run();
+        await devResolver.run();
 
         const calcRunner = await devResolver.resolve(CalcAmountRunner);
         const result = await calcRunner.calc(17, 68);
