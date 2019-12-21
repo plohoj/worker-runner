@@ -1,5 +1,5 @@
 import { INodeRunnerResolverConfigBase } from '@core/resolver/node-runner.resolver';
-import { IRunnerBridgeConstructor } from '@core/runner/runner-bridge';
+import { ResolveRunner } from '@core/runner/resolved-runner';
 import { RunnerConstructor } from '@core/types/constructor';
 import { NodeRunnerResolver } from './node-runner.resolver';
 import { WorkerRunnerResolver } from './worker-runner.resolver';
@@ -18,7 +18,7 @@ export class RunnerResolver<R extends RunnerConstructor> {
     }
 
     public resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>
-    ): Promise<InstanceType<IRunnerBridgeConstructor<RR>>> {
+    ): Promise<ResolveRunner<InstanceType<RR>>> {
         return this.nodeRunnerResolver.resolve(runner, ...args);
     }
 

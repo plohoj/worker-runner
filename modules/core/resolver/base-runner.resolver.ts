@@ -1,5 +1,5 @@
-import { Constructor } from '@core/types/constructor';
+import { RunnerConstructor } from '@core/types/constructor';
 
-export interface IRunnerResolverConfigBase<R extends Constructor> {
+export interface IRunnerResolverConfigBase<R extends RunnerConstructor> {
     runners: R[];
 }

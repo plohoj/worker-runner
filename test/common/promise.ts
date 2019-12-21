@@ -1,4 +1,6 @@
+import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
 import { RunnerResolver } from '@modules/promise/runner.resolver';
 import { runners } from './runner-list';
 
-export const resolver = new RunnerResolver({runners, workerPath: 'base/test/worker.js'});
+export const runnerResolver = new RunnerResolver({runners, workerPath: 'base/test/worker.js'});
+export const devRunnerResolver = new DevRunnerResolver({runners});

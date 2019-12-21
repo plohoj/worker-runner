@@ -1,35 +1,28 @@
 import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
-import { CalcAmountRunner } from '../common/calc-amount.runner';
-import { resolver } from '../common/promise';
+import { devRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxResolver } from 'test/common/rx';
+import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
+import { each } from 'test/utils/each';
 
-describe('Destroy resolver', () => {
+each({
+        Common: runnerResolver,
+        Dev: devRunnerResolver,
+        Rx: rxResolver as any as typeof runnerResolver,
+    },
+    (mode, resolver) => describe(`${mode} destroy resolver`, () => {
+        it ('for restart', async () => {
+            await resolver.run();
+            await resolver.destroy();
+            await resolver.run();
 
-    it ('for restart', async () => {
-        await resolver.run();
-        await resolver.destroy();
-        await resolver.run();
-
-        const calcRunner = await resolver.resolve(CalcAmountRunner);
-        const result = await calcRunner.calc(17, 68);
-        expect(result).toBe(85);
-        await resolver.destroy();
-    });
-
-    it ('for restart with dev mode', async () => {
-        const devResolver = new DevRunnerResolver({
-            workerPath: '',
-            runners: [CalcAmountRunner],
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await expectAsync(executableStubRunner.amount(17, 68)).toBeResolvedTo(85);
+            await resolver.destroy();
         });
-        await devResolver.run();
-        await devResolver.destroy();
-        await devResolver.run();
+    }),
+);
 
-        const calcRunner = await devResolver.resolve(CalcAmountRunner);
-        const result = await calcRunner.calc(17, 68);
-        expect(result).toBe(85);
-        await devResolver.destroy();
-    });
-
+describe(`Dev destroy resolver`, () => {
     it ('without force mode', async () => {
         class ForceDestroy {
             public destroy(): void {
@@ -64,4 +57,3 @@ describe('Destroy resolver', () => {
         expect(destroySpy).not.toHaveBeenCalled();
     });
 });
-
