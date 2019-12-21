@@ -36,6 +36,3 @@ export interface INodeWorkerDestroyAction {
 export type INodeAction<T extends NodeAction = NodeAction>
     = Extract<(INodeInitAction | INodeExecuteAction | INodeDestroyAction | INodeWorkerDestroyAction), {type: T}>;
 
-export function checkActionType<T extends NodeAction>(action: INodeAction, type: T): action is INodeAction<T> {
-    return action.type === type;
-}

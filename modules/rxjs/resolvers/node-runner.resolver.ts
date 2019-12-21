@@ -1,8 +1,8 @@
 import { NodeRunnerResolverBase } from '@core/resolver/node-runner.resolver';
 import { RunnerBridge } from '@core/runner/runner-bridge';
 import { Constructor, RunnerConstructor } from '@core/types/constructor';
-import { RxResolveRunner } from './resolved-runner';
-import { RxWorkerBridge } from './worker-bridge';
+import { RxResolveRunner } from '../resolved-runner';
+import { RxWorkerBridge } from '../worker-bridge';
 
 export type IRxRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<RxResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;

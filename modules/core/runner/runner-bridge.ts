@@ -9,21 +9,24 @@ import { ResolveRunner } from './resolved-runner';
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
+export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
+
 export class RunnerBridge {
-    private _lastActionId = 0;
+    private lastActionId = 0;
 
     constructor(
-        private _workerBridge: WorkerBridgeBase,
-        private _instanceId: number,
+        private workerBridge: WorkerBridgeBase,
+        private instanceId: number,
     ) {}
 
-    protected async _executeMethod(methodName: string, args: JsonObject[]): Promise<JsonObject | undefined> {
+    protected async [executeRunnerBridgeMethod](methodName: string, args: JsonObject[],
+        ): Promise<JsonObject | undefined> {
         let workerAction: IWorkerRunnerExecutedAction;
         try {
-            workerAction = await this._workerBridge.execute({
+            workerAction = await this.workerBridge.execute({
                 type: NodeAction.EXECUTE,
-                actionId: this._lastActionId++,
-                instanceId: this._instanceId,
+                actionId: this.lastActionId++,
+                instanceId: this.instanceId,
                 method: methodName,
                 arguments: args,
             });
@@ -36,9 +39,9 @@ export class RunnerBridge {
     /** Remove runner instance from Worker Runners list */
     public async destroy(): Promise<void> {
         try {
-            await this._workerBridge.execute({
+            await this.workerBridge.execute({
                 type: NodeAction.DESTROY,
-                instanceId: this._instanceId,
+                instanceId: this.instanceId,
             });
         } catch (error) {
             throw errorActionToRunnerError(error);

@@ -44,7 +44,6 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
     public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
 
     protected async sendInitAction(runnerId: number, ...args: ConstructorParameters<R>): Promise<WorkerBridgeBase> {
-
         if (runnerId < 0) {
             throw {
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,

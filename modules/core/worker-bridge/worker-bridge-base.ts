@@ -1,5 +1,4 @@
-import { NodeActionResponse } from '../actions/node-action-response';
-import { checkActionType, INodeAction, NodeAction } from '../actions/node.actions';
+import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, INodeWorkerDestroyAction, NodeAction } from '../actions/node.actions';
 import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '../actions/worker.actions';
 import { PromisesResolver } from '../runner-promises';
 
@@ -10,22 +9,28 @@ export abstract class WorkerBridgeBase {
     private destroyWorkerResolver?: () => void;
     private newRunnerInstanceId = 0;
 
-    public execute<T extends NodeAction>(action: INodeAction<T>): Promise<IWorkerAction<NodeActionResponse<T>>> {
-        let promise$: Promise<IWorkerAction<NodeActionResponse<T>>> | undefined;
-        if (checkActionType(action, NodeAction.INIT)) {
-            promise$ = this.initPromises.promise(action.instanceId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
-        }
-        if (checkActionType(action, NodeAction.EXECUTE)) {
-            const runnerPromises = this.getRunnerPromises(action.instanceId);
-            promise$ = runnerPromises.promise(action.actionId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
-        }
-        if (checkActionType(action, NodeAction.DESTROY)) {
-            promise$ = this.destroyPromises.promise(action.instanceId) as Promise<IWorkerAction<NodeActionResponse<T>>>;
-        }
-        if (checkActionType(action, NodeAction.DESTROY_WORKER)) {
-            promise$ = new Promise(resolver => {
-                this.destroyWorkerResolver = resolver;
-            });
+    public execute(action: INodeInitAction): Promise<IWorkerRunnerInitAction>;
+    public execute(action: INodeExecuteAction): Promise<IWorkerRunnerExecutedAction>;
+    public execute(action: INodeDestroyAction): Promise<IWorkerRunnerDestroyedAction>;
+    public execute(action: INodeWorkerDestroyAction): Promise<IWorkerDestroyedAction>;
+    public async execute(action: INodeAction): Promise<IWorkerAction> {
+        let promise$: Promise<IWorkerAction> | undefined;
+        switch (action.type) {
+            case NodeAction.INIT:
+                promise$ = this.initPromises.promise(action.instanceId);
+                break;
+            case NodeAction.EXECUTE:
+                const runnerPromises = this.getRunnerPromises(action.instanceId);
+                promise$ = runnerPromises.promise(action.actionId);
+                break;
+            case NodeAction.DESTROY:
+                promise$ = this.destroyPromises.promise(action.instanceId);
+                break;
+            case NodeAction.DESTROY_WORKER:
+                promise$ = new Promise(resolver => {
+                    this.destroyWorkerResolver = resolver;
+                });
+                break;
         }
         if (promise$) {
             this.sendAction(action);
