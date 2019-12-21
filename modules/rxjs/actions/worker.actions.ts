@@ -9,31 +9,33 @@ export enum RxWorkerAction {
     RUNNER_RX_COMPLETED,
 }
 
-export interface IWorkerRunnerRxInitAction {
+export interface IRxWorkerRunnerInitAction {
     type: RxWorkerAction.RUNNER_RX_INIT;
     actionId: number;
     instanceId: number;
 }
 
-export interface IWorkerRunnerRxEmitAction {
+export interface IRxWorkerRunnerEmitAction {
     type: RxWorkerAction.RUNNER_RX_EMIT;
     actionId: number;
     instanceId: number;
     response: JsonObject;
 }
 
-export type IWorkerRunnerRxErrorAction = StackTraceError<{
+export type IRxWorkerRunnerErrorAction = StackTraceError<{
     type: RxWorkerAction.RUNNER_RX_ERROR;
+    actionId: number;
+    instanceId: number;
 }>;
 
-export interface IWorkerRunnerRxCompletedAction {
+export interface IRxWorkerRunnerCompletedAction {
     type: RxWorkerAction.RUNNER_RX_COMPLETED;
     actionId: number;
     instanceId: number;
 }
 
-export type IWorkerRxAction<T extends WorkerAction | RxWorkerAction = WorkerAction | RxWorkerAction>
+export type IRxWorkerAction<T extends WorkerAction | RxWorkerAction = WorkerAction | RxWorkerAction>
     = T extends WorkerAction ? IWorkerAction<T> :
-        Extract<IWorkerRunnerRxInitAction | IWorkerRunnerRxEmitAction
-            | IWorkerRunnerRxErrorAction | IWorkerRunnerRxCompletedAction,
+        Extract<IRxWorkerRunnerInitAction | IRxWorkerRunnerEmitAction
+            | IRxWorkerRunnerErrorAction | IRxWorkerRunnerCompletedAction,
         {type: T}>;

@@ -4,7 +4,7 @@ import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IW
 import { PromisesResolver } from '../runner-promises';
 
 export abstract class WorkerBridgeBase {
-    private runnersPromises = new Map<number, PromisesResolver<IWorkerRunnerExecutedAction>>();
+    protected runnersPromises = new Map<number, PromisesResolver<IWorkerRunnerExecutedAction>>();
     private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
     private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
     private destroyWorkerResolver?: () => void;

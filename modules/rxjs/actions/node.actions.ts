@@ -5,25 +5,18 @@ export enum RxNodeAction {
     RX_UNSUBSCRIBE,
 }
 
-export interface INodeRxSubscribeAction {
+export interface IRxNodeSubscribeAction {
     type: RxNodeAction.RX_SUBSCRIBE;
     actionId: number;
     instanceId: number;
 }
 
-export interface INodeRxUnsubscribeAction {
+export interface IRxNodeUnsubscribeAction {
     type: RxNodeAction.RX_UNSUBSCRIBE;
     actionId: number;
     instanceId: number;
 }
 
-export type INodeRxAction<T extends NodeAction | RxNodeAction = NodeAction | RxNodeAction>
+export type IRxNodeAction<T extends NodeAction | RxNodeAction = NodeAction | RxNodeAction>
     = T extends NodeAction ? INodeAction<T>
-    : Extract<(INodeRxSubscribeAction | INodeRxUnsubscribeAction), {type: T}>;
-
-export function checkRxActionType<T extends NodeAction | RxNodeAction>(
-    action: INodeRxAction,
-    type: T,
-): action is INodeRxAction<T> {
-    return action.type === type;
-}
+    : Extract<(IRxNodeSubscribeAction | IRxNodeUnsubscribeAction), {type: T}>;

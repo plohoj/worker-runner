@@ -76,7 +76,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         });
     }
 
-    private async execute(action: INodeExecuteAction): Promise<void> {
+    protected async execute(action: INodeExecuteAction): Promise<void> {
         const runnerState = this.runnerStates.get(action.instanceId);
         if (runnerState) {
             await runnerState.execute(action);

@@ -1,12 +1,15 @@
-import { INodeExecuteAction } from '@core/actions/node.actions';
+import { INodeDestroyAction, INodeExecuteAction } from '@core/actions/node.actions';
+import { extractError } from '@core/errors/extract-error';
 import { RunnerState } from '@core/runner-state';
 import { RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
-import { Observable, pipe, Subject } from 'rxjs';
-import { filter, switchMap, takeUntil } from 'rxjs/Operators';
-import { IWorkerRxAction, RxWorkerAction } from './actions/worker.actions';
+import { Observable, Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/Operators';
+import { IRxNodeSubscribeAction, IRxNodeUnsubscribeAction, RxNodeAction } from './actions/node.actions';
+import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
+import { RxRunnerErrorMessages } from './runners-errors';
 
-interface ISubscribeInfo {
+interface IRxSubscribeInfo {
     actionId: number;
     instanceId: number;
 }
@@ -15,9 +18,9 @@ export class RxRunnerState<R extends RunnerConstructor> extends RunnerState<R> {
     /** { actionId: Observable } */
     private observableList = new Map<number, Observable<JsonObject>>();
     /** Event for stop listening the Observable */
-    private unsubscribe$ = new Subject<ISubscribeInfo>();
+    private unsubscribe$ = new Subject<IRxSubscribeInfo | 'ALL'>();
 
-    protected declare sendAction: (action: IWorkerRxAction) => void;
+    protected declare sendAction: (action: IRxWorkerAction) => void;
 
     protected async handleExecuteResponse(
         action: INodeExecuteAction,
@@ -35,17 +38,73 @@ export class RxRunnerState<R extends RunnerConstructor> extends RunnerState<R> {
         }
     }
 
-    private observeResponse(action: INodeExecuteAction, observable: Observable<JsonObject>): void {
-        const filterAction = pipe(filter((info: ISubscribeInfo) =>
-            info.instanceId === action.actionId && info.actionId === action.actionId));
+    public async execute(action: INodeExecuteAction | IRxNodeSubscribeAction | IRxNodeUnsubscribeAction,
+    ): Promise<void> {
+        switch (action.type) {
+            case RxNodeAction.RX_SUBSCRIBE:
+                this.observeResponse(action);
+                break;
+            case RxNodeAction.RX_UNSUBSCRIBE:
+                this.unsubscribe$.next(action);
+                break;
+            default:
+                return super.execute(action);
+        }
+    }
+
+    private observeResponse(action: IRxNodeSubscribeAction): void {
+        const observable = this.observableList.get(action.actionId);
+        this.observableList.delete(action.actionId);
+        if (!observable) {
+            const error = new Error(RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND);
+            this.sendAction({
+                type: RxWorkerAction.RUNNER_RX_ERROR,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
+                error: RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND,
+                stacktrace: error.stack,
+            });
+            this.sendAction({
+                type: RxWorkerAction.RUNNER_RX_COMPLETED,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
+            });
+            return;
+        }
         observable.pipe(
-            takeUntil(this.unsubscribe$.pipe(filterAction)),
-            switchMap(() => observable),
+            takeUntil(this.unsubscribe$.pipe(
+                filter(info => {
+                    if (info === 'ALL') {
+                        return true;
+                    }
+                    return info.instanceId === action.actionId && info.actionId === action.actionId;
+                }),
+            )),
         ).subscribe(
-            (rxResponse) => {
-                // TODO
+            (rxResponse) => this.sendAction({
+                type: RxWorkerAction.RUNNER_RX_EMIT,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
+                response: rxResponse,
+            }),
+            (error) => this.sendAction({
+                type: RxWorkerAction.RUNNER_RX_ERROR,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
+                ...extractError(error),
+            }),
+            () => {
+                this.sendAction({
+                    type: RxWorkerAction.RUNNER_RX_COMPLETED,
+                    actionId: action.actionId,
+                    instanceId: action.instanceId,
+                });
             },
         );
     }
 
+    public async destroy(action?: INodeDestroyAction): Promise<void> {
+        this.unsubscribe$.next('ALL');
+        super.destroy(action);
+    }
 }
