@@ -1,94 +1,87 @@
-import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, INodeWorkerDestroyAction, NodeAction } from '@core/actions/node.actions';
+import { INodeAction } from '@core/actions/node.actions';
 import { IRunnerError } from '@core/actions/runner-error';
-import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '@core/actions/worker.actions';
+import { IWorkerAction, WorkerAction } from '@core/actions/worker.actions';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { JsonObject } from '@core/types/json-object';
 import { WorkerBridge } from '@core/worker-bridge';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxNodeAction, RxNodeAction } from './actions/node.actions';
-import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
+import { IRxWorkerAction, IRxWorkerRunnerCompletedAction, IRxWorkerRunnerEmitAction, IRxWorkerRunnerErrorAction, IRxWorkerRunnerInitAction, RxWorkerAction } from './actions/worker.actions';
 import { RxRunnerErrorMessages } from './runners-errors';
+import { RxNodeRunnerState } from './states/node-runner.state';
 
 export class RxWorkerBridge extends WorkerBridge {
 
-    /** If value is undefined then Runner was destroyed */
-    private subscribers$?: Map<number, Subscriber<JsonObject>> = new Map();
-
+    protected declare runnerStates: Map<number, RxNodeRunnerState>;
     protected declare sendAction: (action: INodeAction | IRxNodeAction) => void;
+    protected declare getRunnerState: (instanceId: number) => RxNodeRunnerState;
 
     protected handleWorkerAction(action: IRxWorkerAction): void {
-        switch (action.type) {
-            case RxWorkerAction.RUNNER_RX_INIT:
-                const observable = new Observable<JsonObject>(subscriber => {
-                    if (this.subscribers$) {
-                        this.subscribers$.set(action.actionId, subscriber);
-                        this.sendAction({
-                            type: RxNodeAction.RX_SUBSCRIBE,
-                            actionId: action.actionId,
-                            instanceId: action.instanceId,
-                        });
-                    } else {
-                        subscriber.error({
-                            error: new Error(RunnerErrorMessages.RUNNER_WAS_DESTROYED),
-                            errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
-                            message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
-                        } as IRunnerError);
-                        subscriber.complete();
-                    }
-                });
-                super.handleWorkerAction({
-                    ...action,
-                    type: WorkerAction.RUNNER_EXECUTED,
-                    response: observable as any,
-                });
-                break;
-            case RxWorkerAction.RUNNER_RX_EMIT:
-                const emitSubscriber$ = this.subscribers$?.get(action.actionId);
-                if (!emitSubscriber$) {
-                    console.error(new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND));
-                    return;
-                }
-                emitSubscriber$.next(action.response);
-                break;
-            case RxWorkerAction.RUNNER_RX_ERROR:
-                const errorSubscriber$ = this.subscribers$?.get(action.actionId);
-                if (!errorSubscriber$) {
-                    console.error(new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND));
-                    return;
-                }
-                errorSubscriber$.error(action.error);
-                break;
-            case RxWorkerAction.RUNNER_RX_COMPLETED:
-                const completedSubscriber$ = this.subscribers$?.get(action.actionId);
-                if (!completedSubscriber$) {
-                    console.error(new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND));
-                    return;
-                }
-                completedSubscriber$.complete();
-                break;
-            default:
-                super.handleWorkerAction(action as IWorkerAction);
-                break;
-        }
+            switch (action.type) {
+                case RxWorkerAction.RUNNER_RX_INIT:
+                    this.runnerObservableInit(action);
+                    break;
+                case RxWorkerAction.RUNNER_RX_EMIT:
+                    this.runnerObservableEmit(action);
+                    break;
+                case RxWorkerAction.RUNNER_RX_ERROR:
+                    this.runnerObservableError(action);
+                    break;
+                case RxWorkerAction.RUNNER_RX_COMPLETED:
+                    this.runnerObservableCompleted(action);
+                    break;
+                default:
+                    super.handleWorkerAction(action as IWorkerAction);
+                    break;
+            }
     }
 
-    public async execute(action: INodeInitAction): Promise<IWorkerRunnerInitAction>;
-    public async execute(action: INodeExecuteAction): Promise<IWorkerRunnerExecutedAction>;
-    public async execute(action: INodeDestroyAction): Promise<IWorkerRunnerDestroyedAction>;
-    public async execute(action: INodeWorkerDestroyAction): Promise<IWorkerDestroyedAction>;
-    public async execute(action: INodeAction): Promise<IRxWorkerAction>;
-    public async execute(action: INodeAction): Promise<IRxWorkerAction> {
-        if (action.type === NodeAction.DESTROY) {
-            this.subscribers$?.forEach(subscriber => {
-                subscriber.error({
-                    error: new Error(RunnerErrorMessages.RUNNER_WAS_DESTROYED),
-                    message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
-                    errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
-                } as IRunnerError);
-                subscriber.complete();
+    private runnerObservableInit(action: IRxWorkerRunnerInitAction): void {
+        const observable = new Observable<JsonObject>(subscriber => {
+            try {
+                this.getRunnerState(action.instanceId).subscribers$.set(action.actionId, subscriber);
+            } catch (error) {
+                throw {
+                    error,
+                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
+                    message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+                } as IRunnerError;
+            }
+            this.sendAction({
+                type: RxNodeAction.RX_SUBSCRIBE,
+                actionId: action.actionId,
+                instanceId: action.instanceId,
             });
-            this.subscribers$ = undefined;
+        });
+        super.handleWorkerAction({
+            ...action,
+            type: WorkerAction.RUNNER_EXECUTED,
+            response: observable as any,
+        });
+    }
+
+    private runnerObservableEmit(action: IRxWorkerRunnerEmitAction): void {
+        this.getSubscriber(action.instanceId, action.actionId).next(action.response);
+    }
+
+    private runnerObservableError(action: IRxWorkerRunnerErrorAction): void {
+        this.getSubscriber(action.instanceId, action.actionId).error(action.error);
+    }
+
+    private runnerObservableCompleted(action: IRxWorkerRunnerCompletedAction): void {
+        this.getSubscriber(action.instanceId, action.actionId).complete();
+        this.getRunnerState(action.instanceId).subscribers$.delete(action.actionId);
+    }
+
+    private getSubscriber(instanceId: number, actionId: number): Subscriber<JsonObject> {
+        const completedSubscriber$ = this.getRunnerState(instanceId).subscribers$.get(actionId);
+        if (!completedSubscriber$) {
+            throw new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND);
         }
-        return super.execute(action);
+        return completedSubscriber$;
+    }
+
+    protected initRunnerState(instanceId: number): void {
+        this.runnerStates.set(instanceId, new RxNodeRunnerState());
     }
 }

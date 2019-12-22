@@ -5,9 +5,9 @@ import { RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/Operators';
-import { IRxNodeSubscribeAction, IRxNodeUnsubscribeAction, RxNodeAction } from './actions/node.actions';
-import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
-import { RxRunnerErrorCode, RxRunnerErrorMessages } from './runners-errors';
+import { IRxNodeSubscribeAction, IRxNodeUnsubscribeAction, RxNodeAction } from '../actions/node.actions';
+import { IRxWorkerAction, RxWorkerAction } from '../actions/worker.actions';
+import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
 
 interface IRxSubscribeInfo {
     actionId: number;

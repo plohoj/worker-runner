@@ -1,5 +1,6 @@
 import { extractError } from '@core/errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
+import { RxNodeRunnerState } from '@modules/rxjs/states/node-runner.state';
 import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, INodeWorkerDestroyAction, NodeAction } from './actions/node.actions';
 import { IRunnerError } from './actions/runner-error';
 import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from './actions/worker.actions';
@@ -12,7 +13,7 @@ interface IWorkerConfig {
 }
 
 export class WorkerBridge {
-
+    /** {instanceId: NodeRunnerState} */
     protected runnerStates = new Map<number, NodeRunnerState>();
     private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
     private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
@@ -71,7 +72,6 @@ export class WorkerBridge {
     }
 
     protected handleWorkerAction(action: IWorkerAction): void {
-
         switch (action.type) {
             case WorkerAction.RUNNER_INIT:
                 this.initRunnerState(action.instanceId);
@@ -81,32 +81,19 @@ export class WorkerBridge {
                 this.initPromises.reject(action.instanceId, action);
                 break;
             case WorkerAction.RUNNER_EXECUTED:
-                const runnerState = this.runnerStates.get(action.instanceId);
-                if (!runnerState) {
-                    throw new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
-                }
-                runnerState.executePromises.resolve(action.actionId, action);
+                this.getRunnerState(action.instanceId).executePromises.resolve(action.actionId, action);
                 break;
             case WorkerAction.RUNNER_EXECUTE_ERROR:
-                const runnerStateWithError = this.runnerStates.get(action.instanceId);
-                if (!runnerStateWithError) {
-                    throw new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
-                }
-                runnerStateWithError.executePromises.reject(action.actionId, action);
+                this.getRunnerState(action.instanceId).executePromises.reject(action.actionId, action);
                 break;
             case WorkerAction.RUNNER_DESTROYED:
                 this.destroyPromises.resolve(action.instanceId, action);
-                const destroyedRunnerState = this.runnerStates.get(action.instanceId);
-                if (!destroyedRunnerState) {
-                    throw new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
-                }
-                destroyedRunnerState.destroy();
+                this.getRunnerState(action.instanceId).destroy();
                 this.runnerStates.delete(action.instanceId);
                 break;
             case WorkerAction.RUNNER_DESTROY_ERROR:
                 this.destroyPromises.reject(action.instanceId, action);
-                const destroyedRunnerStateWithError = this.runnerStates.get(action.instanceId);
-                destroyedRunnerStateWithError?.destroy();
+                this.runnerStates.get(action.instanceId)?.destroy();
                 this.runnerStates.delete(action.instanceId);
                 break;
             case WorkerAction.WORKER_DESTROYED:
@@ -118,8 +105,16 @@ export class WorkerBridge {
         }
     }
 
+    protected getRunnerState(instanceId: number): NodeRunnerState {
+        const runnerStateWithError = this.runnerStates.get(instanceId);
+        if (!runnerStateWithError) {
+            throw Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
+        }
+        return runnerStateWithError;
+    }
+
     protected initRunnerState(instanceId: number): void {
-        this.runnerStates.set(instanceId, new NodeRunnerState());
+        this.runnerStates.set(instanceId, new RxNodeRunnerState());
     }
 
     public async init(): Promise<void> {

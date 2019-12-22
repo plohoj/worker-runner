@@ -3,7 +3,7 @@ import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver'
 import { Constructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { IRxNodeAction, RxNodeAction } from '../actions/node.actions';
-import { RxWorkerRunnerState } from '../runner-state';
+import { RxWorkerRunnerState } from '../states/worker-runner.state';
 
 export class RxWorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends WorkerRunnerResolverBase<R> {
 
