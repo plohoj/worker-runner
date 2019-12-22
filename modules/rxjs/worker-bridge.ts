@@ -13,7 +13,6 @@ import { RxNodeRunnerState } from './states/node-runner.state';
 export class RxWorkerBridge extends WorkerBridge {
 
     protected declare runnerStates: Map<number, RxNodeRunnerState>;
-    protected declare sendAction: (action: INodeAction | IRxNodeAction) => void;
     protected declare getRunnerState: (instanceId: number) => RxNodeRunnerState;
 
     protected handleWorkerAction(action: IRxWorkerAction): void {
@@ -58,6 +57,10 @@ export class RxWorkerBridge extends WorkerBridge {
             type: WorkerAction.RUNNER_EXECUTED,
             response: observable as any,
         });
+    }
+
+    protected sendAction(action: INodeAction | IRxNodeAction): void {
+        super.sendAction(action as INodeAction);
     }
 
     private runnerObservableEmit(action: IRxWorkerRunnerEmitAction): void {

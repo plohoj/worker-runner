@@ -2,22 +2,26 @@ import { IRunnerError } from '@core/actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/Operators';
-import { rxResolver } from 'test/common/rx';
+import { rxDevResolver, rxResolver } from 'test/common/rx';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
+import { each } from 'test/utils/each';
 import { waitTimeout } from 'test/utils/wait-timeout';
 
-describe('Rx', () => {
+each({
+    Rx: rxResolver,
+    'Dev Rx': rxDevResolver,
+}, (mode, resolver) => describe(mode, () => {
 
     beforeAll(async () => {
-        await rxResolver.run();
+        await resolver.run();
     });
 
     afterAll(async () => {
-        rxResolver.destroy();
+        resolver.destroy();
     });
 
     it('simple observable', async () => {
-        const rxStubRunner = await rxResolver.resolve(RxStubRunner);
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
         await expectAsync(
             (await rxStubRunner.emitMessages(['Book', 'Pen'])).toPromise(),
         ).toBeResolvedTo('Pen');
@@ -25,7 +29,7 @@ describe('Rx', () => {
     });
 
     it('observable with delay', async () => {
-        const rxStubRunner = await rxResolver.resolve(RxStubRunner);
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
         const emitDelay = 19;
         await waitTimeout(
             expectAsync(
@@ -38,7 +42,7 @@ describe('Rx', () => {
     });
 
     it('subscribe and destroy runner', async () => {
-        const rxStubRunner = await rxResolver.resolve(RxStubRunner);
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await expectAsync(
             from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
@@ -49,7 +53,7 @@ describe('Rx', () => {
     });
 
     it('subscribe after destroy runner', async () => {
-        const rxStubRunner = await rxResolver.resolve(RxStubRunner);
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
         await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
@@ -57,5 +61,5 @@ describe('Rx', () => {
             message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
         } as IRunnerError));
     });
-});
+}));
 
