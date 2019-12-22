@@ -15,6 +15,8 @@ export function errorActionToRunnerError(errorAction: IWorkerRunnerInitErrorActi
     };
     if ('stacktrace' in errorAction) {
         (runnerError as IRunnerError & IStacktraceError).stacktrace = errorAction.stacktrace;
+    }
+    if ('message' in errorAction) {
         (runnerError as IRunnerError & IStacktraceError).message = errorAction.message;
     }
     return runnerError;

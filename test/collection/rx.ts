@@ -1,4 +1,5 @@
-import { IRxRunnerError, RxRunnerErrorCode, RxRunnerErrorMessages } from '@modules/rxjs/runners-errors';
+import { IRunnerError } from '@core/actions/runner-error';
+import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { from } from 'rxjs';
 import { delayWhen } from 'rxjs/Operators';
 import { rxResolver } from 'test/common/rx';
@@ -42,9 +43,9 @@ describe('Rx', () => {
         await expectAsync(
             observable.pipe(delayWhen(() => from(rxStubRunner.destroy()))).toPromise(),
         ).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RxRunnerErrorCode.RUNNER_WAS_DESTROYED,
-                message: RxRunnerErrorMessages.RUNNER_WAS_DESTROYED,
-            } as IRxRunnerError),
+                errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
+                message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
+            } as IRunnerError),
         );
     });
 
@@ -53,9 +54,9 @@ describe('Rx', () => {
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
         await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RxRunnerErrorCode.RUNNER_WAS_DESTROYED,
-                message: RxRunnerErrorMessages.RUNNER_WAS_DESTROYED,
-            } as IRxRunnerError),
+                errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
+                message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
+            } as IRunnerError),
         );
     });
 });

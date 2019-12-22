@@ -1,6 +1,6 @@
 import { INodeDestroyAction, INodeExecuteAction } from '@core/actions/node.actions';
 import { extractError } from '@core/errors/extract-error';
-import { RunnerState } from '@core/runner-state';
+import { WorkerRunnerState } from '@core/state/worker-runner.state';
 import { RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { Observable, Subject } from 'rxjs';
@@ -14,7 +14,7 @@ interface IRxSubscribeInfo {
     instanceId: number;
 }
 
-export class RxRunnerState<R extends RunnerConstructor> extends RunnerState<R> {
+export class RxWorkerRunnerState<R extends RunnerConstructor> extends WorkerRunnerState<R> {
     /** { actionId: Observable } */
     private observableList = new Map<number, Observable<JsonObject>>();
     /** Event for stop listening the Observable */

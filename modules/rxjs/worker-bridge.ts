@@ -1,11 +1,13 @@
 import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, INodeWorkerDestroyAction, NodeAction } from '@core/actions/node.actions';
+import { IRunnerError } from '@core/actions/runner-error';
 import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from '@core/actions/worker.actions';
+import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
 import { JsonObject } from '@core/types/json-object';
-import { WorkerBridge } from '@core/worker-bridge/worker-bridge';
+import { WorkerBridge } from '@core/worker-bridge';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxNodeAction, RxNodeAction } from './actions/node.actions';
 import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
-import { IRxRunnerError, RxRunnerErrorCode, RxRunnerErrorMessages } from './runners-errors';
+import { RxRunnerErrorMessages } from './runners-errors';
 
 export class RxWorkerBridge extends WorkerBridge {
 
@@ -27,10 +29,10 @@ export class RxWorkerBridge extends WorkerBridge {
                         });
                     } else {
                         subscriber.error({
-                            error: new Error(RxRunnerErrorMessages.RUNNER_WAS_DESTROYED),
-                            errorCode: RxRunnerErrorCode.RUNNER_WAS_DESTROYED,
-                            message: RxRunnerErrorMessages.RUNNER_WAS_DESTROYED,
-                        } as IRxRunnerError);
+                            error: new Error(RunnerErrorMessages.RUNNER_WAS_DESTROYED),
+                            errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
+                            message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
+                        } as IRunnerError);
                         subscriber.complete();
                     }
                 });
@@ -42,7 +44,6 @@ export class RxWorkerBridge extends WorkerBridge {
                 break;
             case RxWorkerAction.RUNNER_RX_EMIT:
                 const emitSubscriber$ = this.subscribers$?.get(action.actionId);
-                debugger;
                 if (!emitSubscriber$) {
                     console.error(new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND));
                     return;
@@ -80,10 +81,10 @@ export class RxWorkerBridge extends WorkerBridge {
         if (action.type === NodeAction.DESTROY) {
             this.subscribers$?.forEach(subscriber => {
                 subscriber.error({
-                    error: new Error(RxRunnerErrorMessages.RUNNER_WAS_DESTROYED),
-                    message: RxRunnerErrorMessages.RUNNER_WAS_DESTROYED,
-                    errorCode: RxRunnerErrorCode.RUNNER_WAS_DESTROYED,
-                } as IRxRunnerError);
+                    error: new Error(RunnerErrorMessages.RUNNER_WAS_DESTROYED),
+                    message: RunnerErrorMessages.RUNNER_WAS_DESTROYED,
+                    errorCode: RunnerErrorCode.RUNNER_WAS_DESTROYED,
+                } as IRunnerError);
                 subscriber.complete();
             });
             this.subscribers$ = undefined;

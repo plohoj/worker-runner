@@ -9,6 +9,13 @@ module.exports = {
             './modules/core/resolver/worker-runner.resolver.ts',
         ],
         promise: './modules/core/runner-promises.ts',
+        worker: './test/worker.ts',
+        'rx-worker': './test/rx-worker.ts',
+    },
+    optimization: {
+        splitChunks: {
+            chunks: "all"
+        }
     },
     module: {
         rules: [

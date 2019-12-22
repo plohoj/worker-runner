@@ -3,15 +3,15 @@ import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver'
 import { Constructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { IRxNodeAction, RxNodeAction } from '../actions/node.actions';
-import { RxRunnerState } from '../runner-state';
+import { RxWorkerRunnerState } from '../runner-state';
 
 export class RxWorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends WorkerRunnerResolverBase<R> {
 
-    protected declare runnerStates: Map<number, RxRunnerState<R>>;
+    protected declare runnerStates: Map<number, RxWorkerRunnerState<R>>;
     protected declare execute: (action: INodeAction | IRxNodeAction) => Promise<void>;
 
-    protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): RxRunnerState<R> {
-        return new RxRunnerState({
+    protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): RxWorkerRunnerState<R> {
+        return new RxWorkerRunnerState({
             runnerConstructor,
             runnerArguments,
             workerRunnerResolver: this,

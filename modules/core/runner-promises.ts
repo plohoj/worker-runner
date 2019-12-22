@@ -1,5 +1,5 @@
 export class PromisesResolver<T> {
-    private promises = new Map<number, {resolve: (data: T) => void, reject: (error: any) => void}>();
+    public readonly promises = new Map<number, {resolve: (data: T) => void, reject: (error: any) => void}>();
 
     public promise(id: number): Promise<T> {
         return new Promise((resolve, reject) => this.promises.set(id, {resolve, reject}));

@@ -1,11 +1,10 @@
 import { RunnerConstructor } from '@core/types/constructor';
+import { WorkerBridge } from '@core/worker-bridge';
 import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
-import { WorkerBridge } from '../worker-bridge/worker-bridge';
-import { WorkerBridgeBase } from '../worker-bridge/worker-bridge-base';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -26,7 +25,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
     private workerIndex = 0;
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
-    protected workerBridges?: WorkerBridgeBase[];
+    protected workerBridges?: WorkerBridge[];
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
     constructor(config: INodeRunnerResolverConfigBase<R>) {
@@ -43,25 +42,30 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
 
     public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
 
-    protected async sendInitAction(runnerId: number, ...args: ConstructorParameters<R>): Promise<WorkerBridgeBase> {
+    /** @returns instanceId */
+    protected async sendInitAction(
+        runnerId: number,
+        args: ConstructorParameters<R>,
+        workerBridge: WorkerBridge,
+    ): Promise<number> {
         if (runnerId < 0) {
             throw {
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
                 errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
             } as IRunnerError;
         }
-        const workerBridge = this.getNextWorkerBridge();
+        const instanceId = workerBridge.resolveNewRunnerInstanceId();
         try {
             await workerBridge.execute({
                 type: NodeAction.INIT,
-                instanceId: workerBridge.resolveNewRunnerInstanceId(),
+                instanceId,
                 runnerId,
                 arguments: args,
             });
         } catch (error) {
             throw errorActionToRunnerError(error);
         }
-        return workerBridge;
+        return instanceId;
     }
 
     /**
@@ -75,7 +79,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
         this.workerBridges = undefined;
     }
 
-    protected async buildWorkerBridge(): Promise<WorkerBridgeBase[]> {
+    protected async buildWorkerBridge(): Promise<WorkerBridge[]> {
         const workerBridgesInits$ = new Array<Promise<WorkerBridge>>();
         for (let i = 0; i < this.config.totalWorkers; i++) {
             const bridge = new WorkerBridge({
@@ -87,7 +91,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
         return Promise.all(workerBridgesInits$);
     }
 
-    private getNextWorkerBridge(): WorkerBridgeBase {
+    protected getNextWorkerBridge(): WorkerBridge {
         if (!this.workerBridges || this.workerBridges.length === 0) {
             throw new Error('Workers was not started');
         }

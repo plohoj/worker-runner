@@ -40,10 +40,10 @@ each({
         it ('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.destroy()).toBeRejectedWith({
+            await expectAsync(executableStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
                 error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
                 errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
-            } as IRunnerError);
+            } as IRunnerError));
         });
     }),
 );

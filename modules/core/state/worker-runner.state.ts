@@ -1,22 +1,22 @@
-import { INodeDestroyAction, INodeExecuteAction } from './actions/node.actions';
-import { IWorkerAction, WorkerAction } from './actions/worker.actions';
-import { extractError } from './errors/extract-error';
-import { RunnerErrorCode } from './errors/runners-errors';
-import { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
-import { RunnerConstructor } from './types/constructor';
-import { JsonObject } from './types/json-object';
+import { INodeDestroyAction, INodeExecuteAction } from '../actions/node.actions';
+import { IWorkerAction, WorkerAction } from '../actions/worker.actions';
+import { extractError } from '../errors/extract-error';
+import { RunnerErrorCode } from '../errors/runners-errors';
+import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
+import { RunnerConstructor } from '../types/constructor';
+import { JsonObject } from '../types/json-object';
 
-interface IRunnerStateConfig<R extends RunnerConstructor> {
+interface IWorkerRunnerStateConfig<R extends RunnerConstructor> {
     runnerConstructor: R;
     runnerArguments: JsonObject[];
     workerRunnerResolver: WorkerRunnerResolverBase<R>;
 }
 
-export class RunnerState<R extends RunnerConstructor> {
+export class WorkerRunnerState<R extends RunnerConstructor> {
     private runnerInstance: InstanceType<R>;
     private workerRunnerResolver: WorkerRunnerResolverBase<R>;
 
-    constructor(config: IRunnerStateConfig<R>) {
+    constructor(config: IWorkerRunnerStateConfig<R>) {
         this.runnerInstance = new config.runnerConstructor(...config.runnerArguments) as InstanceType<R>;
         this.workerRunnerResolver = config.workerRunnerResolver;
     }
@@ -33,6 +33,7 @@ export class RunnerState<R extends RunnerConstructor> {
                 actionId: action.actionId,
                 instanceId: action.instanceId,
             });
+            return;
         }
         if (response instanceof Promise) {
             let resolvedResponse: JsonObject;
@@ -79,6 +80,7 @@ export class RunnerState<R extends RunnerConstructor> {
                     ...extractError(error),
                     instanceId: action.instanceId,
                 });
+                return;
             }
             if (response instanceof Promise) {
                 try {

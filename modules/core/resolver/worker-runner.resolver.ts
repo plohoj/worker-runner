@@ -1,4 +1,4 @@
-import { RunnerState } from '@core/runner-state';
+import { WorkerRunnerState } from '@core/state/worker-runner.state';
 import { RunnerConstructor } from '@core/types/constructor';
 import { JsonObject } from '@core/types/json-object';
 import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, NodeAction } from '../actions/node.actions';
@@ -8,7 +8,8 @@ import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
-    protected runnerStates = new Map<number, RunnerState<R>>();
+    /** {instanceId: WorkerRunnerState} */
+    protected runnerStates = new Map<number, WorkerRunnerState<R>>();
 
     constructor(protected config: IRunnerResolverConfigBase<R>) {}
 
@@ -41,7 +42,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     private initRunnerInstance(action: INodeInitAction): void {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
-            let runnerState: RunnerState<R> ;
+            let runnerState: WorkerRunnerState<R> ;
             try {
                 runnerState = this.buildRunnerState(runnerConstructor, action.arguments);
             } catch (error) {
@@ -53,7 +54,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 });
                 return;
             }
-            this.runnerStates.set(action.runnerId, runnerState);
+            this.runnerStates.set(action.instanceId, runnerState);
             this.sendAction({
                 type: WorkerAction.RUNNER_INIT,
                 instanceId: action.instanceId,
@@ -68,8 +69,8 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         }
     }
 
-    protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): RunnerState<R> {
-        return new RunnerState({
+    protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): WorkerRunnerState<R> {
+        return new WorkerRunnerState({
             runnerConstructor,
             runnerArguments,
             workerRunnerResolver: this,
@@ -114,6 +115,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             });
             await Promise.all(destroying$);
         }
+        this.runnerStates.clear();
         this.sendAction({ type: WorkerAction.WORKER_DESTROYED });
     }
 

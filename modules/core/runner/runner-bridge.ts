@@ -3,7 +3,7 @@ import { JsonObject } from '@core/types/json-object';
 import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError } from '../actions/runner-error';
 import { IWorkerRunnerExecutedAction } from '../actions/worker.actions';
-import { WorkerBridgeBase } from '../worker-bridge/worker-bridge-base';
+import { WorkerBridge } from '../worker-bridge';
 import { ResolveRunner } from './resolved-runner';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
@@ -15,7 +15,7 @@ export class RunnerBridge {
     private lastActionId = 0;
 
     constructor(
-        private workerBridge: WorkerBridgeBase,
+        private workerBridge: WorkerBridge,
         private instanceId: number,
     ) {}
 

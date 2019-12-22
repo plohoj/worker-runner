@@ -12,8 +12,9 @@ export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunne
     public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>
     ): Promise<RxResolveRunner<InstanceType<RR>>> {
         const runnerId = this.config.runners.indexOf(runner);
-        const workerBridge = await this.sendInitAction(runnerId, ...args);
-        return new (this.runnerBridgeConstructors[runnerId])(workerBridge, runnerId) as any;
+        const workerBridge = this.getNextWorkerBridge();
+        const instanceId = await this.sendInitAction(runnerId, args, workerBridge);
+        return new (this.runnerBridgeConstructors[runnerId])(workerBridge, instanceId) as any;
     }
 
     protected async buildWorkerBridge(): Promise<RxWorkerBridge[]> {

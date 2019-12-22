@@ -91,10 +91,10 @@ each({
         it ('not exist runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.amount(53, 95)).toBeRejectedWith({
-                error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+            await expectAsync(executableStubRunner.amount(53, 95)).toBeRejectedWith(jasmine.objectContaining({
+                message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
                 errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
-            } as IRunnerError);
+            } as IRunnerError));
         });
     }),
 );

@@ -5,8 +5,8 @@ module.exports = (config) => {
     config.set({
       files: [
         { pattern: './test/main.ts', watched: false },
-        { pattern: './test/worker.ts', watched: false },
-        { pattern: './test/rx-worker.ts', watched: false },
+        { pattern: './test/worker.ts', watched: false, included: false },
+        { pattern: './test/rx-worker.ts', watched: false, included: false },
       ],
       frameworks: ['jasmine'],
       preprocessors: {
