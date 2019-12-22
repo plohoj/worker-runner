@@ -5,7 +5,7 @@
         "lib": [
             "webworker"
         ],
-        "target": "esnext",
+        "target": "ES5",
         "outDir": "./dist",
         "strictNullChecks": true,
         "strict": true,        

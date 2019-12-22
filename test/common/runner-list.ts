@@ -1,8 +1,8 @@
 
-import { RxMessageRunner } from './rx-message-runner';
 import { ErrorStubRunner } from './stubs/error-stub.runner';
 import { ExecutableStubRunner } from './stubs/executable-stub.runner';
 import { ExtendedStubRunner } from './stubs/extended-stub.runner';
+import { RxStubRunner } from './stubs/rx-stub.runner';
 
 
 export const runners = [
@@ -10,5 +10,5 @@ export const runners = [
     ExecutableStubRunner,
     ExtendedStubRunner,
 
-    RxMessageRunner,
+    RxStubRunner,
 ];

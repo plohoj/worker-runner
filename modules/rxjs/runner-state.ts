@@ -7,7 +7,7 @@ import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/Operators';
 import { IRxNodeSubscribeAction, IRxNodeUnsubscribeAction, RxNodeAction } from './actions/node.actions';
 import { IRxWorkerAction, RxWorkerAction } from './actions/worker.actions';
-import { RxRunnerErrorMessages } from './runners-errors';
+import { RxRunnerErrorCode, RxRunnerErrorMessages } from './runners-errors';
 
 interface IRxSubscribeInfo {
     actionId: number;
@@ -63,6 +63,7 @@ export class RxRunnerState<R extends RunnerConstructor> extends RunnerState<R> {
                 instanceId: action.instanceId,
                 error: RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND,
                 stacktrace: error.stack,
+                errorCode: RxRunnerErrorCode.SUBSCRIPTION_NOT_FOUND,
             });
             this.sendAction({
                 type: RxWorkerAction.RUNNER_RX_COMPLETED,
@@ -92,6 +93,7 @@ export class RxRunnerState<R extends RunnerConstructor> extends RunnerState<R> {
                 actionId: action.actionId,
                 instanceId: action.instanceId,
                 ...extractError(error),
+                errorCode: RxRunnerErrorCode.ERROR_EMIT,
             }),
             () => {
                 this.sendAction({

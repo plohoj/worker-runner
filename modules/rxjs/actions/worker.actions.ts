@@ -1,6 +1,7 @@
 import { IWorkerAction, WorkerAction } from '@core/actions/worker.actions';
 import { StackTraceError } from '@core/errors/stacktrace-error';
 import { JsonObject } from '@core/types/json-object';
+import { RxRunnerErrorCode } from '../runners-errors';
 
 export enum RxWorkerAction {
     RUNNER_RX_INIT = 100,
@@ -26,6 +27,7 @@ export type IRxWorkerRunnerErrorAction = StackTraceError<{
     type: RxWorkerAction.RUNNER_RX_ERROR;
     actionId: number;
     instanceId: number;
+    errorCode: RxRunnerErrorCode;
 }>;
 
 export interface IRxWorkerRunnerCompletedAction {

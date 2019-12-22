@@ -9,10 +9,11 @@ export abstract class WorkerBridgeBase {
     private destroyWorkerResolver?: () => void;
     private newRunnerInstanceId = 0;
 
-    public execute(action: INodeInitAction): Promise<IWorkerRunnerInitAction>;
-    public execute(action: INodeExecuteAction): Promise<IWorkerRunnerExecutedAction>;
-    public execute(action: INodeDestroyAction): Promise<IWorkerRunnerDestroyedAction>;
-    public execute(action: INodeWorkerDestroyAction): Promise<IWorkerDestroyedAction>;
+    public async execute(action: INodeInitAction): Promise<IWorkerRunnerInitAction>;
+    public async execute(action: INodeExecuteAction): Promise<IWorkerRunnerExecutedAction>;
+    public async execute(action: INodeDestroyAction): Promise<IWorkerRunnerDestroyedAction>;
+    public async execute(action: INodeWorkerDestroyAction): Promise<IWorkerDestroyedAction>;
+    public async execute(action: INodeAction): Promise<IWorkerAction>;
     public async execute(action: INodeAction): Promise<IWorkerAction> {
         let promise$: Promise<IWorkerAction> | undefined;
         switch (action.type) {

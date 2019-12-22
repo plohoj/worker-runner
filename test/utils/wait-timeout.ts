@@ -10,7 +10,7 @@ export function waitTimeout<T extends Promise<any>>(promise: T, timeout: number,
             throw new Error(`Promise timed out. Expected: ${timeout}; Actually: ${stopwatch}`);
         }
         if (min && stopwatch < min) {
-            fail(new Error(`Promise executed too fast. Expected: ${timeout}; Actually: ${min}`));
+            throw new Error(`Promise executed too fast. Expected: ${min}; Actually: ${stopwatch}`);
         }
         return response;
     }) as T;
