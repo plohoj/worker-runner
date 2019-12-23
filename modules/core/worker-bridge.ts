@@ -1,6 +1,5 @@
 import { extractError } from '@core/errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
-import { RxNodeRunnerState } from '@modules/rxjs/states/node-runner.state';
 import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, INodeWorkerDestroyAction, NodeAction } from './actions/node.actions';
 import { IRunnerError } from './actions/runner-error';
 import { IWorkerAction, IWorkerDestroyedAction, IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction, WorkerAction } from './actions/worker.actions';
@@ -114,7 +113,7 @@ export class WorkerBridge {
     }
 
     protected initRunnerState(instanceId: number): void {
-        this.runnerStates.set(instanceId, new RxNodeRunnerState());
+        this.runnerStates.set(instanceId, new NodeRunnerState());
     }
 
     public async init(): Promise<void> {

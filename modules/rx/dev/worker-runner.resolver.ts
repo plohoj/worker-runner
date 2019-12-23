@@ -1,7 +1,7 @@
 import { IWorkerAction } from '@core/actions/worker.actions';
 import { Constructor } from '@core/types/constructor';
 import { RxWorkerRunnerResolver } from '../resolvers/worker-runner.resolver';
-import { RxDevWorkerBridge } from './dev-worker-bridge';
+import { RxDevWorkerBridge } from './worker-bridge';
 
 export class RxDevWorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends RxWorkerRunnerResolver<R> {
     public workerBridge = new RxDevWorkerBridge(this);
