@@ -1,10 +1,10 @@
-import { WorkerRunnerState } from '@core/state/worker-runner.state';
-import { RunnerConstructor } from '@core/types/constructor';
-import { JsonObject } from '@core/types/json-object';
 import { INodeAction, INodeDestroyAction, INodeExecuteAction, INodeInitAction, NodeAction } from '../actions/node.actions';
 import { IWorkerAction, WorkerAction } from '../actions/worker.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { WorkerRunnerState } from '../state/worker-runner.state';
+import { RunnerConstructor } from '../types/constructor';
+import { JsonObject } from '../types/json-object';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {

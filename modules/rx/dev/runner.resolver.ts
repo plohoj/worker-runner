@@ -1,4 +1,4 @@
-import { RunnerConstructor } from '@core/types/constructor';
+import { RunnerConstructor } from '@core';
 import { RxNodeRunnerResolver } from '../resolvers/node-runner.resolver';
 import { RxDevWorkerBridge } from './worker-bridge';
 import { RxDevWorkerRunnerResolver } from './worker-runner.resolver';

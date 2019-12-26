@@ -1,6 +1,5 @@
-import { IRunnerError } from '@core/actions/runner-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
-import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@core';
+import { DevRunnerResolver } from '@modules/promise';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';

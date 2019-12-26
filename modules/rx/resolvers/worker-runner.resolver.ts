@@ -1,7 +1,4 @@
-import { INodeAction } from '@core/actions/node.actions';
-import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver';
-import { Constructor } from '@core/types/constructor';
-import { JsonObject } from '@core/types/json-object';
+import { Constructor, INodeAction, JsonObject, WorkerRunnerResolverBase } from '@core';
 import { IRxNodeAction, RxNodeAction } from '../actions/node.actions';
 import { RxWorkerRunnerState } from '../states/worker-runner.state';
 

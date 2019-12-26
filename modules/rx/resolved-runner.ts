@@ -1,6 +1,4 @@
-import { SerializeRunnerDestroyer, SerializeRunnerMethod as SerializeRunnerPromiseMethod } from '@core/runner/resolved-runner';
-import { ClearNever } from '@core/types/allowed-names';
-import { JsonObject } from '@core/types/json-object';
+import { ClearNever, JsonObject, SerializeRunnerDestroyer, SerializeRunnerMethod as SerializeRunnerPromiseMethod } from '@core';
 import { Observable } from 'rxjs';
 
 export type RxSerializeRunnerMethod<T extends (...args: any) => any > =

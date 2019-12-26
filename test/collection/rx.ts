@@ -1,7 +1,6 @@
-import { IRunnerError } from '@core/actions/runner-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@core';
 import { from } from 'rxjs';
-import { switchMap } from 'rxjs/Operators';
+import { switchMap } from 'rxjs/operators';
 import { rxDevResolver, rxResolver } from 'test/common/rx';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';

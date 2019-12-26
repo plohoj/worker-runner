@@ -1,10 +1,10 @@
-import { RunnerConstructor } from '@core/types/constructor';
-import { WorkerBridge } from '@core/worker-bridge';
 import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
+import { RunnerConstructor } from '../types/constructor';
+import { WorkerBridge } from '../worker-bridge';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {

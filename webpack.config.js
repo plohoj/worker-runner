@@ -1,35 +1,62 @@
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
+const { readdirSync } = require('fs');
+const { resolve } = require("path");
 
-/** @type {import('webpack').Configuration} */
-module.exports = {
-    context: __dirname,
-    entry: {
-        core: [
-            './modules/core/resolver/node-runner.resolver.ts',
-            './modules/core/resolver/worker-runner.resolver.ts',
-        ],
-        promise: './modules/core/runner-promises.ts',
-        worker: './test/worker.ts',
-        'rx-worker': './test/rx-worker.ts',
-    },
-    optimization: {
-        splitChunks: {
-            chunks: "all"
+const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
+    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+const moduleTypes = ["umd", "commonjs"];
+
+function externalModules(moduleType) {
+    /**
+     * @param {string} context
+     * @param {string} request
+     * @param {(error: any, result: any) => void} callback
+     */
+    const external = function(context, request, callback) {
+        if (/^@core/.test(request)) {
+            return callback(null, `${moduleType} @worker-runner/core`);
         }
-    },
-    module: {
-        rules: [
-            {
-                test: /\.ts$/,
-                exclude: /node_modules/,
-                use: 'ts-loader',
-            },
-        ],
-    },
-    output: {filename: '[name].js'},
-    resolve: {
-        extensions: ['.js', '.ts'],
-        plugins: [new TsconfigPathsPlugin()]
-    },
-    devtool: 'source-map',
-};
+        if (/^rxjs/.test(request)) {
+            return callback(null, `${moduleType} ${request}`);
+        }
+        callback();
+    };
+    return external;
+}
+function generateBuildConfig(moduleName, moduleType) {
+    /** @type {import('webpack').Configuration} */
+    const config = {
+        mode: "production",
+        context: resolve(`modules/${moduleName}`),
+        entry: {[moduleName]: `./index.ts`},
+        externals: externalModules(moduleType),
+        module: {
+            rules: [
+                {
+                    test: /\.ts$/,
+                    exclude: [/node_modules/],
+                    use: "ts-loader",
+                },
+            ],
+        },
+        output: {
+            filename: `${moduleName}${moduleType === "umd" ? ".umd" : ""}.js`,
+            libraryTarget: moduleType,
+            library: `@worker-runner/${moduleName}`,
+            umdNamedDefine: true,
+            path: resolve(`dist/${moduleName}/${moduleType}`),
+        },
+
+        resolve: {
+            extensions: [".js", ".ts"],
+            plugins: [new TsconfigPathsPlugin()],
+        },
+        devtool: "source-map",
+    };
+    return config;
+}
+
+module.exports = [].concat(
+    ...moduleNames.map(moduleName => moduleTypes.map((moduleType) =>
+        generateBuildConfig(moduleName, moduleType))),
+);

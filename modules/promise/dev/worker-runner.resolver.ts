@@ -1,7 +1,5 @@
-import { IWorkerAction } from '@core/actions/worker.actions';
-import { WorkerRunnerResolverBase } from '@core/resolver/worker-runner.resolver';
-import { Constructor } from '@core/types/constructor';
-import { DevWorkerBridge } from '@modules/promise/dev/worker-bridge';
+import { Constructor, IWorkerAction, WorkerRunnerResolverBase } from '@core';
+import { DevWorkerBridge } from './worker-bridge';
 
 export class DevWorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends WorkerRunnerResolverBase<R> {
     public workerBridge = new DevWorkerBridge(this);

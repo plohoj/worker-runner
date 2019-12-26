@@ -9,10 +9,10 @@
         "outDir": "./dist",
         "strictNullChecks": true,
         "strict": true,
+        "moduleResolution": "Node",
         "paths": {
             "@core": ["./modules/core"],
-            "@core/*": ["./modules/core/*"],
-            "@modules/*": ["./modules/*"],
+            "@modules/*": ["./modules/*"]
         }
     },
     "exclude": [

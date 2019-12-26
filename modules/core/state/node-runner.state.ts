@@ -1,7 +1,7 @@
-import { IRunnerError } from '@core/actions/runner-error';
-import { IWorkerRunnerExecutedAction } from '@core/actions/worker.actions';
-import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
-import { PromisesResolver } from '@core/runner-promises';
+import { IRunnerError } from '../actions/runner-error';
+import { IWorkerRunnerExecutedAction } from '../actions/worker.actions';
+import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { PromisesResolver } from '../runner-promises';
 
 export class NodeRunnerState {
 

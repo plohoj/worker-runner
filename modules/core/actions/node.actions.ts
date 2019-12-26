@@ -1,4 +1,4 @@
-import { JsonObject } from '@core/types/json-object';
+import { JsonObject } from '../types/json-object';
 
 export enum NodeAction {
     INIT,

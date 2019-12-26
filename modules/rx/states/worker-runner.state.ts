@@ -1,10 +1,6 @@
-import { INodeDestroyAction, INodeExecuteAction } from '@core/actions/node.actions';
-import { extractError } from '@core/errors/extract-error';
-import { WorkerRunnerState } from '@core/state/worker-runner.state';
-import { RunnerConstructor } from '@core/types/constructor';
-import { JsonObject } from '@core/types/json-object';
+import { extractError, INodeDestroyAction, INodeExecuteAction, JsonObject, RunnerConstructor, WorkerRunnerState } from '@core';
 import { Observable, Subject } from 'rxjs';
-import { filter, takeUntil } from 'rxjs/Operators';
+import { filter, takeUntil } from 'rxjs/operators';
 import { IRxNodeSubscribeAction, IRxNodeUnsubscribeAction, RxNodeAction } from '../actions/node.actions';
 import { IRxWorkerAction, RxWorkerAction } from '../actions/worker.actions';
 import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';

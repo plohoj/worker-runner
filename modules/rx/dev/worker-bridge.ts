@@ -1,5 +1,4 @@
-import { IWorkerAction, IWorkerDestroyedAction } from '@core/actions/worker.actions';
-import { INodeAction } from '../../core/actions/node.actions';
+import { INodeAction, IWorkerAction, IWorkerDestroyedAction } from '@core';
 import { IRxNodeAction } from '../actions/node.actions';
 import { RxWorkerRunnerResolver } from '../resolvers/worker-runner.resolver';
 import { RxWorkerBridge } from '../worker-bridge';

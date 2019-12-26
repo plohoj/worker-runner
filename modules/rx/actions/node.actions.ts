@@ -1,4 +1,4 @@
-import { INodeAction, NodeAction } from '@core/actions/node.actions';
+import { INodeAction, NodeAction } from '@core';
 
 export enum RxNodeAction {
     RX_SUBSCRIBE = 100,

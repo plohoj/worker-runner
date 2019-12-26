@@ -1,5 +1,4 @@
-import { IWorkerAction } from '@core/actions/worker.actions';
-import { Constructor } from '@core/types/constructor';
+import { Constructor, IWorkerAction } from '@core';
 import { RxWorkerRunnerResolver } from '../resolvers/worker-runner.resolver';
 import { RxDevWorkerBridge } from './worker-bridge';
 

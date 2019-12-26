@@ -1,4 +1,4 @@
-import { StackTraceError } from '@core/errors/stacktrace-error';
+import { StackTraceError } from '@core';
 
 export enum RxRunnerErrorCode {
     SUBSCRIPTION_NOT_FOUND = 100,

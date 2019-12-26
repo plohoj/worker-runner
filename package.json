@@ -2,9 +2,12 @@
   "name": "worker-runner",
   "version": "0.1.2",
   "scripts": {
-    "build": "webpack-cli --mode=production",
+    "build": "node build.js",
     "test": "karma start",
-    "tslint": "tslint -p . -t codeFrame"
+    "tslint": "tslint -p . -t codeFrame",
+    "version:patch": "node version.js",
+    "version:minor": "node version.js --type=minor",
+    "version:major": "node version.js --type=major"
   },
   "repository": {
     "type": "git",
@@ -20,16 +23,17 @@
     "@types/jasmine": "^3.5.0",
     "@types/karma-webpack": "^2.0.7",
     "@types/webpack": "^4.41.0",
+    "copy-webpack-plugin": "^5.1.1",
     "jasmine": "^3.5.0",
     "karma": "^4.4.1",
     "karma-jasmine": "^2.0.1",
     "karma-webpack": "^4.0.2",
+    "parallel-webpack": "^2.4.0",
     "ts-loader": "^6.2.1",
     "tsconfig-paths-webpack-plugin": "^3.2.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.3",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10"
+    "webpack": "^4.41.5"
   },
   "dependencies": {
     "rxjs": "^6.5.3"

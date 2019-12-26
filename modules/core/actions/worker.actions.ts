@@ -1,6 +1,6 @@
-import { JsonObject } from '@core/types/json-object';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { StackTraceError } from '../errors/stacktrace-error';
+import { JsonObject } from '../types/json-object';
 
 export enum WorkerAction {
     WORKER_INIT,

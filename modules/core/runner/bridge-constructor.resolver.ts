@@ -1,5 +1,5 @@
-import { Constructor, RunnerConstructor } from '@core/types/constructor';
-import { JsonObject } from '@core/types/json-object';
+import { Constructor, RunnerConstructor } from '../types/constructor';
+import { JsonObject } from '../types/json-object';
 import { executeRunnerBridgeMethod, IRunnerBridgeConstructor, RunnerBridge } from './runner-bridge';
 
 function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {

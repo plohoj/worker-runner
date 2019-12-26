@@ -1,5 +1,5 @@
-import { ClearNever } from '@core/types/allowed-names';
-import { JsonObject } from '@core/types/json-object';
+import { ClearNever } from '../types/allowed-names';
+import { JsonObject } from '../types/json-object';
 
 export type SerializeRunnerMethod<T extends (...args: any) => any > =
     ReturnType<T> extends Promise<JsonObject | void>    ? T :

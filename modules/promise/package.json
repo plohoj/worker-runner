@@ -1,0 +1,20 @@
+{
+  "name": "@worker-runner/promise",
+  "version": "0.1.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
+  },
+  "author": "Alexandr Plokhikh",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/plohoj/worker-runner/issues"
+  },
+  "homepage": "https://github.com/plohoj/worker-runner#readme",
+  "types": "./declarations/index.d.ts",
+  "main": "./umd/promise.umd.js",
+  "module": "./commonjs/promise.js",
+  "dependencies": {
+    "@worker-runner/core": "^0.1.2"
+  }
+}

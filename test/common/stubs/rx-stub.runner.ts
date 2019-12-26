@@ -1,5 +1,5 @@
 import { Observable, of } from 'rxjs';
-import { delay as rxDelay } from 'rxjs/Operators';
+import { delay as rxDelay } from 'rxjs/operators';
 
 export class RxStubRunner {
     public emitMessages(messages: string[], delay?: number): Observable<string> {

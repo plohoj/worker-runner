@@ -1,9 +1,4 @@
-import { INodeAction } from '@core/actions/node.actions';
-import { IRunnerError } from '@core/actions/runner-error';
-import { IWorkerAction, WorkerAction } from '@core/actions/worker.actions';
-import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
-import { JsonObject } from '@core/types/json-object';
-import { WorkerBridge } from '@core/worker-bridge';
+import { INodeAction, IRunnerError, IWorkerAction, JsonObject, RunnerErrorCode, RunnerErrorMessages, WorkerAction, WorkerBridge } from '@core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxNodeAction, RxNodeAction } from './actions/node.actions';
 import { IRxWorkerAction, IRxWorkerRunnerCompletedAction, IRxWorkerRunnerEmitAction, IRxWorkerRunnerErrorAction, IRxWorkerRunnerInitAction, RxWorkerAction } from './actions/worker.actions';

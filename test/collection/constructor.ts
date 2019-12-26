@@ -1,6 +1,4 @@
-import { IRunnerError } from '@core/actions/runner-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '@core/errors/runners-errors';
-import { ResolveRunner } from '@core/runner/resolved-runner';
+import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@core';
 import { rxResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
