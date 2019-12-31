@@ -1,13 +1,14 @@
 {
   "name": "worker-runner",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "scripts": {
     "build": "node build.js",
     "test": "karma start",
     "tslint": "tslint -p . -t codeFrame",
     "version:patch": "node version.js",
     "version:minor": "node version.js --type=minor",
-    "version:major": "node version.js --type=major"
+    "version:major": "node version.js --type=major",
+    "publish": "node publish.js"
   },
   "repository": {
     "type": "git",
