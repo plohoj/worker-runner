@@ -1,4 +1,4 @@
-import { INodeRunnerResolverConfigBase, ResolveRunner, RunnerConstructor } from '@core';
+import { INodeRunnerResolverConfigBase, ResolveRunner, RunnerConstructor } from '@worker-runner/core';
 import { NodeRunnerResolver } from './node-runner.resolver';
 import { WorkerRunnerResolver } from './worker-runner.resolver';
 

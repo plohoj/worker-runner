@@ -1,4 +1,4 @@
-import { IRunnerError, JsonObject, NodeRunnerState, RunnerErrorCode, RunnerErrorMessages } from '@core';
+import { IRunnerError, JsonObject, NodeRunnerState, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { Subscriber } from 'rxjs';
 
 export class RxNodeRunnerState extends NodeRunnerState {

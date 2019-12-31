@@ -1,4 +1,4 @@
-import { JsonObject } from '@core';
+import { JsonObject } from '@worker-runner/core';
 
 export class ErrorStubRunner {
     constructor(errorMessage?: JsonObject) {

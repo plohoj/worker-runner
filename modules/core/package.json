@@ -13,5 +13,5 @@
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.d.ts",
   "main": "./umd/core.umd.js",
-  "module": "./commonjs/core.js"
+  "module": "./esm/core.mjs"
 }

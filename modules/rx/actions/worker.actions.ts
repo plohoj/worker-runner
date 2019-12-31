@@ -1,4 +1,4 @@
-import { IWorkerAction, JsonObject, StackTraceError, WorkerAction } from '@core';
+import { IWorkerAction, JsonObject, StackTraceError, WorkerAction } from '@worker-runner/core';
 import { RxRunnerErrorCode } from '../runners-errors';
 
 export enum RxWorkerAction {

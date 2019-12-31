@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "baseUrl": "./",
-        "module": "commonjs",
+        "module": "ESNext",
         "lib": [
             "webworker"
         ],
@@ -11,8 +11,7 @@
         "strict": true,
         "moduleResolution": "Node",
         "paths": {
-            "@core": ["./modules/core"],
-            "@modules/*": ["./modules/*"]
+            "@worker-runner/*": ["./modules/*"]
         }
     },
     "exclude": [

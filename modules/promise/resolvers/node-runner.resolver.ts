@@ -1,4 +1,4 @@
-import { NodeRunnerResolverBase, ResolveRunner, RunnerConstructor } from '@core';
+import { NodeRunnerResolverBase, ResolveRunner, RunnerConstructor } from '@worker-runner/core';
 
 export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
     public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>

@@ -1,4 +1,4 @@
-import { RunnerConstructor, WorkerBridge } from '@core';
+import { RunnerConstructor, WorkerBridge } from '@worker-runner/core';
 import { NodeRunnerResolver } from '../resolvers/node-runner.resolver';
 import { DevWorkerRunnerResolver } from './worker-runner.resolver';
 

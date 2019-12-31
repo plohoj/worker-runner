@@ -13,7 +13,12 @@
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.d.ts",
   "main": "./umd/promise.umd.js",
-  "module": "./commonjs/promise.js",
+  "module": "./esm/promise.mjs",
+  "keywords": [
+    "worker-runner",
+    "worker",
+    "runner"
+  ],
   "dependencies": {
     "@worker-runner/core": "^0.1.2"
   }

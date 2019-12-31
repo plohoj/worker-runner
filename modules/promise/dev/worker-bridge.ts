@@ -1,4 +1,4 @@
-import { INodeAction, IWorkerAction, IWorkerDestroyedAction, WorkerBridge, WorkerRunnerResolverBase } from '@core';
+import { INodeAction, IWorkerAction, IWorkerDestroyedAction, WorkerBridge, WorkerRunnerResolverBase } from '@worker-runner/core';
 
 export class DevWorkerBridge extends WorkerBridge {
     constructor(private workerRunnerResolver: WorkerRunnerResolverBase<any>) {

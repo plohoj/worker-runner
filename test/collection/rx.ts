@@ -1,4 +1,4 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@core';
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxDevResolver, rxResolver } from 'test/common/rx';

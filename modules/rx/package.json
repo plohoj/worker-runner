@@ -13,7 +13,12 @@
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.d.ts",
   "main": "./umd/rx.umd.js",
-  "module": "./commonjs/rx.js",
+  "module": "./esm/rx.mjs",
+  "keywords": [
+    "worker-runner",
+    "worker",
+    "runner"
+  ],
   "dependencies": {
     "@worker-runner/core": "^0.1.2",
     "rxjs": ">=6.0.0"

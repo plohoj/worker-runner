@@ -1,4 +1,4 @@
-import { JsonObject } from '@core';
+import { JsonObject } from '@worker-runner/core';
 
 export class ExecutableStubRunner<T extends JsonObject> {
 

@@ -1,4 +1,4 @@
-import { DevRunnerResolver } from '@modules/promise/dev/runner.resolver';
+import { DevRunnerResolver } from '@worker-runner/promise/dev/runner.resolver';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';

@@ -1,4 +1,4 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@core';
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
