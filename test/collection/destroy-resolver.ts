@@ -1,67 +1,65 @@
-import { RunnerResolver } from "../../src";
-import { resolver } from "../common";
-import { CalcAmountRunner } from "../common/calc-amount.runner";
+import { DevRunnerResolver } from '@worker-runner/promise';
+import { RxDevRunnerResolver } from '@worker-runner/rx';
+import { devRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxRunnerResolver } from 'test/common/rx';
+import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
+import { each } from 'test/utils/each';
 
-describe("Destroy resolver", function() {
-    
-    it ("for restart", async function() {
-        await resolver.run();
-        await resolver.destroy();
-        await resolver.run();
-        
-        const calcRunner = await resolver.resolve(CalcAmountRunner);
-        const result = await calcRunner.calc(17, 68);
-        expect(result).toBe(85);
-        await resolver.destroy();
-    });
+each({
+        Common: runnerResolver,
+        Dev: devRunnerResolver,
+        Rx: rxRunnerResolver as any as typeof runnerResolver,
+    },
+    (mode, resolver) => describe(`${mode} destroy resolver`, () => {
+        it ('for restart', async () => {
+            await resolver.run();
+            await resolver.destroy();
+            await resolver.run();
 
-    it ("for restart with dev mode", async function() {
-        const resolver = new RunnerResolver({
-            workerPath: '',
-            devMode: true,
-            runners: [CalcAmountRunner],
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await expectAsync(executableStubRunner.amount(17, 68)).toBeResolvedTo(85);
+            await resolver.destroy();
         });
-        await resolver.run();
-        await resolver.destroy();
-        await resolver.run();
+    }),
+);
 
-        const calcRunner = await resolver.resolve(CalcAmountRunner);
-        const result = await calcRunner.calc(17, 68);
-        expect(result).toBe(85);
-        await resolver.destroy();
-    });
-
-    it ("without force mode", async function() {
-        class ForceDestroy {
-            public destroy(): void {
+each({
+        Dev: DevRunnerResolver,
+        'Dev Rx': RxDevRunnerResolver as any as typeof DevRunnerResolver,
+    },
+    (mode, IterateDevRunnerResolver) => describe(`${mode} destroy resolver`, () => {
+        it ('without force mode', async () => {
+            class ForceDestroy {
+                public destroy(): void {
+                    // Stub
+                }
             }
-        }
-        const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-        const resolver = new RunnerResolver({
-            workerPath: '',
-            devMode: true,
-            runners: [ForceDestroy],
+            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
+            const devResolver = new IterateDevRunnerResolver ({
+                workerPath: '',
+                runners: [ForceDestroy],
+            });
+            await devResolver.run();
+            await devResolver.resolve(ForceDestroy);
+            await devResolver.destroy();
+            expect(destroySpy).toHaveBeenCalled();
         });
-        await resolver.run();
-        await resolver.resolve(ForceDestroy);
-        await resolver.destroy();
-        expect(destroySpy).toHaveBeenCalled();
-    });
 
-    it ("with force mode", async function() {
-        class ForceDestroy {
-            public destroy(): void {}
-        }
-        const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-        const resolver = new RunnerResolver({
-            workerPath: '',
-            devMode: true,
-            runners: [ForceDestroy],
+        it ('with force mode', async () => {
+            class ForceDestroy {
+                public destroy(): void {
+                    // Stub
+                }
+            }
+            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
+            const devResolver = new IterateDevRunnerResolver({
+                workerPath: '',
+                runners: [ForceDestroy],
+            });
+            await devResolver.run();
+            await devResolver.resolve(ForceDestroy);
+            await devResolver.destroy(true);
+            expect(destroySpy).not.toHaveBeenCalled();
         });
-        await resolver.run();
-        await resolver.resolve(ForceDestroy);
-        await resolver.destroy(true);
-        expect(destroySpy).not.toHaveBeenCalled();
-    });
-});
-
+    }),
+);

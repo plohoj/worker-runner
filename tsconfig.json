@@ -1,13 +1,18 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
+        "baseUrl": "./",
+        "module": "ESNext",
         "lib": [
             "webworker"
         ],
-        "target": "esnext",
-        "outDir": "/dist",
+        "target": "ES2020",
+        "outDir": "./dist",
         "strictNullChecks": true,
-        "strict": true
+        "strict": true,
+        "moduleResolution": "Node",
+        "paths": {
+            "@worker-runner/*": ["./modules/*"]
+        }
     },
     "exclude": [
         "node_modules"

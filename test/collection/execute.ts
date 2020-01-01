@@ -1,69 +1,100 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from "../../src";
-import { resolver } from "../common";
-import { CalcAmountRunner } from "../common/calc-amount.runner";
-import { DelayRunner } from "../common/delay.runner";
-import { RunnerWidthException } from "../common/runner-with-exception";
+import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { devRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxRunnerResolver } from 'test/common/rx';
+import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
+import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
+import { each } from 'test/utils/each';
+import { waitTimeout } from 'test/utils/wait-timeout';
 
-describe("Execute", function() {
+each({
+        Common: runnerResolver,
+        Dev: devRunnerResolver,
+        Rx: rxRunnerResolver as any as typeof runnerResolver,
+    },
+    (mode, resolver) => describe(`${mode} execute`, () => {
 
-    beforeAll(async function () {
-        await resolver.run();
-    });
+        beforeAll(async () => {
+            await resolver.run();
+        });
 
-    afterAll(async function() {
-        resolver.destroy();
-    });
+        afterAll(async () => {
+            resolver.destroy();
+        });
 
-    it("simple amount calculation", async function() {
-        const calcRunner = await resolver.resolve(CalcAmountRunner);
-        const result = await calcRunner.calc(17, 68);
-        expect(result).toBe(85);
-    });
+        it('with arguments', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const result = await executableStubRunner.amount(17, 68);
+            expect(result).toBe(85);
+        });
 
-    it("with promise", async function() {
-        const delayRunner = await resolver.resolve(DelayRunner);
-        const delayDuration = 75;
-        const testStart = Date.now();
-        await expectAsync(delayRunner.delay(delayDuration)).toBeResolved();
-        const actualDelayDuration = Date.now() - testStart;
-        if (actualDelayDuration < delayDuration ) {
-            fail('the delay was less than necessary');
-        }
-        if (actualDelayDuration > delayDuration + 25) {
-            fail('the delay was too long');
-        }
-    });
+        it('with promise', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const delayDuration = 15;
+            await waitTimeout(
+                expectAsync(executableStubRunner.delay(delayDuration)).toBeResolved(),
+                delayDuration + 25,
+                delayDuration,
+            );
+        });
 
-    it ("with exception", async function() {
-        const runnerWithException = await resolver.resolve(RunnerWidthException);
-        const exceptionError = 'METHOD_EXCEPTION';
-        await expectAsync(runnerWithException.throwException(exceptionError)).toBeRejectedWith(
-            { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR } as IRunnerError);
-    });
+        it ('with exception', async () => {
+            const errorStubRunner = await resolver.resolve(ErrorStubRunner);
+            const exceptionError = 'METHOD_EXCEPTION';
+            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining(
+                { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR } as IRunnerError));
+        });
 
-    it ("with delay exceptions", async function() {
-        const runnerWithException = await resolver.resolve(RunnerWidthException);
-        const exceptionError = 'METHOD_EXCEPTION_DELAY';
-        const testStart = Date.now();
-        const exceptDelayDuration = 55;
-        await expectAsync(runnerWithException.throwExceptionWidthDelay(exceptionError, exceptDelayDuration)).toBeRejectedWith(
-            { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR } as IRunnerError);
-        const actualDelayDuration = Date.now() - testStart;
-        if (actualDelayDuration < exceptDelayDuration ) {
-            fail('exception delay was less than necessary');
-        }
-        if (actualDelayDuration > exceptDelayDuration + 15) {
-            fail('exception delay was too long');
-        }
-    });
+        it ('with stack trace exception', async () => {
+            const errorStubRunner = await resolver.resolve(ErrorStubRunner);
+            const exceptionError = 'METHOD_EXCEPTION';
+            await expectAsync(errorStubRunner.throwErrorTrace(exceptionError)).toBeRejectedWith(
+                jasmine.objectContaining({
+                    error: {},
+                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    message: exceptionError,
+                } as IRunnerError),
+            );
+        });
 
-    it ("not exist runner", async function() {
-        const calcRunner = await resolver.resolve(CalcAmountRunner);
-        await calcRunner.destroy();
-        await expectAsync(calcRunner.calc(53, 95)).toBeRejectedWith({
-            error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-            errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND
-        } as IRunnerError);
-    });
-});
+        it ('with delay exceptions', async () => {
+            const errorStubRunner = await resolver.resolve(ErrorStubRunner);
+            const exceptionError = 'METHOD_EXCEPTION_DELAY';
+            const exceptDelayDuration = 25;
+            await waitTimeout(
+                expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, exceptDelayDuration))
+                    .toBeRejectedWith(jasmine.objectContaining({
+                        error: exceptionError,
+                        errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    } as IRunnerError)),
+                    exceptDelayDuration + 25,
+                    exceptDelayDuration,
+                );
+        });
+
+        it ('with delay stack trace exceptions', async () => {
+            const errorStubRunner = await resolver.resolve(ErrorStubRunner);
+            const exceptionError = 'METHOD_EXCEPTION_DELAY';
+            const exceptDelayDuration = 25;
+            await waitTimeout(
+                expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, exceptDelayDuration))
+                    .toBeRejectedWith(jasmine.objectContaining({
+                        error: {},
+                        errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                        message: exceptionError,
+                    } as IRunnerError)),
+                    exceptDelayDuration + 25,
+                    exceptDelayDuration,
+                );
+        });
+
+        it ('not exist runner', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await executableStubRunner.destroy();
+            await expectAsync(executableStubRunner.amount(53, 95)).toBeRejectedWith(jasmine.objectContaining({
+                message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+                errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
+            } as IRunnerError));
+        });
+    }),
+);
 

@@ -1,27 +1,55 @@
-const webpackConfig = require('./webpack.config');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const { readdirSync } = require('fs');
+const { resolve } = require("path");
+
+const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
+    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+
+const modulesEntry = {};
+moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
 
 /** @param {import('karma').Config} config*/
-module.exports = (config) => {
-    config.set({
-      files: [
-        // all files ending in "_test"
-        { pattern: 'test/main.ts', watched: false },
-        { pattern: 'test/worker.ts', watched: false },
-        // each file acts as entry point for the webpack configuration
+module.exports = (config) => config.set({
+  files: [
+    { pattern: './test/main.ts', watched: false },
+    { pattern: './test/worker.ts', watched: false, included: false },
+    { pattern: './test/rx-worker.ts', watched: false, included: false },
+  ],
+  frameworks: ['jasmine'],
+  preprocessors: {
+    './test/main.ts': ['webpack'],
+    './test/worker.ts': ['webpack'],
+    './test/rx-worker.ts': ['webpack'],
+  },
+  webpack: {
+    mode: 'development',
+    devtool: 'eval-source-map',
+    context: __dirname,
+    entry: {
+      ...modulesEntry,
+      worker: './test/worker.ts',
+      'rx-worker': './test/rx-worker.ts',
+    },
+    optimization: {
+      splitChunks: {
+        chunks: "all"
+      }
+    },
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          exclude: /node_modules/,
+          use: 'ts-loader',
+        },
       ],
-      frameworks: ['jasmine'],
-      preprocessors: {
-        // add webpack as preprocessor
-        'test/main.ts': ['webpack'],
-        'test/worker.ts': ['webpack'],
-      },
-      webpack: {
-        ...webpackConfig,
-        mode: 'development',
-        devtool: 'eval-source-map',
-      },
-      webpackMiddleware: {
-        stats: 'errors-only',
-      },
-    });
-  };
+    },
+    resolve: {
+      extensions: ['.js', '.ts'],
+      plugins: [new TsconfigPathsPlugin()]
+    },
+  },
+  webpackMiddleware: {
+    stats: 'errors-only',
+  },
+});

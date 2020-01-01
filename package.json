@@ -1,32 +1,43 @@
 {
   "name": "worker-runner",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "scripts": {
-    "build": "webpack-cli --mode=production",
-    "test": "karma start"
+    "build": "node build.js",
+    "test": "karma start",
+    "tslint": "tslint -p . -t codeFrame",
+    "version:patch": "node version.js",
+    "version:minor": "node version.js --type=minor",
+    "version:major": "node version.js --type=major",
+    "publish": "node publish.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://plohoj@github.com/plohoj/worker-instance.git"
+    "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/plohoj/worker-instance/issues"
+    "url": "https://github.com/plohoj/worker-runner/issues"
   },
-  "main": "./src/index",
-  "homepage": "https://github.com/plohoj/worker-instance#readme",
+  "homepage": "https://github.com/plohoj/worker-runner#readme",
   "devDependencies": {
-    "@types/jasmine": "^3.4.0",
+    "@types/jasmine": "^3.5.0",
     "@types/karma-webpack": "^2.0.7",
-    "@types/webpack": "^4.39.1",
-    "jasmine": "^3.4.0",
-    "karma": "^4.3.0",
+    "@types/webpack": "^4.41.1",
+    "copy-webpack-plugin": "^5.1.1",
+    "jasmine": "^3.5.0",
+    "karma": "^4.4.1",
     "karma-jasmine": "^2.0.1",
     "karma-webpack": "^4.0.2",
-    "ts-loader": "^6.0.4",
-    "typescript": "^3.6.2",
-    "webpack": "^4.39.3",
-    "webpack-cli": "^3.3.7"
+    "rollup": "^1.27.14",
+    "rollup-plugin-typescript2": "^0.25.3",
+    "ts-loader": "^6.2.1",
+    "tsconfig-paths-webpack-plugin": "^3.2.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.5"
+  },
+  "dependencies": {
+    "rxjs": "^6.5.4"
   }
 }
