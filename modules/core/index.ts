@@ -13,5 +13,4 @@ export { WorkerRunnerState } from './state/worker-runner.state';
 export { ClearNever } from './types/allowed-names';
 export { Constructor, RunnerConstructor } from './types/constructor';
 export { JsonObject } from './types/json-object';
-export { WorkerBridge } from './worker-bridge';
 

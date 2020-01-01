@@ -1,7 +1,7 @@
 import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { DevRunnerResolver } from '@worker-runner/promise';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxResolver } from 'test/common/rx';
+import { rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { each } from 'test/utils/each';
@@ -9,7 +9,7 @@ import { each } from 'test/utils/each';
 each({
         Common: runnerResolver,
         Dev: devRunnerResolver,
-        Rx: rxResolver as any as typeof runnerResolver,
+        Rx: rxRunnerResolver as any as typeof runnerResolver,
     },
     (mode, resolver) => describe(`${mode} destroy runner`, () => {
 

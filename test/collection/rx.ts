@@ -1,14 +1,14 @@
 import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { rxDevResolver, rxResolver } from 'test/common/rx';
+import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { waitTimeout } from 'test/utils/wait-timeout';
 
 each({
-    Rx: rxResolver,
-    'Dev Rx': rxDevResolver,
+    Rx: rxRunnerResolver,
+    'Dev Rx': rxDevRunnerResolver,
 }, (mode, resolver) => describe(mode, () => {
 
     beforeAll(async () => {

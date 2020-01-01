@@ -1,5 +1,5 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { rxResolver } from 'test/common/rx';
+import { rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
@@ -9,7 +9,7 @@ import { devRunnerResolver, runnerResolver } from '../common/promise';
 each({
         Common: runnerResolver,
         Dev: devRunnerResolver,
-        Rx: rxResolver as any as typeof runnerResolver,
+        Rx: rxRunnerResolver as any as typeof runnerResolver,
     },
     (mode, resolver) => describe(`${mode} constructor`, () => {
         beforeAll(async () => {

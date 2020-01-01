@@ -1,3 +1,3 @@
-import { rxResolver } from './common/rx';
+import { rxRunnerResolver } from './common/rx';
 
-rxResolver.runInWorker();
+rxRunnerResolver.runInWorker();

@@ -14,6 +14,6 @@ export enum RunnerErrorCode {
 export enum RunnerErrorMessages {
     CONSTRUCTOR_NOT_FOUND = 'Runner constructor not found',
     INSTANCE_NOT_FOUND = 'Runner instance not found',
-    WORKER_BRIDGE_NOT_INIT = 'Worker bridge not init',
+    WORKER_NOT_INIT = 'Worker not init',
     RUNNER_WAS_DESTROYED = 'The runner was destroyed',
 }
