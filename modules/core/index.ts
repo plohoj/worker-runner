@@ -3,7 +3,7 @@ export { errorActionToRunnerError, IRunnerError } from './actions/runner-error';
 export { IWorkerAction, IWorkerDestroyedAction, WorkerAction } from './actions/worker.actions';
 export { extractError } from './errors/extract-error';
 export { RunnerErrorCode, RunnerErrorMessages } from './errors/runners-errors';
-export { StackTraceError } from './errors/stacktrace-error';
+export { IStacktraceError, StackTraceError } from './errors/stacktrace-error';
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
 export { ResolveRunner, SerializeRunnerDestroyer, SerializeRunnerMethod } from './runner/resolved-runner';

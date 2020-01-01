@@ -24,7 +24,7 @@ export class LibraryRunner {
 ```
 Declare your control instance of WorkerResolver in a common module. The control instance must be declared with specific classes that will be executed in the workspace.
 ``` ts
-import { RunnerResolver } from '../src';
+import { RunnerResolver } from '@worker-runner/promise';
 
 export const resolver = new RunnerResolver({
     runners: [LibraryRunner],
@@ -60,4 +60,19 @@ async function main() {
     await libraryRunner.destroy();
 }
 main();
+```
+You can also use RxJS Observable to receive events from worker. To do this, use the `@worker-runner/rx` library.
+``` ts
+export class LibraryRunner {
+    private notification$ = new Subject<string>();
+    // ...
+    public notification(): Observable<string> {
+        return this.notification$;
+    }
+}
+// ...
+const libraryRunner = await resolver.resolve(LibraryRunner);
+(await libraryRunner.notification()).subscribe(() => {
+    // ...
+})
 ```

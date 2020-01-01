@@ -40,6 +40,15 @@ async function copyModulesPackage() {
     );
 }
 
+async function copyModulesReadme() {
+    await Promise.all(moduleNames.filter(moduleName => moduleName !== 'core')
+        .map(moduleName => new Promise((resolver, reject) =>
+            copyFile(resolve(`README.md`), resolve(`dist/${moduleName}/README.md`),
+                error => error ? reject(error) : resolver()),
+        )),
+    );
+}
+
 (async function main() {
     console.log('Build modules ...');
     await buildLibs();
@@ -49,4 +58,6 @@ async function copyModulesPackage() {
     await moveDeclarations();
     console.log('Copy modules "package.json" ...');
     await copyModulesPackage()
+    console.log('Copy modules "README.md" ...');
+    await copyModulesReadme();
 })();

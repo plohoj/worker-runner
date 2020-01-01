@@ -1,4 +1,4 @@
-interface IError {
+export interface IError {
     error: any;
 }
 
