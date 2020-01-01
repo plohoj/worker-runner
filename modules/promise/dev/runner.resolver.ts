@@ -4,8 +4,8 @@ import { DevWorkerRunnerResolver } from './worker-runner.resolver';
 
 export class DevRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolver<R> {
 
-    protected async buildWorkerBridge(): Promise<WorkerBridge[]> {
+    protected async buildWorkerBridge(): Promise<WorkerBridge> {
         const workerResolve = new DevWorkerRunnerResolver(this.config);
-        return [workerResolve.workerBridge];
+        return workerResolve.workerBridge;
     }
 }

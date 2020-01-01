@@ -8,24 +8,21 @@ import { WorkerBridge } from '../worker-bridge';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
-    /** @default 1 */
-    totalWorkers?: number;
-    namePrefix?: string;
+    workerName?: string;
     /** @default 'worker.js' */
     workerPath?: string;
 }
 
 const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never>> = {
-    totalWorkers: 1,
-    namePrefix: 'Runners Worker #',
+    workerName: 'Worker Runner',
     runners: [] as never[],
     workerPath: 'worker.js',
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
-    private workerIndex = 0;
+
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
-    protected workerBridges?: WorkerBridge[];
+    protected workerBridge?: WorkerBridge;
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
     constructor(config: INodeRunnerResolverConfigBase<R>) {
@@ -37,7 +34,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
 
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
-        this.workerBridges = await this.buildWorkerBridge();
+        this.workerBridge = await this.buildWorkerBridge();
     }
 
     public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
@@ -46,7 +43,6 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
     protected async sendInitAction(
         runnerId: number,
         args: ConstructorParameters<R>,
-        workerBridge: WorkerBridge,
     ): Promise<number> {
         if (runnerId < 0) {
             throw {
@@ -54,6 +50,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
                 errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
             } as IRunnerError;
         }
+        const workerBridge = this.getWorkerBridge();
         const instanceId = workerBridge.resolveNewRunnerInstanceId();
         try {
             await workerBridge.execute({
@@ -73,33 +70,26 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor> {
      * @param force Destroy by skipping the call the destruction method on the remaining instances
      */
     public async destroy(force = false): Promise<void> {
-        if (this.workerBridges) {
-            await Promise.all(this.workerBridges.map(workerBridge => workerBridge.destroy(force)));
+        if (this.workerBridge) {
+            await this.workerBridge.destroy(force);
         }
-        this.workerBridges = undefined;
+        this.workerBridge = undefined;
     }
 
-    protected async buildWorkerBridge(): Promise<WorkerBridge[]> {
-        const workerBridgesInits$ = new Array<Promise<WorkerBridge>>();
-        for (let i = 0; i < this.config.totalWorkers; i++) {
-            const bridge = new WorkerBridge({
-                workerPath: this.config.workerPath,
-                workerName: `${this.config.namePrefix}${i}`,
-            });
-            workerBridgesInits$.push(bridge.init().then(() => bridge));
-        }
-        return Promise.all(workerBridgesInits$);
+    protected async buildWorkerBridge(): Promise<WorkerBridge> {
+        const bridge = new WorkerBridge({
+            workerPath: this.config.workerPath,
+            workerName: `${this.config.workerName}`,
+        });
+        await bridge.init();
+        return bridge;
     }
 
-    protected getNextWorkerBridge(): WorkerBridge {
-        if (!this.workerBridges || this.workerBridges.length === 0) {
-            throw new Error('Workers was not started');
+    protected getWorkerBridge(): WorkerBridge {
+        if (!this.workerBridge) {
+            throw new Error('Worker was not started');
         }
-        const workerIndex = this.workerIndex++;
-        if (this.workerIndex >= this.workerBridges.length) {
-            this.workerIndex = 0;
-        }
-        return this.workerBridges[workerIndex];
+        return this.workerBridge;
     }
 
 }
