@@ -10,9 +10,9 @@
             "severity": "error",
             "options": [
                 ["^rxjs/(?!operators)"],
-                ["\\.\\./modules/.*/.+"],
+                ["^@worker-runner/.+/.+"],
                 ["\\.\\./modules"],
-                ["\\.\\./core/"],
+                ["\\.\\./core"],
                 ["\\.\\./promise"],
                 ["\\.\\./rx"]
             ]

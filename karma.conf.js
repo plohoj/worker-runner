@@ -1,4 +1,12 @@
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const { readdirSync } = require('fs');
+const { resolve } = require("path");
+
+const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
+    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+
+const modulesEntry = {};
+moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
 
 /** @param {import('karma').Config} config*/
 module.exports = (config) => config.set({
@@ -18,18 +26,7 @@ module.exports = (config) => config.set({
     devtool: 'eval-source-map',
     context: __dirname,
     entry: {
-      core: [
-        './modules/core/resolver/node-runner.resolver.ts',
-        './modules/core/resolver/worker-runner.resolver.ts',
-      ],
-      promise: [
-        './modules/promise/resolvers/runner.resolver.ts',
-        './modules/promise/dev/runner.resolver.ts',
-      ],
-      rx: [
-        './modules/rx/resolvers/runner.resolver.ts',
-        './modules/rx/dev/runner.resolver.ts',
-      ],
+      ...modulesEntry,
       worker: './test/worker.ts',
       'rx-worker': './test/rx-worker.ts',
     },

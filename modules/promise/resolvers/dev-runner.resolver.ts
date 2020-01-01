@@ -1,6 +1,6 @@
 import { IWorkerDestroyedAction, NodeAction, RunnerConstructor } from '@worker-runner/core';
-import { NodeRunnerResolver } from '../resolvers/node-runner.resolver';
-import { WorkerRunnerResolver } from '../resolvers/worker-runner.resolver';
+import { NodeRunnerResolver } from './node-runner.resolver';
+import { WorkerRunnerResolver } from './worker-runner.resolver';
 
 export class DevRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolver<R> {
 

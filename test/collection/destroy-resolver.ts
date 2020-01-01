@@ -1,4 +1,4 @@
-import { DevRunnerResolver } from '@worker-runner/promise/dev/runner.resolver';
+import { DevRunnerResolver } from '@worker-runner/promise';
 import { RxDevRunnerResolver } from '@worker-runner/rx';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxRunnerResolver } from 'test/common/rx';
