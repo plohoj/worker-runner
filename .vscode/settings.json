@@ -8,4 +8,7 @@
         "statusBar.foreground": "#15202b"
     },
     "typescript.tsdk": "node_modules\\typescript\\lib",
+    "cSpell.words": [
+        "deserialize"
+    ],
 }

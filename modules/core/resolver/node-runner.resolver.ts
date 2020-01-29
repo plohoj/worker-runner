@@ -3,7 +3,9 @@ import { INodeInitAction, INodeWorkerDestroyAction } from '../actions/node.actio
 import { IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction } from '../actions/worker.actions';
 import { PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
+import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeInstanceId } from '../runner/runner-bridge';
+import { JsonObject } from '../types/json-object';
+import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -18,8 +20,6 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    /** {instanceId: NodeRunnerState} */
-    protected runnerStates = new Map<number, NodeRunnerState>();
     private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
     private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
     private destroyWorkerResolver?: () => void;
@@ -28,6 +28,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
 
+    /** {instanceId: NodeRunnerState} */
+    protected runnerStates = new Map<number, NodeRunnerState>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
@@ -36,6 +38,22 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             ...DEFAULT_RUNNER_RESOLVER_BASE_CONFIG,
             ...config,
         };
+    }
+
+    public static serializeArguments(args: Array<JsonObject | RunnerConstructor>): IRunnerArgument[] {
+        return args.map(argument => {
+            if (RunnerBridge.isRunnerBridge(argument)) {
+                return {
+                    type: RunnerArgumentType.RUNNER_INSTANCE,
+                    instanceId: (argument as RunnerBridge)[runnerBridgeInstanceId],
+                };
+            } else {
+                return {
+                    type: RunnerArgumentType.JSON,
+                    data: argument as JsonObject,
+                };
+            }
+        });
     }
 
     public async run(): Promise<void> {
@@ -62,7 +80,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 type: NodeAction.INIT,
                 instanceId,
                 runnerId,
-                arguments: args,
+                arguments: NodeRunnerResolverBase.serializeArguments(args),
             });
         } catch (error) {
             throw errorActionToRunnerError(error);

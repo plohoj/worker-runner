@@ -13,7 +13,7 @@ interface IWorkerRunnerStateConfig<R extends RunnerConstructor> {
 }
 
 export class WorkerRunnerState<R extends RunnerConstructor> {
-    private runnerInstance: InstanceType<R>;
+    public runnerInstance: InstanceType<R>;
     private workerRunnerResolver: WorkerRunnerResolverBase<R>;
 
     constructor(config: IWorkerRunnerStateConfig<R>) {
@@ -24,7 +24,8 @@ export class WorkerRunnerState<R extends RunnerConstructor> {
     public async execute(action: INodeExecuteAction): Promise<void> {
         let response: JsonObject;
         try {
-            response = this.runnerInstance[action.method](...action.arguments);
+            response = this.runnerInstance[action.method](
+                ...this.workerRunnerResolver.deserializeArguments(action.arguments));
         } catch (error) {
             this.sendAction({
                 type: WorkerAction.RUNNER_EXECUTE_ERROR,

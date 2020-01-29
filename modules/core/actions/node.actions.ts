@@ -1,4 +1,4 @@
-import { JsonObject } from '../types/json-object';
+import { IRunnerArgument } from '../types/runner-argument';
 
 export enum NodeAction {
     INIT,
@@ -11,7 +11,7 @@ export interface INodeInitAction {
     type: NodeAction.INIT;
     instanceId: number;
     runnerId: number;
-    arguments: JsonObject[];
+    arguments: IRunnerArgument[];
 }
 
 export interface INodeExecuteAction {
@@ -19,7 +19,7 @@ export interface INodeExecuteAction {
     actionId: number;
     instanceId: number;
     method: string;
-    arguments: JsonObject[];
+    arguments: IRunnerArgument[];
 }
 
 export interface INodeDestroyAction {

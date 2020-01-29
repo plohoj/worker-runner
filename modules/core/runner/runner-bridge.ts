@@ -12,9 +12,10 @@ export type IRunnerBridgeConstructor<T extends RunnerConstructor>
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
 const lastRunnerBridgeActionId = Symbol('last RunnerBridge action id');
 const executeViaNodeResolver =  Symbol('Execute via NodeResolver method');
-const runnerBridgeInstanceId =  Symbol('RunnerBridge instanceId');
+export const runnerBridgeInstanceId = Symbol('RunnerBridge instanceId');
 
 export class RunnerBridge {
+
     private [lastRunnerBridgeActionId] = 0;
     private [executeViaNodeResolver]: typeof NodeRunnerResolverBase.prototype.execute;
     private [runnerBridgeInstanceId]: number;
@@ -27,6 +28,10 @@ export class RunnerBridge {
         this[runnerBridgeInstanceId] = instanceId;
     }
 
+    public static isRunnerBridge(instance: any): instance is RunnerBridge {
+        return !!instance[runnerBridgeInstanceId];
+    }
+
     protected async [executeRunnerBridgeMethod](methodName: string, args: JsonObject[],
         ): Promise<JsonObject | undefined> {
         let workerAction: IWorkerRunnerExecutedAction;
@@ -36,7 +41,7 @@ export class RunnerBridge {
                 actionId: this[lastRunnerBridgeActionId]++,
                 instanceId: this[runnerBridgeInstanceId],
                 method: methodName,
-                arguments: args,
+                arguments: NodeRunnerResolverBase.serializeArguments(args),
             });
         } catch (error) {
             throw errorActionToRunnerError(error);
