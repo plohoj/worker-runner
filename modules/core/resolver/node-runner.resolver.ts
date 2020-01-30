@@ -1,8 +1,9 @@
-import { errorActionToRunnerError, extractError, INodeAction, INodeDestroyAction, INodeExecuteAction, IRunnerError, IWorkerAction, IWorkerDestroyedAction, NodeAction, NodeRunnerState, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '..';
+import { errorActionToRunnerError, extractError, INodeAction, INodeDestroyAction, INodeExecuteAction, IRunnerConstructorParameter, IRunnerError, IWorkerAction, IWorkerDestroyedAction, NodeAction, NodeRunnerState, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '..';
 import { INodeInitAction, INodeWorkerDestroyAction } from '../actions/node.actions';
 import { IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction } from '../actions/worker.actions';
 import { PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
+import { ResolveRunnerArguments } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeInstanceId } from '../runner/runner-bridge';
 import { JsonObject } from '../types/json-object';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
@@ -40,7 +41,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
-    public static serializeArguments(args: Array<JsonObject | RunnerConstructor>): IRunnerArgument[] {
+    public static serializeArguments(args: IRunnerConstructorParameter[]): IRunnerArgument[] {
         return args.map(argument => {
             if (RunnerBridge.isRunnerBridge(argument)) {
                 return {
@@ -61,12 +62,12 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
+    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerConstructorParameter[]): Promise<{}>;
 
     /** @returns instanceId */
     protected async sendInitAction(
         runnerId: number,
-        args: ConstructorParameters<R>,
+        args: ResolveRunnerArguments<ConstructorParameters<RunnerConstructor>>,
     ): Promise<number> {
         if (runnerId < 0) {
             throw {

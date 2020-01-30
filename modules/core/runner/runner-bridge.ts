@@ -2,7 +2,7 @@ import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError } from '../actions/runner-error';
 import { IWorkerRunnerExecutedAction } from '../actions/worker.actions';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
-import { Constructor, RunnerConstructor } from '../types/constructor';
+import { Constructor, IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { ResolveRunner } from './resolved-runner';
 
@@ -32,7 +32,7 @@ export class RunnerBridge {
         return !!instance[runnerBridgeInstanceId];
     }
 
-    protected async [executeRunnerBridgeMethod](methodName: string, args: JsonObject[],
+    protected async [executeRunnerBridgeMethod](methodName: string, args: IRunnerConstructorParameter[],
         ): Promise<JsonObject | undefined> {
         let workerAction: IWorkerRunnerExecutedAction;
         try {

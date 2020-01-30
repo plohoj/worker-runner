@@ -3,7 +3,7 @@ import { IWorkerAction, WorkerAction } from '../actions/worker.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { WorkerRunnerState } from '../state/worker-runner.state';
-import { RunnerConstructor } from '../types/constructor';
+import { IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
@@ -71,7 +71,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         }
     }
 
-    public deserializeArguments(args: IRunnerArgument[]): Array<JsonObject | InstanceType<RunnerConstructor>> {
+    public deserializeArguments(args: IRunnerArgument[]): Array<IRunnerConstructorParameter> {
         return args.map(argument => {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
