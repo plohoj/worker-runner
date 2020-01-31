@@ -34,10 +34,10 @@ each({
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner, storageData as any) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const executableStubRunnerParent = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(executableStubRunnerParent.pullInstanceStage(executableStubRunner))
                 .toBeResolvedTo(storageData);

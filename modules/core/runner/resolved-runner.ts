@@ -2,14 +2,8 @@ import { ClearNever } from '../types/allowed-names';
 import { IRunnerConstructorParameter } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 
-type HaveMethod<T> = {
-    [P in keyof T]: T[P] extends (...args: any[]) => any ? true : never;
-}[keyof T];
-
 type ResolveRunnerArgument<T extends IRunnerConstructorParameter>
-    = HaveMethod<T> extends true ?
-        ResolveRunner<T> :
-        T ;
+    = T extends JsonObject ? T : ResolveRunner<T>;
 
 export type ResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
     = { [P in keyof T]: ResolveRunnerArgument<T[P]> };
