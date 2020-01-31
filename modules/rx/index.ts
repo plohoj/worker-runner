@@ -1,6 +1,6 @@
 export { RxNodeAction } from './actions/node.actions';
 export { RxWorkerAction } from './actions/worker.actions';
-export { RxResolveRunner, RxSerializeRunnerMethod } from './resolved-runner';
+export { RxResolveRunner, RxResolveRunnerMethod } from './resolved-runner';
 export { RxDevRunnerResolver } from './resolvers/dev-runner.resolver';
 export { RxNodeRunnerResolver } from './resolvers/node-runner.resolver';
 export { RxRunnerResolver } from './resolvers/runner.resolver';

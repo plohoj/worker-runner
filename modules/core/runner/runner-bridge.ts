@@ -2,7 +2,7 @@ import { NodeAction } from '../actions/node.actions';
 import { errorActionToRunnerError } from '../actions/runner-error';
 import { IWorkerRunnerExecutedAction } from '../actions/worker.actions';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
-import { Constructor, RunnerConstructor } from '../types/constructor';
+import { Constructor, IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { ResolveRunner } from './resolved-runner';
 
@@ -12,9 +12,10 @@ export type IRunnerBridgeConstructor<T extends RunnerConstructor>
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
 const lastRunnerBridgeActionId = Symbol('last RunnerBridge action id');
 const executeViaNodeResolver =  Symbol('Execute via NodeResolver method');
-const runnerBridgeInstanceId =  Symbol('RunnerBridge instanceId');
+export const runnerBridgeInstanceId = Symbol('RunnerBridge instanceId');
 
 export class RunnerBridge {
+
     private [lastRunnerBridgeActionId] = 0;
     private [executeViaNodeResolver]: typeof NodeRunnerResolverBase.prototype.execute;
     private [runnerBridgeInstanceId]: number;
@@ -27,7 +28,11 @@ export class RunnerBridge {
         this[runnerBridgeInstanceId] = instanceId;
     }
 
-    protected async [executeRunnerBridgeMethod](methodName: string, args: JsonObject[],
+    public static isRunnerBridge(instance: any): instance is RunnerBridge {
+        return typeof instance[runnerBridgeInstanceId] === 'number';
+    }
+
+    protected async [executeRunnerBridgeMethod](methodName: string, args: IRunnerConstructorParameter[],
         ): Promise<JsonObject | undefined> {
         let workerAction: IWorkerRunnerExecutedAction;
         try {
@@ -36,7 +41,7 @@ export class RunnerBridge {
                 actionId: this[lastRunnerBridgeActionId]++,
                 instanceId: this[runnerBridgeInstanceId],
                 method: methodName,
-                arguments: args,
+                arguments: NodeRunnerResolverBase.serializeArguments(args),
             });
         } catch (error) {
             throw errorActionToRunnerError(error);

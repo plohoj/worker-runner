@@ -1,6 +1,6 @@
 import { JsonObject } from '@worker-runner/core';
 
-export class ExecutableStubRunner<T extends JsonObject> {
+export class ExecutableStubRunner<T extends JsonObject = JsonObject> {
 
     constructor(private stage?: T) {}
 

@@ -26,10 +26,7 @@ Declare your control instance of WorkerResolver in a common module. The control 
 ``` ts
 import { RunnerResolver } from '@worker-runner/promise';
 
-export const resolver = new RunnerResolver({
-    runners: [LibraryRunner],
-    workerPath: 'worker.js'
-});
+export const resolver = new RunnerResolver({runners: [LibraryRunner]});
 ```
 Import your control instance anywhere in the code, as well as in the Worker area. Call the `run()` and `runInWorker()` method.
 ``` ts
@@ -61,6 +58,27 @@ async function main() {
 }
 main();
 ```
+### Resolved instance as argument
+You can use the resolved instance as constructor or methods arguments, that were prepared in resolved by the same resolver
+``` ts
+export class LibraryPoolRunner {
+    // ...
+    constructor(...libraries: LibraryRunner[]) {
+        // ...
+    }
+
+    addLibrary(library: LibraryRunner): void {
+        // ...
+    }
+}
+// ...
+const libraryRunners = await Promise.all([resolver.resolve(LibraryRunner, []),
+        resolver.resolve(LibraryRunner, []), resolver.resolve(LibraryRunner, []),
+]);
+const libraryPoolRunner = await resolver.resolve(LibraryPoolRunner, libraryRunners[0]);
+await libraryPoolRunner.addLibrary(libraryRunners[1]);
+```
+### RxJS
 You can also use RxJS Observable to receive events from worker. To do this, use the `@worker-runner/rx` library.
 ``` ts
 export class LibraryRunner {

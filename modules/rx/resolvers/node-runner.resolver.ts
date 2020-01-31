@@ -1,4 +1,4 @@
-import { Constructor, INodeAction, IRunnerError, IWorkerAction, JsonObject, NodeRunnerResolverBase, RunnerBridge, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '@worker-runner/core';
+import { Constructor, INodeAction, IRunnerConstructorParameter, IRunnerError, IWorkerAction, JsonObject, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxNodeAction, RxNodeAction } from '../actions/node.actions';
 import { IRxWorkerAction, IRxWorkerRunnerCompletedAction, IRxWorkerRunnerEmitAction, IRxWorkerRunnerErrorAction, IRxWorkerRunnerInitAction, RxWorkerAction } from '../actions/worker.actions';
@@ -17,7 +17,10 @@ export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunne
     protected declare getRunnerState: (instanceId: number) => RxNodeRunnerState;
     protected declare sendAction: (action: INodeAction | IRxNodeAction) => void;
 
-    public async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>
+    public async resolve<RR extends R>(
+        runner: RR,
+        ...args: RR extends new (...args: infer A) => any ?
+            A extends Array<IRunnerConstructorParameter> ? ResolveRunnerArguments<A> : never : never
     ): Promise<RxResolveRunner<InstanceType<RR>>> {
         const runnerId = this.config.runners.indexOf(runner);
         const instanceId = await this.sendInitAction(runnerId, args);
@@ -25,23 +28,23 @@ export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunne
     }
 
     protected handleWorkerAction(action: IRxWorkerAction): void {
-            switch (action.type) {
-                case RxWorkerAction.RUNNER_RX_INIT:
-                    this.runnerObservableInit(action);
-                    break;
-                case RxWorkerAction.RUNNER_RX_EMIT:
-                    this.runnerObservableEmit(action);
-                    break;
-                case RxWorkerAction.RUNNER_RX_ERROR:
-                    this.runnerObservableError(action);
-                    break;
-                case RxWorkerAction.RUNNER_RX_COMPLETED:
-                    this.runnerObservableCompleted(action);
-                    break;
-                default:
-                    super.handleWorkerAction(action as IWorkerAction);
-                    break;
-            }
+        switch (action.type) {
+            case RxWorkerAction.RUNNER_RX_INIT:
+                this.runnerObservableInit(action);
+                break;
+            case RxWorkerAction.RUNNER_RX_EMIT:
+                this.runnerObservableEmit(action);
+                break;
+            case RxWorkerAction.RUNNER_RX_ERROR:
+                this.runnerObservableError(action);
+                break;
+            case RxWorkerAction.RUNNER_RX_COMPLETED:
+                this.runnerObservableCompleted(action);
+                break;
+            default:
+                super.handleWorkerAction(action as IWorkerAction);
+                break;
+        }
     }
 
     private runnerObservableInit(action: IRxWorkerRunnerInitAction): void {

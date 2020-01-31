@@ -1,8 +1,9 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
+import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { waitTimeout } from 'test/utils/wait-timeout';
 
@@ -27,6 +28,32 @@ each({
             expect(result).toBe(85);
         });
 
+        it ('with instance in arguments', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const executableStubRunner = await resolver
+                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                    ExecutableStubRunner<typeof storageData>>;
+            const withOtherInstanceStubRunner = await resolver
+                .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
+                    WithOtherInstanceStubRunner<typeof storageData>>;
+            await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
+                .toBeResolvedTo(storageData);
+        });
+
+        it ('with destroyed instance in arguments', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await executableStubRunner.destroy();
+            const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
+            await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner)).toBeRejectedWith(
+                jasmine.objectContaining({
+                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+                } as IRunnerError));
+        });
+
         it('with promise', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             const delayDuration = 15;
@@ -40,8 +67,10 @@ each({
         it ('with exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
-            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining(
-                { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR } as IRunnerError));
+            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining({
+                error: exceptionError,
+                errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+            } as IRunnerError));
         });
 
         it ('with stack trace exception', async () => {
@@ -52,8 +81,7 @@ each({
                     error: {},
                     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     message: exceptionError,
-                } as IRunnerError),
-            );
+                } as IRunnerError));
         });
 
         it ('with delay exceptions', async () => {

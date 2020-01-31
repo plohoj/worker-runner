@@ -1,13 +1,23 @@
-import { ClearNever, JsonObject, SerializeRunnerDestroyer, SerializeRunnerMethod as SerializeRunnerPromiseMethod } from '@worker-runner/core';
+import { ClearNever, InjectDestroyerInRunner, IRunnerConstructorParameter, JsonObject } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
-export type RxSerializeRunnerMethod<T extends (...args: any) => any > =
+type RxResolveRunnerArgument<T extends IRunnerConstructorParameter>
+    = T extends JsonObject ? T : RxResolveRunner<T>;
+
+export type RxResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
+    = { [P in keyof T]: RxResolveRunnerArgument<T[P]> };
+
+export type RxResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
     ReturnType<T> extends Observable<JsonObject | void> ?
         (...args: Parameters<T>) => Promise<ReturnType<T>>:
-        SerializeRunnerPromiseMethod<T>;
+        ReturnType<T> extends Promise<JsonObject | void> ?
+            T :
+            ReturnType<T> extends JsonObject | void ?
+                (...args: RxResolveRunnerArguments<A>) => Promise<ReturnType<T>> :
+                never;
 
-type RxIterateRunnerMethods<T> = {
-    [P in keyof T]: T[P] extends (...args: any) => any ? RxSerializeRunnerMethod<T[P]> : never;
-};
+type RxResolveRunnerMethods<T> = ClearNever<{
+    [P in keyof T]: T[P] extends (...args: any[]) => any ? RxResolveRunnerMethod<T[P]> : never;
+}>;
 
-export type RxResolveRunner<T> = SerializeRunnerDestroyer<ClearNever<RxIterateRunnerMethods<T>>>;
+export type RxResolveRunner<T> = InjectDestroyerInRunner<RxResolveRunnerMethods<T>>;

@@ -1,9 +1,12 @@
-import { errorActionToRunnerError, extractError, INodeAction, INodeDestroyAction, INodeExecuteAction, IRunnerError, IWorkerAction, IWorkerDestroyedAction, NodeAction, NodeRunnerState, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '..';
+import { errorActionToRunnerError, extractError, INodeAction, INodeDestroyAction, INodeExecuteAction, IRunnerConstructorParameter, IRunnerError, IWorkerAction, IWorkerDestroyedAction, NodeAction, NodeRunnerState, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '..';
 import { INodeInitAction, INodeWorkerDestroyAction } from '../actions/node.actions';
 import { IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction } from '../actions/worker.actions';
 import { PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
+import { ResolveRunnerArguments } from '../runner/resolved-runner';
+import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeInstanceId } from '../runner/runner-bridge';
+import { JsonObject } from '../types/json-object';
+import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -11,15 +14,13 @@ export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> exte
     workerPath?: string;
 }
 
-const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<any>> = {
+const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never>> = {
     workerName: 'Worker Runner',
     runners: [],
     workerPath: 'worker.js',
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    /** {instanceId: NodeRunnerState} */
-    protected runnerStates = new Map<number, NodeRunnerState>();
     private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
     private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
     private destroyWorkerResolver?: () => void;
@@ -28,6 +29,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
 
+    /** {instanceId: NodeRunnerState} */
+    protected runnerStates = new Map<number, NodeRunnerState>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
@@ -38,17 +41,33 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
+    public static serializeArguments(args: IRunnerConstructorParameter[]): IRunnerArgument[] {
+        return args.map(argument => {
+            if (RunnerBridge.isRunnerBridge(argument)) {
+                return {
+                    type: RunnerArgumentType.RUNNER_INSTANCE,
+                    instanceId: (argument as RunnerBridge)[runnerBridgeInstanceId],
+                };
+            } else {
+                return {
+                    type: RunnerArgumentType.JSON,
+                    data: argument as JsonObject,
+                };
+            }
+        });
+    }
+
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: ConstructorParameters<RR>): Promise<{}>;
+    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerConstructorParameter[]): Promise<{}>;
 
     /** @returns instanceId */
     protected async sendInitAction(
         runnerId: number,
-        args: ConstructorParameters<R>,
+        args: ResolveRunnerArguments<ConstructorParameters<RunnerConstructor>>,
     ): Promise<number> {
         if (runnerId < 0) {
             throw {
@@ -62,7 +81,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 type: NodeAction.INIT,
                 instanceId,
                 runnerId,
-                arguments: args,
+                arguments: NodeRunnerResolverBase.serializeArguments(args),
             });
         } catch (error) {
             throw errorActionToRunnerError(error);

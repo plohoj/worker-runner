@@ -1,7 +1,6 @@
-import { JsonObject } from '@worker-runner/core';
 
 export class ErrorStubRunner {
-    constructor(errorMessage?: JsonObject) {
+    constructor(errorMessage?: string) {
         if (errorMessage) {
             throw errorMessage;
         }

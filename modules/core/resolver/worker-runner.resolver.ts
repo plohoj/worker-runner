@@ -3,8 +3,9 @@ import { IWorkerAction, WorkerAction } from '../actions/worker.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { WorkerRunnerState } from '../state/worker-runner.state';
-import { RunnerConstructor } from '../types/constructor';
+import { IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
+import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
@@ -44,7 +45,8 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         if (runnerConstructor) {
             let runnerState: WorkerRunnerState<R> ;
             try {
-                runnerState = this.buildRunnerState(runnerConstructor, action.arguments);
+                runnerState = this.buildRunnerState(runnerConstructor,
+                    this.deserializeArguments(action.arguments));
             } catch (error) {
                 this.sendAction({
                     type: WorkerAction.RUNNER_INIT_ERROR,
@@ -67,6 +69,21 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
             });
         }
+    }
+
+    public deserializeArguments(args: IRunnerArgument[]): Array<IRunnerConstructorParameter> {
+        return args.map(argument => {
+            switch (argument.type) {
+                case RunnerArgumentType.RUNNER_INSTANCE:
+                    const instance = this.runnerStates.get(argument.instanceId);
+                    if (!instance) {
+                        throw new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
+                    }
+                    return instance.runnerInstance;
+                default:
+                    return argument.data;
+            }
+        });
     }
 
     protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): WorkerRunnerState<R> {
@@ -109,7 +126,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
     public async destroyWorker(force = false): Promise<void> {
         if (!force) {
-            const destroying$ = new Array<Promise<any>>();
+            const destroying$ = new Array<Promise<void>>();
             this.runnerStates.forEach((state) => {
                 destroying$.push(state.destroy());
             });
