@@ -126,7 +126,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
     public async destroyWorker(force = false): Promise<void> {
         if (!force) {
-            const destroying$ = new Array<Promise<any>>();
+            const destroying$ = new Array<Promise<void>>();
             this.runnerStates.forEach((state) => {
                 destroying$.push(state.destroy());
             });

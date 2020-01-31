@@ -8,7 +8,7 @@ type ResolveRunnerArgument<T extends IRunnerConstructorParameter>
 export type ResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
     = { [P in keyof T]: ResolveRunnerArgument<T[P]> };
 
-export type ResolveRunnerMethod<T extends (...args: any) => any, A extends any[] = Parameters<T>> =
+export type ResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
     ReturnType<T> extends Promise<JsonObject | void> ?
         T :
         ReturnType<T> extends JsonObject | void ?
@@ -16,7 +16,7 @@ export type ResolveRunnerMethod<T extends (...args: any) => any, A extends any[]
             never;
 
 type ResolveRunnerMethods<T> = ClearNever<{
-    [P in keyof T]: T[P] extends (...args: any) => any ? ResolveRunnerMethod<T[P]> : never;
+    [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolveRunnerMethod<T[P]> : never;
 }>;
 
 interface IRunnerWithDestroyer {

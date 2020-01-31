@@ -1,5 +1,5 @@
-import { Constructor, WorkerRunnerResolverBase } from '@worker-runner/core';
+import { RunnerConstructor, WorkerRunnerResolverBase } from '@worker-runner/core';
 
-export class WorkerRunnerResolver<R extends Constructor<{[key: string]: any}>> extends WorkerRunnerResolverBase<R> {
+export class WorkerRunnerResolver<R extends RunnerConstructor> extends WorkerRunnerResolverBase<R> {
 
 }

@@ -14,7 +14,7 @@ export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> exte
     workerPath?: string;
 }
 
-const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<any>> = {
+const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never>> = {
     workerName: 'Worker Runner',
     runners: [],
     workerPath: 'worker.js',

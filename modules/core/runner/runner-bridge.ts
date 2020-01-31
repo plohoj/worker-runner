@@ -29,7 +29,7 @@ export class RunnerBridge {
     }
 
     public static isRunnerBridge(instance: any): instance is RunnerBridge {
-        return !!instance[runnerBridgeInstanceId];
+        return typeof instance[runnerBridgeInstanceId] === 'number';
     }
 
     protected async [executeRunnerBridgeMethod](methodName: string, args: IRunnerConstructorParameter[],

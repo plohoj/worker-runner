@@ -7,7 +7,7 @@ type RxResolveRunnerArgument<T extends IRunnerConstructorParameter>
 export type RxResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
     = { [P in keyof T]: RxResolveRunnerArgument<T[P]> };
 
-export type RxResolveRunnerMethod<T extends (...args: any) => any, A extends any[] = Parameters<T>> =
+export type RxResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
     ReturnType<T> extends Observable<JsonObject | void> ?
         (...args: Parameters<T>) => Promise<ReturnType<T>>:
         ReturnType<T> extends Promise<JsonObject | void> ?
@@ -17,7 +17,7 @@ export type RxResolveRunnerMethod<T extends (...args: any) => any, A extends any
                 never;
 
 type RxResolveRunnerMethods<T> = ClearNever<{
-    [P in keyof T]: T[P] extends (...args: any) => any ? RxResolveRunnerMethod<T[P]> : never;
+    [P in keyof T]: T[P] extends (...args: any[]) => any ? RxResolveRunnerMethod<T[P]> : never;
 }>;
 
 export type RxResolveRunner<T> = InjectDestroyerInRunner<RxResolveRunnerMethods<T>>;
