@@ -36,11 +36,22 @@ each({
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
                     ExecutableStubRunner<typeof storageData>>;
-            const executableStubRunnerParent = await resolver
+            const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
-            await expectAsync(executableStubRunnerParent.pullInstanceStage(executableStubRunner))
+            await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
                 .toBeResolvedTo(storageData);
+        });
+
+        it ('with destroyed instance in arguments', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await executableStubRunner.destroy();
+            const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
+            await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner)).toBeRejectedWith(
+                jasmine.objectContaining({
+                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+                } as IRunnerError));
         });
 
         it('with promise', async () => {
@@ -56,8 +67,10 @@ each({
         it ('with exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
-            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining(
-                { error: exceptionError, errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR } as IRunnerError));
+            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining({
+                error: exceptionError,
+                errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+            } as IRunnerError));
         });
 
         it ('with stack trace exception', async () => {
@@ -68,8 +81,7 @@ each({
                     error: {},
                     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     message: exceptionError,
-                } as IRunnerError),
-            );
+                } as IRunnerError));
         });
 
         it ('with delay exceptions', async () => {

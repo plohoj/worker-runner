@@ -1,7 +1,7 @@
 import { JsonObject } from '@worker-runner/core';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
-export class WithOtherInstanceStubRunner<T extends JsonObject> {
+export class WithOtherInstanceStubRunner<T extends JsonObject = JsonObject> {
 
     constructor(private executableStubRunner?: ExecutableStubRunner<T>) {}
 
