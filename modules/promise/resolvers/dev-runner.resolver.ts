@@ -1,4 +1,4 @@
-import { IWorkerDestroyedAction, NodeAction, RunnerConstructor } from '@worker-runner/core';
+import { NodeResolverAction, RunnerConstructor } from '@worker-runner/core';
 import { NodeRunnerResolver } from './node-runner.resolver';
 import { WorkerRunnerResolver } from './worker-runner.resolver';
 
@@ -10,10 +10,12 @@ export class DevRunnerResolver<R extends RunnerConstructor> extends NodeRunnerRe
         devWorkerRunnerResolver.sendAction = this.handleWorkerAction.bind(this);
     }
 
-    public async destroy(force = false): Promise<IWorkerDestroyedAction> {
-        const destroyResult: IWorkerDestroyedAction =
-                await this.execute({type: NodeAction.DESTROY_WORKER, force});
-        this.destroyRunnerState();
-        return destroyResult;
+    public async destroy(force = false): Promise<void> {
+        const destroyPromise$ = new Promise<void>((resolve, reject) => {
+            this.destroyPromise = {resolve, reject};
+        });
+        this.sendAction({ type: NodeResolverAction.DESTROY, force});
+        await destroyPromise$;
+        this.destroyRunnerControllers();
     }
 }

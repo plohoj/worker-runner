@@ -1,29 +1,22 @@
-import { INodeAction, JsonObject, RunnerConstructor, WorkerRunnerResolverBase } from '@worker-runner/core';
-import { IRxNodeAction, RxNodeAction } from '../actions/node.actions';
-import { RxWorkerRunnerState } from '../states/worker-runner.state';
+import { IRunnerControllerInitAction, RunnerConstructor, WorkerRunnerResolverBase } from '@worker-runner/core';
+import { RxRunnerEnvironment } from '../runners/runner.environment';
 
 export class RxWorkerRunnerResolver<R extends RunnerConstructor> extends WorkerRunnerResolverBase<R> {
 
-    protected declare runnerStates: Map<number, RxWorkerRunnerState<R>>;
-    protected declare execute: (action: INodeAction | IRxNodeAction) => Promise<void>;
+    declare protected runnerEnvironments: Set<RxRunnerEnvironment<R>>;
 
-    protected buildRunnerState(runnerConstructor: R, runnerArguments: JsonObject[]): RxWorkerRunnerState<R> {
-        return new RxWorkerRunnerState({
+    protected buildRunnerEnvironment(
+        action: IRunnerControllerInitAction,
+        port: MessagePort,
+        runnerConstructor: R,
+    ): RxRunnerEnvironment<R> {
+        const runnerEnvironment: RxRunnerEnvironment<R> = new RxRunnerEnvironment({
+            port,
             runnerConstructor,
-            runnerArguments,
+            runnerArguments: this.deserializeArguments(action.args),
             workerRunnerResolver: this,
+            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
         });
-    }
-
-    public handleAction(action: INodeAction | IRxNodeAction): void {
-        switch (action.type) {
-            case RxNodeAction.RX_SUBSCRIBE:
-            case RxNodeAction.RX_UNSUBSCRIBE:
-                this.execute(action);
-                break;
-            default:
-                super.handleAction(action);
-                break;
-        }
+        return runnerEnvironment;
     }
 }

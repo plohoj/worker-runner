@@ -30,7 +30,6 @@ each({
         it ('with exception in method', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                error: {},
                 errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
                 message: 'DESTROY_EXCEPTION',
             } as IRunnerError));
@@ -40,8 +39,8 @@ each({
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                error: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-                errorCode: RunnerErrorCode.RUNNER_DESTROY_INSTANCE_NOT_FOUND,
+                message: RunnerErrorMessages.RUNNER_NOT_INIT,
+                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
             } as IRunnerError));
         });
     }),
@@ -61,8 +60,8 @@ describe(`Dev destroy runner`, () => {
         });
         await devResolver.run();
         const destroyableRunner = await devResolver.resolve(DestroyableRunner);
-        destroyableRunner.destroy();
+        await destroyableRunner.destroy();
         expect(destroySpy).toHaveBeenCalled();
-        devResolver.destroy();
+        await devResolver.destroy();
     });
 });
