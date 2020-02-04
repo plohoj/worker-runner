@@ -2,7 +2,7 @@ import { extractError, IRunnerControllerDestroyAction, IRunnerControllerExecuteA
 import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRxRunnerEnvironmentAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
@@ -11,68 +11,76 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
     /** Event for stop listening the Observable */
     private unsubscribe$ = new Subject<number | 'ALL'>();
 
-    protected declare sendAction: (action: IRxRunnerEnvironmentAction) => void;
+    protected declare sendAction: (port: MessagePort, action: IRxRunnerEnvironmentAction) => void;
 
     protected async handleExecuteResponse(
+        port: MessagePort,
         action: IRunnerControllerExecuteAction,
         response: JsonObject | Observable<JsonObject>,
     ): Promise<void> {
         if (response instanceof Observable) {
             this.observableList.set(action.id, response);
-            this.sendAction({
+            this.sendAction(port , {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_INIT,
                 id: action.id,
             });
         } else {
-            await super.handleExecuteResponse(action, response);
+            await super.handleExecuteResponse(port, action, response);
         }
     }
 
-    public async handleAction(action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction
+    public async handleAction(
+        port: MessagePort,
+        action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction
             | IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction,
     ): Promise<void> {
         switch (action.type) {
             case RxRunnerControllerAction.RX_SUBSCRIBE:
             case RxRunnerControllerAction.RX_UNSUBSCRIBE:
-                this.execute(action);
+                this.execute(port, action);
                 break;
             default:
-                super.handleAction(action);
+                super.handleAction(port, action);
                 break;
         }
     }
 
-    public async execute(action: IRunnerControllerExecuteAction
+    public async execute(
+        port: MessagePort,
+        action: IRunnerControllerExecuteAction
         | IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction,
     ): Promise<void> {
         switch (action.type) {
             case RxRunnerControllerAction.RX_SUBSCRIBE:
-                this.observeResponse(action);
+                this.observeResponse(port, action);
                 break;
             case RxRunnerControllerAction.RX_UNSUBSCRIBE:
                 this.unsubscribe$.next(action.id);
                 break;
             default:
-                return super.execute(action);
+                return super.execute(port, action);
         }
     }
 
-    private observeResponse(action: IRxRunnerControllerSubscribeAction): void {
+    private observeResponse(
+        port: MessagePort,
+        action: IRxRunnerControllerSubscribeAction,
+    ): void {
         const observable = this.observableList.get(action.id);
         this.observableList.delete(action.id);
         if (!observable) {
             const error = new Error(RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND);
-            this.sendAction({
+            this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR,
                 id: action.id,
                 error: RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND,
                 stacktrace: error.stack,
                 errorCode: RxRunnerErrorCode.SUBSCRIPTION_NOT_FOUND,
-            });
-            this.sendAction({
+            } as IRxRunnerEnvironmentErrorAction);
+            this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
                 id: action.id,
-            });
+            } as IRxRunnerEnvironmentCompletedAction);
             return;
         }
         observable.pipe(
@@ -85,28 +93,26 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 }),
             )),
         ).subscribe(
-            (rxResponse) => this.sendAction({
+            (rxResponse) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_EMIT,
                 id: action.id,
                 response: rxResponse,
-            }),
-            (error) => this.sendAction({
+            } as IRxRunnerEnvironmentEmitAction),
+            (error) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR,
                 id: action.id,
-                ...extractError(error),
                 errorCode: RxRunnerErrorCode.ERROR_EMIT,
-            }),
-            () => {
-                this.sendAction({
-                    type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
-                    id: action.id,
-                });
-            },
+                ...extractError(error),
+            } as IRxRunnerEnvironmentErrorAction),
+            () => this.sendAction(port, {
+                type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
+                id: action.id,
+            } as IRxRunnerEnvironmentCompletedAction),
         );
     }
 
-    public async destroy(action?: IRunnerControllerDestroyAction): Promise<void> {
+    public async destroy(port?: MessagePort, action?: IRunnerControllerDestroyAction): Promise<void> {
         this.unsubscribe$.next('ALL');
-        super.destroy(action);
+        super.destroy(port, action);
     }
 }

@@ -2,6 +2,10 @@ import { IStacktraceError, StackTraceError } from './stacktrace-error';
 
 export function extractError(error: any): StackTraceError {
 
+    if (typeof error === 'object' && 'errorCode' in error && 'id' in error) {
+        return error ;
+    }
+
     const extractedError: StackTraceError = {
         error: error ? JSON.parse(JSON.stringify(error)) : error,
     };
