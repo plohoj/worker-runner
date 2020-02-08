@@ -10,6 +10,8 @@ export enum RunnerEnvironmentAction {
     INIT_ERROR,
     EXECUTE_ERROR,
     DESTROY_ERROR,
+
+    RESOLVED,
 }
 
 export interface IRunnerEnvironmentInitedAction {
@@ -47,9 +49,17 @@ export type IRunnerEnvironmentDestroyErrorAction = StackTraceError<{
     id: number;
 }>;
 
+export interface IRunnerEnvironmentResolvedAction {
+    type: RunnerEnvironmentAction.RESOLVED;
+    id: number;
+    port: MessagePort;
+    runnerId: number;
+}
+
 export type IRunnerEnvironmentAction<T extends RunnerEnvironmentAction = RunnerEnvironmentAction> = Extract<
-        | IRunnerEnvironmentInitedAction | IRunnerEnvironmentExecutedAction
+    IRunnerEnvironmentInitedAction | IRunnerEnvironmentExecutedAction
         | IRunnerEnvironmentDestroyedAction | IRunnerEnvironmentInitErrorAction
-        | IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction,
+        | IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction
+        | IRunnerEnvironmentResolvedAction,
     {type: T}
 >;

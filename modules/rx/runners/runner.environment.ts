@@ -1,4 +1,4 @@
-import { extractError, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerConstructor, RunnerEnvironment } from '@worker-runner/core';
+import { extractError, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, JsonObject, RunnerConstructor, RunnerEnvironment } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
@@ -31,7 +31,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     public async handleAction(
         port: MessagePort,
-        action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction
+        action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction  | IRunnerControllerResolveAction
             | IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction,
     ): Promise<void> {
         switch (action.type) {

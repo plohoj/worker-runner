@@ -4,6 +4,7 @@ export enum RunnerControllerAction {
     INIT = 10,
     EXECUTE,
     DESTROY,
+    RESOLVE,
 }
 
 export interface IRunnerControllerInitAction {
@@ -25,8 +26,14 @@ export interface IRunnerControllerDestroyAction {
     id: number;
 }
 
+export interface IRunnerControllerResolveAction {
+    type: RunnerControllerAction.RESOLVE;
+    id: number;
+}
+
 export type IRunnerControllerAction<T extends RunnerControllerAction = RunnerControllerAction> = Extract<
-    (IRunnerControllerInitAction | IRunnerControllerExecuteAction| IRunnerControllerDestroyAction),
+    IRunnerControllerInitAction | IRunnerControllerExecuteAction
+        | IRunnerControllerDestroyAction | IRunnerControllerResolveAction,
     {type: T}
 >;
 

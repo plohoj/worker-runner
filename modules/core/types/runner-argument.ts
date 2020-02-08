@@ -13,6 +13,7 @@ export interface IRunnerJSONArgument {
 export interface IRunnerEnvironmentArgument {
     type: RunnerArgumentType.RUNNER_INSTANCE;
     port: MessagePort;
+    runnerId: number;
 }
 
 export type IRunnerArgument = IRunnerJSONArgument | IRunnerEnvironmentArgument;

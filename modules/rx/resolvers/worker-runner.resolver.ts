@@ -9,9 +9,11 @@ export class RxWorkerRunnerResolver<R extends RunnerConstructor> extends WorkerR
         action: IRunnerControllerInitAction,
         port: MessagePort,
         runnerConstructor: R,
+        runnerId: number,
     ): RxRunnerEnvironment<R> {
         const runnerEnvironment: RxRunnerEnvironment<R> = new RxRunnerEnvironment({
             port,
+            runnerId,
             runnerConstructor,
             runnerArguments: this.deserializeArguments(action.args),
             workerRunnerResolver: this,

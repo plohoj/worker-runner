@@ -3,6 +3,7 @@ import { rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
+import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { devRunnerResolver, runnerResolver } from '../common/promise';
 
@@ -31,19 +32,19 @@ each({
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
 
-        // it ('with instance in arguments', async () => {
-        //     const storageData = {
-        //         id: 5326,
-        //         type: 'STORAGE_DATA',
-        //     };
-        //     const executableStubRunner = await resolver
-        //         .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
-        //             ExecutableStubRunner<typeof storageData>>;
-        //     const withOtherInstanceStubRunner = await resolver
-        //         .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
-        //             WithOtherInstanceStubRunner<typeof storageData>>;
-        //     await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
-        // });
+        it ('with instance in arguments', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const executableStubRunner = await resolver
+                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                    ExecutableStubRunner<typeof storageData>>;
+            const withOtherInstanceStubRunner = await resolver
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                    WithOtherInstanceStubRunner<typeof storageData>>;
+            await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
+        });
 
         // it ('with destroyed instance in arguments', async () => {
         //     const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
@@ -78,4 +79,3 @@ each({
         });
     }),
 );
-

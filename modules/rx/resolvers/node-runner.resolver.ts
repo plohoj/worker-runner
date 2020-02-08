@@ -1,4 +1,4 @@
-import { Constructor, IRunnerConstructorParameter, IRunnerEnvironmentInitedAction, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
+import { Constructor, IRunnerEnvironmentInitedAction, IRunnerParameter, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
 import { RxResolveRunner } from '../resolved-runner';
 import { RxRunnerController } from '../runners/runner.controller';
 
@@ -25,7 +25,7 @@ export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunne
     public async resolve<RR extends R>(
         runner: RR,
         ...args: RR extends new (...args: infer A) => any ?
-            A extends Array<IRunnerConstructorParameter> ? ResolveRunnerArguments<A> : never : never
+            A extends Array<IRunnerParameter> ? ResolveRunnerArguments<A> : never : never
     ): Promise<RxResolveRunner<InstanceType<RR>>> {
         const runnerId = this.config.runners.indexOf(runner);
         const action = await this.sendInitAction(runnerId, args);

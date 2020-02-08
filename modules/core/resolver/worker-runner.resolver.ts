@@ -4,15 +4,22 @@ import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, Runn
 import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
+import { ResolveRunner } from '../runner/resolved-runner';
+import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
+import { RunnerController } from '../runner/runner.controller';
 import { RunnerEnvironment } from '../runner/runner.environment';
-import { IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
+import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
+    protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
 
-    constructor(protected config: IRunnerResolverConfigBase<R>) {}
+    constructor(protected config: IRunnerResolverConfigBase<R>) {
+        this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
+    }
 
     public run(): void {
         self.addEventListener('message', this.onMessage.bind(this));
@@ -33,7 +40,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 break;
         }
     }
-  private initRunnerInstance(action: IRunnerControllerInitAction): void {
+    private initRunnerInstance(action: IRunnerControllerInitAction): void {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
             let runnerEnvironment: RunnerEnvironment<R>;
@@ -43,6 +50,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                     action,
                     messageChanel.port1,
                     runnerConstructor,
+                    action.runnerId,
                 );
             } catch (error) {
                 this.sendAction({
@@ -76,9 +84,11 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             action: IRunnerControllerInitAction,
             port: MessagePort,
             runnerConstructor: R,
+            runnerId: number,
         ): RunnerEnvironment<R> {
         const runnerEnvironment: RunnerEnvironment<R> = new RunnerEnvironment({
             port,
+            runnerId,
             runnerConstructor,
             runnerArguments: this.deserializeArguments(action.args),
             workerRunnerResolver: this,
@@ -87,16 +97,16 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         return runnerEnvironment;
     }
 
-    public deserializeArguments(args: IRunnerArgument[]): Array<IRunnerConstructorParameter> {
+    public deserializeArguments(args: IRunnerArgument[]): Array<IRunnerParameter> {
         return args.map(argument => {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
-                    throw Error('TODO');
-                    // const instance = this.runnerEnvironments.get(argument.instanceId);
-                    // if (!instance) {
-                    //     throw new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
-                    // }
-                    // return instance.runnerInstance;
+                    const controller = new RunnerController({
+                        bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
+                        onDestroyed: () => {console.error('TODO'); },
+                        port: argument.port,
+                    });
+                    return controller.resolvedRunner as ResolveRunner<any>;
                 default:
                     return argument.data;
             }

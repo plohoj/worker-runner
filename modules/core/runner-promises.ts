@@ -5,11 +5,14 @@ export interface IPromiseMethods<T = any, E = any> {
 export class PromisesResolver<T, E = any> {
     public readonly promises = new Map<number, IPromiseMethods<T,  E>>();
 
-    public promise(id: number): Promise<T> {
-        return new Promise((resolve, reject) => this.promises.set(id, {resolve, reject}));
+    public promise<R extends T = T>(id: number): Promise<R> {
+        return new Promise((resolve, reject) => this.promises.set(
+            id,
+            {resolve: resolve as (data: T) => void, reject}),
+        );
     }
 
-    public resolve(id: number, data: T): void {
+    public resolve<R extends T = T>(id: number, data: R): void {
         const promise$ = this.promises.get(id);
         if (promise$) {
             this.promises.delete(id);
@@ -17,7 +20,7 @@ export class PromisesResolver<T, E = any> {
         }
     }
 
-    public reject(id: number, error: E): void {
+    public reject<R extends E = E>(id: number, error: R): void {
         const promise$ = this.promises.get(id);
         if (promise$) {
             this.promises.delete(id);

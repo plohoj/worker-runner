@@ -7,11 +7,11 @@ import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { ResolveRunnerArguments } from '../runner/resolved-runner';
-import { IRunnerBridgeConstructor, RunnerBridge } from '../runner/runner-bridge';
+import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
-import { IRunnerConstructorParameter, RunnerConstructor } from '../types/constructor';
+import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
+import { IRunnerArgument, IRunnerEnvironmentArgument, IRunnerJSONArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -27,13 +27,13 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     private initPromises = new PromisesResolver<IRunnerEnvironmentInitedAction>();
-    private lastCommandId = 0;
+    private lastActionId = 0;
 
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     protected destroyPromise?: IPromiseMethods<void>;
 
-    protected runnerControllers = new Set<RunnerController<R>>(); // TODO use Set
+    protected runnerControllers = new Set<RunnerController<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
@@ -44,21 +44,33 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
-    public static serializeArguments(args: IRunnerConstructorParameter[]): IRunnerArgument[] {
-        return args.map(argument => {
+    public static async serializeArguments(args: IRunnerParameter[],
+    ): Promise<{
+        args: IRunnerArgument[]
+        transfer: Transferable[],
+    }> {
+        const serializedArgs = {
+            args: new Array<IRunnerArgument>(),
+            transfer: new Array<Transferable>(),
+        };
+        await Promise.all(args.map(async argument => {
             if (RunnerBridge.isRunnerBridge(argument)) {
-                throw Error('TODO');
-                // return {
-                //     type: RunnerArgumentType.RUNNER_INSTANCE,
-                //     instanceId: (argument as RunnerBridge)[runnerBridgeInstanceId],
-                // };
+                // TODO Sequence
+                const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
+                serializedArgs.args.push({
+                    type: RunnerArgumentType.RUNNER_INSTANCE,
+                    runnerId: action.runnerId,
+                    port: action.port,
+                } as IRunnerEnvironmentArgument);
+                serializedArgs.transfer.push(action.port);
             } else {
-                return {
+                serializedArgs.args.push({
                     type: RunnerArgumentType.JSON,
                     data: argument as JsonObject,
-                };
+                } as IRunnerJSONArgument);
             }
-        });
+        }));
+        return serializedArgs;
     }
 
     public async run(): Promise<void> {
@@ -66,7 +78,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerConstructorParameter[]): Promise<{}>;
+    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<{}>;
 
     protected async sendInitAction(
         runnerId: number,
@@ -82,14 +94,18 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             } as IRunnerError;
         }
         try {
-            const commandId = this.nextCommandId();
-            const promise$ = this.initPromises.promise(commandId);
-            this.sendAction({
-                type: RunnerControllerAction.INIT,
-                id: commandId,
-                runnerId,
-                args: NodeRunnerResolverBase.serializeArguments(args),
-            });
+            const actionId = this.nextActionId();
+            const promise$ = this.initPromises.promise(actionId);
+            const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
+            this.sendAction(
+                {
+                    type: RunnerControllerAction.INIT,
+                    id: actionId,
+                    runnerId,
+                    args: serializedArgs.args,
+                },
+                serializedArgs.transfer,
+            );
             const action = await promise$;
             return action;
         } catch (error) {
@@ -97,8 +113,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         }
     }
 
-    protected nextCommandId(): number {
-        return this.lastCommandId++;
+    protected nextActionId(): number {
+        return this.lastActionId++;
     }
 
     protected onWorkerMessage(message: MessageEvent): void {
@@ -185,9 +201,12 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         }
     }
 
-    protected sendAction(action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction): void {
+    protected sendAction(
+        action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction,
+        transfer?: Transferable[],
+    ): void {
         if (this.worker) { // TO use MessageChanel
-            this.worker.postMessage(action);
+            this.worker.postMessage(action, transfer as Transferable[]);
         } else {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
             throw {

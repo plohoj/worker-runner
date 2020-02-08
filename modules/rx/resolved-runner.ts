@@ -1,13 +1,13 @@
-import { ClearNever, InjectDestroyerInRunner, IRunnerConstructorParameter, JsonObject } from '@worker-runner/core';
+import { ClearNever, InjectDestroyerInRunner, IRunnerParameter, JsonObject } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
-type RxResolveRunnerArgument<T extends IRunnerConstructorParameter>
+type RxResolveRunnerArgument<T>
     = T extends JsonObject ? T : RxResolveRunner<T>;
 
-export type RxResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
+export type RxResolveRunnerArguments<T extends IRunnerParameter[]>
     = { [P in keyof T]: RxResolveRunnerArgument<T[P]> };
 
-export type RxResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
+export type RxResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> = // TODO as core
     ReturnType<T> extends Observable<JsonObject | void> ?
         (...args: Parameters<T>) => Promise<ReturnType<T>>:
         ReturnType<T> extends Promise<JsonObject | void> ?

@@ -1,18 +1,20 @@
-import { ClearNever } from '../types/allowed-names';
-import { IRunnerConstructorParameter } from '../types/constructor';
+import { ClearNever } from '../types/clear-never';
+import { IRunnerParameter } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 
-type ResolveRunnerArgument<T extends IRunnerConstructorParameter>
-    = T extends JsonObject ? T : ResolveRunner<T>;
+type ResolveRunnerArgument<T>
+    = T extends IRunnerParameter ? T : never;
 
-export type ResolveRunnerArguments<T extends IRunnerConstructorParameter[]>
+export type ResolveRunnerArguments<T extends IRunnerParameter[]>
     = { [P in keyof T]: ResolveRunnerArgument<T[P]> };
 
 export type ResolveRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
-    ReturnType<T> extends Promise<JsonObject | void> ?
-        T :
-        ReturnType<T> extends JsonObject | void ?
-            (...args: ResolveRunnerArguments<A>) => Promise<ReturnType<T>> :
+    ReturnType<T> extends JsonObject | void ?
+        (...args: ResolveRunnerArguments<A>) => Promise<ReturnType<T>>:
+        ReturnType<T> extends Promise<infer R> ?
+            R extends JsonObject | void ?
+                (...args: ResolveRunnerArguments<A>) => Promise<R> :
+                never :
             never;
 
 type ResolveRunnerMethods<T> = ClearNever<{
