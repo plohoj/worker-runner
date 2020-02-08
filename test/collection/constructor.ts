@@ -46,15 +46,15 @@ each({
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
         });
 
-        // it ('with destroyed instance in arguments', async () => {
-        //     const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
-        //     await executableStubRunner.destroy();
-        //     await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner)).toBeRejectedWith(
-        //         jasmine.objectContaining({
-        //             errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_ERROR,
-        //             message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-        //         } as IRunnerError));
-        // });
+        it ('with destroyed instance in arguments', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            await executableStubRunner.destroy();
+            await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner)).toBeRejectedWith(
+                jasmine.objectContaining({
+                    errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
+                    message: RunnerErrorMessages.RUNNER_NOT_INIT,
+                } as IRunnerError));
+        });
 
         it('with extended class', async () => {
             const executableStubRunner = await resolver.resolve(ExtendedStubRunner);

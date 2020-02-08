@@ -1,4 +1,3 @@
-import { ClearNever } from '../types/clear-never';
 import { IRunnerParameter } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 
@@ -13,13 +12,13 @@ export type ResolveRunnerMethod<T extends (...args: any[]) => any, A extends any
         (...args: ResolveRunnerArguments<A>) => Promise<ReturnType<T>>:
         ReturnType<T> extends Promise<infer R> ?
             R extends JsonObject | void ?
-                (...args: ResolveRunnerArguments<A>) => Promise<R> :
+                (...args: ResolveRunnerArguments<A>) => ReturnType<T> :
                 never :
             never;
 
-type ResolveRunnerMethods<T> = ClearNever<{
+type ResolveRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolveRunnerMethod<T[P]> : never;
-}>;
+};
 
 interface IRunnerWithDestroyer {
     /** Remove runner instance from list in Worker Runners */
