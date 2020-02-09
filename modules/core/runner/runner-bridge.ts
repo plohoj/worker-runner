@@ -1,6 +1,4 @@
-import { RunnerControllerAction } from '../actions/runner-controller.actions';
 import { errorActionToRunnerError } from '../actions/runner-error';
-import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { Constructor, IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { ResolveRunner } from './resolved-runner';
@@ -10,12 +8,10 @@ export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
-const lastRunnerBridgeActionId = Symbol('last RunnerBridge action id');
 export const runnerBridgeController =  Symbol('Execute via NodeResolver method');
 
 export class RunnerBridge {
 
-    private [lastRunnerBridgeActionId] = 0;
     private [runnerBridgeController]: RunnerController<RunnerConstructor>;
 
     constructor(
@@ -25,24 +21,24 @@ export class RunnerBridge {
     }
 
     public static isRunnerBridge(instance: any): instance is RunnerBridge {
-        return typeof instance[lastRunnerBridgeActionId] === 'number';
+        return !!instance[runnerBridgeController];
     }
 
     protected async [executeRunnerBridgeMethod](
         methodName: string,
         args: IRunnerParameter[],
-    ): Promise<JsonObject> {
+    ): Promise<JsonObject | void> {
         try {
-            const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
-            return this[runnerBridgeController].execute(
-                {
-                    type:  RunnerControllerAction.EXECUTE,
-                    id: this[lastRunnerBridgeActionId]++,
-                    method: methodName,
-                    args: serializedArgs.args,
-                },
-                serializedArgs.transfer,
-            );
+            return this[runnerBridgeController].execute(methodName, args);
+        } catch (error) {
+            throw errorActionToRunnerError(error);
+        }
+    }
+
+    /** Unsubscribe from runner, if the subscription was the last, then runner will be automatically destroyed */
+    public async disconnect(): Promise<void> {
+        try {
+            await this[runnerBridgeController].disconnect();
         } catch (error) {
             throw errorActionToRunnerError(error);
         }
@@ -51,10 +47,7 @@ export class RunnerBridge {
     /** Remove runner instance from Worker Runners list */
     public async destroy(): Promise<void> {
         try {
-            await this[runnerBridgeController].execute({
-                type: RunnerControllerAction.DESTROY,
-                id: this[lastRunnerBridgeActionId]++,
-            });
+            await this[runnerBridgeController].destroy();
         } catch (error) {
             throw errorActionToRunnerError(error);
         }

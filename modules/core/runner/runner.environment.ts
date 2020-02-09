@@ -1,10 +1,11 @@
-import { IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
 import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
+import { RunnerController } from './runner.controller';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     runnerId: number;
@@ -21,6 +22,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private ports = new Array<MessagePort>();
     private onDestroyed: () => void;
     private runnerId: number;
+    private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
     constructor(config: IRunnerEnvironmentConfig<R>) {
         this.runnerInstance = new config.runnerConstructor(...config.runnerArguments) as InstanceType<R>;
@@ -37,7 +39,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected async handleAction(
         port: MessagePort,
-        action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction | IRunnerControllerResolveAction,
+        action: IRunnerControllerAction<Exclude<RunnerControllerAction, RunnerControllerAction.INIT>>,
     ): Promise<void> {
         switch (action.type) {
             case RunnerControllerAction.EXECUTE:
@@ -49,6 +51,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             case RunnerControllerAction.RESOLVE:
                 await this.resolve(port, action);
                 break;
+            case RunnerControllerAction.DISCONNECT:
+                await this.disconnect(port, action);
+                break;
         }
     }
 
@@ -57,9 +62,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         action: IRunnerControllerExecuteAction,
     ): Promise<void> {
         let response: JsonObject | Promise<JsonObject>;
+        const deserializeArgumentsData = this.workerRunnerResolver.deserializeArguments(action.args);
         try {
-            response = this.runnerInstance[action.method](
-                ...this.workerRunnerResolver.deserializeArguments(action.args));
+            response = this.runnerInstance[action.method](...deserializeArgumentsData.args);
         } catch (error) {
             this.sendAction(port, {
                 type: RunnerEnvironmentAction.EXECUTE_ERROR,
@@ -67,6 +72,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 id: action.id,
                 ...extractError(error),
             } as IRunnerEnvironmentExecuteErrorAction);
+            await Promise.all(deserializeArgumentsData.controllers
+                .map(controller => controller.disconnect()));
             return;
         }
         if (response instanceof Promise) {
@@ -79,10 +86,31 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     id: action.id,
                     ...extractError(error),
                 } as IRunnerEnvironmentExecuteErrorAction);
+                await Promise.all(deserializeArgumentsData.controllers
+                    .map(controller => controller.disconnect()));
                 return;
             }
         } else {
             await this.handleExecuteResponse(port, action, response);
+        }
+        this.addConnectedControllers(deserializeArgumentsData.controllers);
+    }
+
+    public addConnectedControllers(controllers: RunnerController<RunnerConstructor>[]): void {
+        this.connectedControllers.push(...controllers);
+    }
+
+    private async disconnect(port: MessagePort, action: IRunnerControllerDisconnectAction): Promise<void> {
+        const portIndex = this.ports.indexOf(port);
+        this.ports.splice(portIndex, 1);
+        this.sendAction(port, {
+            type: RunnerEnvironmentAction.DISCONNECTED,
+            id: action.id,
+        });
+        port.onmessage = null;
+        port.close();
+        if (this.ports.length === 0) {
+            this.destroy();
         }
     }
 

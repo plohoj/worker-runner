@@ -32,6 +32,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     protected destroyPromise?: IPromiseMethods<void>;
+    protected RunnerControllerConstructor = RunnerController;
 
     protected runnerControllers = new Set<RunnerController<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
@@ -53,23 +54,26 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             args: new Array<IRunnerArgument>(),
             transfer: new Array<Transferable>(),
         };
-        await Promise.all(args.map(async argument => {
+        const argsMap = new Map<number, IRunnerArgument>();
+        await Promise.all(args.map(async (argument, index) => {
             if (RunnerBridge.isRunnerBridge(argument)) {
-                // TODO Sequence
                 const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
-                serializedArgs.args.push({
+                argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
                     runnerId: action.runnerId,
                     port: action.port,
                 } as IRunnerEnvironmentArgument);
                 serializedArgs.transfer.push(action.port);
             } else {
-                serializedArgs.args.push({
+                argsMap.set(index, {
                     type: RunnerArgumentType.JSON,
                     data: argument as JsonObject,
                 } as IRunnerJSONArgument);
             }
         }));
+        for (let i = 0; i < args.length; i++) {
+            serializedArgs.args.push(argsMap.get(i) as IRunnerArgument);
+        }
         return serializedArgs;
     }
 
@@ -146,8 +150,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         action: IRunnerEnvironmentInitedAction,
         runnerId: number,
     ): RunnerController<R> {
-        const runnerController: RunnerController<R> = new RunnerController( {
-            onDestroyed: () => this.runnerControllers.delete(runnerController),
+        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
+            onDisconnected: () => this.runnerControllers.delete(runnerController),
             port: action.port,
             bridgeConstructor: this.runnerBridgeConstructors[runnerId],
         });
@@ -169,7 +173,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     protected destroyRunnerControllers(): void {
-        this.runnerControllers.forEach(state => state.destroy());
+        this.runnerControllers.forEach(state => state.onDisconnect());
         this.runnerControllers.clear();
     }
 

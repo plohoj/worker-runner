@@ -3,6 +3,7 @@ import { IRunnerArgument } from '../types/runner-argument';
 export enum RunnerControllerAction {
     INIT = 10,
     EXECUTE,
+    DISCONNECT,
     DESTROY,
     RESOLVE,
 }
@@ -21,6 +22,11 @@ export interface IRunnerControllerExecuteAction {
     args: IRunnerArgument[];
 }
 
+export interface IRunnerControllerDisconnectAction {
+    type: RunnerControllerAction.DISCONNECT;
+    id: number;
+}
+
 export interface IRunnerControllerDestroyAction {
     type: RunnerControllerAction.DESTROY;
     id: number;
@@ -32,7 +38,7 @@ export interface IRunnerControllerResolveAction {
 }
 
 export type IRunnerControllerAction<T extends RunnerControllerAction = RunnerControllerAction> = Extract<
-    IRunnerControllerInitAction | IRunnerControllerExecuteAction
+    IRunnerControllerInitAction | IRunnerControllerExecuteAction | IRunnerControllerDisconnectAction
         | IRunnerControllerDestroyAction | IRunnerControllerResolveAction,
     {type: T}
 >;

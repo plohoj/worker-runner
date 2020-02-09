@@ -1,4 +1,4 @@
-import { InjectDestroyerInRunner, IRunnerParameter, JsonObject, ResolveRunnerArguments } from '@worker-runner/core';
+import { IRunnerParameter, JsonObject, ResolveRunnerArguments, RunnerBridge } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
 type RxResolveRunnerArgument<T>
@@ -22,4 +22,4 @@ type RxResolveRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? RxResolveRunnerMethod<T[P]> : never;
 };
 
-export type RxResolveRunner<T> = InjectDestroyerInRunner<RxResolveRunnerMethods<T>>;
+export type RxResolveRunner<T> = RxResolveRunnerMethods<T> & RunnerBridge;

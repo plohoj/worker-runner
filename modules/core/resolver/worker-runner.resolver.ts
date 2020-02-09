@@ -16,6 +16,7 @@ import { IRunnerResolverConfigBase } from './base-runner.resolver';
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
+    protected RunnerEnvironmentConstructor = RunnerEnvironment;
 
     constructor(protected config: IRunnerResolverConfigBase<R>) {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
@@ -40,18 +41,21 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 break;
         }
     }
-    private initRunnerInstance(action: IRunnerControllerInitAction): void {
+    private async initRunnerInstance(action: IRunnerControllerInitAction): Promise<void> {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
             let runnerEnvironment: RunnerEnvironment<R>;
             const messageChanel = new MessageChannel();
+            const deserializeArgumentsData = this.deserializeArguments(action.args);
             try {
-                runnerEnvironment = this.buildRunnerEnvironment(
-                    action,
-                    messageChanel.port1,
+                runnerEnvironment = new this.RunnerEnvironmentConstructor({
+                    port: messageChanel.port1,
+                    runnerId: action.runnerId,
                     runnerConstructor,
-                    action.runnerId,
-                );
+                    runnerArguments: deserializeArgumentsData.args,
+                    workerRunnerResolver: this,
+                    onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+                });
             } catch (error) {
                 this.sendAction({
                     type: RunnerEnvironmentAction.INIT_ERROR,
@@ -59,9 +63,12 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                     errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
                     ...extractError(error),
                 });
+                await Promise.all(deserializeArgumentsData.controllers
+                    .map(controller => controller.disconnect()));
                 return;
             }
             this.runnerEnvironments.add(runnerEnvironment);
+            runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
             this.sendAction(
                 {
                     type: RunnerEnvironmentAction.INITED,
@@ -80,37 +87,29 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         }
     }
 
-    protected buildRunnerEnvironment(
-            action: IRunnerControllerInitAction,
-            port: MessagePort,
-            runnerConstructor: R,
-            runnerId: number,
-        ): RunnerEnvironment<R> {
-        const runnerEnvironment: RunnerEnvironment<R> = new RunnerEnvironment({
-            port,
-            runnerId,
-            runnerConstructor,
-            runnerArguments: this.deserializeArguments(action.args),
-            workerRunnerResolver: this,
-            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
-        });
-        return runnerEnvironment;
-    }
-
-    public deserializeArguments(args: IRunnerArgument[]): Array<IRunnerParameter> {
-        return args.map(argument => {
+    public deserializeArguments(args: IRunnerArgument[]): {
+        args: Array<IRunnerParameter>,
+        controllers: Array<RunnerController<R>>,
+    } {
+        const result = {
+            args: new Array<IRunnerParameter>(),
+            controllers: new Array<RunnerController<R>>(),
+        };
+        for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
                     const controller = new RunnerController({
                         bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
-                        onDestroyed: () => {console.error('TODO'); },
                         port: argument.port,
                     });
-                    return controller.resolvedRunner as ResolveRunner<any>;
+                    result.controllers.push(controller);
+                    result.args.push(controller.resolvedRunner as ResolveRunner<R>);
+                    break;
                 default:
-                    return argument.data;
+                    result.args.push(argument.data);
             }
-        });
+        }
+        return result;
     }
 
     public async destroyWorker(force = false): Promise<void> {

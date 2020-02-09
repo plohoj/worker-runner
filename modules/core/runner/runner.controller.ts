@@ -1,9 +1,10 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecuteErrorAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../actions/runner-controller.actions';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecuteErrorAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { PromisesResolver } from '../runner-promises';
-import { RunnerConstructor } from '../types/constructor';
+import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { ResolveRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
@@ -11,54 +12,85 @@ import { IRunnerBridgeConstructor } from './runner-bridge';
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
     bridgeConstructor: IRunnerBridgeConstructor<R>;
     port: MessagePort;
-    onDestroyed: () => void;
+    onDisconnected?: () => void;
 }
 
 export class RunnerController<R extends RunnerConstructor> {
     public resolvedRunner: ResolveRunner<InstanceType<R>>;
 
     private promises = new PromisesResolver<
-        IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDestroyedAction,
+        IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDestroyedAction
+            | IRunnerEnvironmentDisconnectedAction | IRunnerEnvironmentResolvedAction,
         IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction | IRunnerError
     >();
-    private resolveControlPromises = new PromisesResolver<IRunnerEnvironmentResolvedAction>();
-    private lastResolvedControlPromise = 0;
+    private lastActionId = 0;
     private port?: MessagePort;
-    private onDestroyed: () => void;
+    private onDisconnected?: () => void;
 
     constructor(config: IRunnerControllerConfig<R>) {
         this.resolvedRunner = new config.bridgeConstructor(this);
         this.port = config.port;
         this.port.onmessage = this.onPortMessage.bind(this);
-        this.onDestroyed = config.onDestroyed;
+        this.onDisconnected = config.onDisconnected;
     }
 
     protected onPortMessage(message: MessageEvent): void {
         this.handleAction(message.data);
     }
 
-    public async execute(action: IRunnerControllerExecuteAction, transfer?: Transferable[]): Promise<JsonObject>;
-    public async execute(action: IRunnerControllerDestroyAction): Promise<void>;
+    protected nextActionId(): number {
+        return this.lastActionId++;
+    }
+
     public async execute(
-        action: IRunnerControllerExecuteAction | IRunnerControllerDestroyAction,
-        transfer?: Transferable[],
+        methodName: string,
+        args: IRunnerParameter[],
     ): Promise<JsonObject | void> {
-        switch (action.type) {
-            case RunnerControllerAction.EXECUTE:
-                const executePromise$ = this.promises.promise<IRunnerEnvironmentExecutedAction>(action.id);
-                this.sendAction(action, transfer);
-                return (await executePromise$).response;
-            case RunnerControllerAction.DESTROY:
-                const destroyPromise$ = this.promises.promise<IRunnerEnvironmentDestroyedAction>(action.id);
-                this.sendAction(action);
-                await destroyPromise$;
-                return;
+        const actionId = this.nextActionId();
+        const executePromise$ = this.promises.promise<IRunnerEnvironmentExecutedAction>(actionId);
+        const serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        this.sendAction(
+            {
+                type: RunnerControllerAction.EXECUTE,
+                id: actionId,
+                args: serializedArgumentsData.args,
+                method: methodName,
+            } as IRunnerControllerExecuteAction,
+            serializedArgumentsData.transfer,
+        );
+        return (await executePromise$).response;
+    }
+
+    public async disconnect(): Promise<void> {
+        const actionId = this.nextActionId();
+        const disconnectPromise$ = this.promises.promise<IRunnerEnvironmentDisconnectedAction>(actionId);
+        this.sendAction({
+            type: RunnerControllerAction.DISCONNECT,
+            id: actionId,
+        });
+        await disconnectPromise$;
+        this.onDisconnect();
+    }
+
+    public async destroy(): Promise<void> {
+        const actionId = this.nextActionId();
+        const destroyPromise$ = this.promises.promise<IRunnerEnvironmentDestroyedAction>(actionId);
+        this.sendAction({
+            type: RunnerControllerAction.DESTROY,
+            id: actionId,
+        });
+        try {
+            await destroyPromise$;
+        } catch (e) {
+            this.onDisconnect();
+            throw e;
         }
+        this.onDisconnect();
     }
 
     public async resolveControl(): Promise<IRunnerEnvironmentResolvedAction> {
-        const actionId = this.lastResolvedControlPromise++;
-        const promise$ = this.resolveControlPromises.promise(actionId);
+        const actionId = this.nextActionId();
+        const promise$ = this.promises.promise<IRunnerEnvironmentResolvedAction>(actionId);
         this.sendAction({
             type: RunnerControllerAction.RESOLVE,
             id: actionId,
@@ -73,24 +105,15 @@ export class RunnerController<R extends RunnerConstructor> {
         >>,
     ): void {
         switch (action.type) {
+            case RunnerEnvironmentAction.DESTROYED:
+            case RunnerEnvironmentAction.DISCONNECTED:
             case RunnerEnvironmentAction.EXECUTED:
+            case RunnerEnvironmentAction.RESOLVED:
                 this.promises.resolve(action.id, action);
                 return;
             case RunnerEnvironmentAction.EXECUTE_ERROR:
-                this.promises.reject(action.id, action);
-                return;
-            case RunnerEnvironmentAction.DESTROYED:
-                this.promises.resolve(action.id, action);
-                this.destroy();
-                this.onDestroyed();
-                return;
             case RunnerEnvironmentAction.DESTROY_ERROR:
                 this.promises.reject(action.id, action);
-                this.destroy();
-                this.onDestroyed();
-                return;
-            case RunnerEnvironmentAction.RESOLVED:
-                this.resolveControlPromises.resolve(action.id, action);
                 return;
         }
     }
@@ -113,7 +136,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.port.postMessage(action, transfer as Transferable[]);
     }
 
-    public destroy(): void {
+    public onDisconnect(): void {
         const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
         this.promises.promises.forEach(promise => {
             promise.reject({
@@ -133,5 +156,6 @@ export class RunnerController<R extends RunnerConstructor> {
         }
         this.port.close();
         this.port = undefined;
+        this.onDisconnected?.();
     }
 }

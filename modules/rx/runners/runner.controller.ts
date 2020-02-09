@@ -93,7 +93,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
 
-    public destroy(): void {
+    public onDisconnect(): void {
         this.subscribers$.forEach(subscriber => {
             const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
             subscriber.error({
@@ -105,6 +105,6 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             subscriber.complete();
         });
         this.subscribers$.clear();
-        super.destroy();
+        super.onDisconnect();
     }
 }

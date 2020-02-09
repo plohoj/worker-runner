@@ -1,5 +1,6 @@
 import { IRunnerParameter } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
+import { RunnerBridge } from './runner-bridge';
 
 type ResolveRunnerArgument<T>
     = T extends IRunnerParameter ? T : never;
@@ -20,14 +21,4 @@ type ResolveRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolveRunnerMethod<T[P]> : never;
 };
 
-interface IRunnerWithDestroyer {
-    /** Remove runner instance from list in Worker Runners */
-    destroy(): Promise<void>;
-}
-
-export type InjectDestroyerInRunner<T> =
-    T extends IRunnerWithDestroyer ?
-        Omit<T, 'destroy'> & IRunnerWithDestroyer :
-        T & IRunnerWithDestroyer;
-
-export type ResolveRunner<T> = InjectDestroyerInRunner<ResolveRunnerMethods<T>>;
+export type ResolveRunner<T> = ResolveRunnerMethods<T> & RunnerBridge;

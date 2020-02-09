@@ -1,4 +1,4 @@
-import { Constructor, IRunnerEnvironmentInitedAction, IRunnerParameter, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
+import { Constructor, IRunnerParameter, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
 import { RxResolveRunner } from '../resolved-runner';
 import { RxRunnerController } from '../runners/runner.controller';
 
@@ -8,19 +8,7 @@ export type IRxRunnerBridgeConstructor<T extends RunnerConstructor>
 export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 
     declare protected runnerControllers: Set<RxRunnerController<R>>;
-
-    protected buildRunnerController(
-        action: IRunnerEnvironmentInitedAction,
-        runnerId: number,
-    ): RxRunnerController<R> {
-        const runnerController: RxRunnerController<R> = new RxRunnerController( {
-            onDestroyed: () => this.runnerControllers.delete(runnerController),
-            port: action.port,
-            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
-        });
-        this.runnerControllers.add(runnerController);
-        return runnerController;
-    }
+    protected RunnerControllerConstructor = RxRunnerController;
 
     public async resolve<RR extends R>(
         runner: RR,

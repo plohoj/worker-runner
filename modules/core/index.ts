@@ -8,7 +8,7 @@ export { RunnerErrorCode, RunnerErrorMessages } from './errors/runners-errors';
 export { IStacktraceError, StackTraceError } from './errors/stacktrace-error';
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
-export { InjectDestroyerInRunner, ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './runner/resolved-runner';
+export { ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './runner/resolved-runner';
 export { RunnerBridge } from './runner/runner-bridge';
 export { RunnerController } from './runner/runner.controller';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/runner.environment';

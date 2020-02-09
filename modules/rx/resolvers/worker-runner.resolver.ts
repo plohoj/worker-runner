@@ -1,24 +1,9 @@
-import { IRunnerControllerInitAction, RunnerConstructor, WorkerRunnerResolverBase } from '@worker-runner/core';
+import { RunnerConstructor, WorkerRunnerResolverBase } from '@worker-runner/core';
 import { RxRunnerEnvironment } from '../runners/runner.environment';
 
 export class RxWorkerRunnerResolver<R extends RunnerConstructor> extends WorkerRunnerResolverBase<R> {
 
     declare protected runnerEnvironments: Set<RxRunnerEnvironment<R>>;
+    protected RunnerEnvironmentConstructor = RxRunnerEnvironment;
 
-    protected buildRunnerEnvironment(
-        action: IRunnerControllerInitAction,
-        port: MessagePort,
-        runnerConstructor: R,
-        runnerId: number,
-    ): RxRunnerEnvironment<R> {
-        const runnerEnvironment: RxRunnerEnvironment<R> = new RxRunnerEnvironment({
-            port,
-            runnerId,
-            runnerConstructor,
-            runnerArguments: this.deserializeArguments(action.args),
-            workerRunnerResolver: this,
-            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
-        });
-        return runnerEnvironment;
-    }
 }
