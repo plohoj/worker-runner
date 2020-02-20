@@ -42,12 +42,29 @@ module.exports = (config) => config.set({
           exclude: /node_modules/,
           use: 'ts-loader',
         },
+        {
+          enforce: 'post',
+          exclude: /node_modules/,
+          test: /\.ts$/,
+          use: {
+            loader: 'istanbul-instrumenter-loader',
+            options: {
+              esModules: true,
+            }
+          },
+        }
       ],
     },
     resolve: {
       extensions: ['.js', '.ts'],
       plugins: [new TsconfigPathsPlugin()]
     },
+  },
+  reporters: ['progress', 'karma-remap-istanbul'],
+  remapIstanbulReporter: {
+    reports: {
+      html: 'coverage'
+    }
   },
   webpackMiddleware: {
     stats: 'errors-only',
