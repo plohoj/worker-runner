@@ -59,23 +59,24 @@ async function main() {
 main();
 ```
 ### Resolved instance as argument
-You can use the resolved instance as constructor or methods arguments, that were prepared in resolved by the same resolver
+You can use the resolved instance as constructor or methods arguments. Resolved instance **can be declared in another worker**
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    constructor(...libraries: LibraryRunner[]) {
+    constructor(...libraries: ResolveRunner<LibraryRunner>[]) {
         // ...
     }
 
-    addLibrary(library: LibraryRunner): void {
+    addLibrary(library: ResolveRunner<LibraryRunner>): void {
         // ...
     }
 }
 // ...
-const libraryRunners = await Promise.all([resolver.resolve(LibraryRunner, []),
-        resolver.resolve(LibraryRunner, []), resolver.resolve(LibraryRunner, []),
+const libraryRunners = await Promise.all([
+    resolver1.resolve(LibraryRunner, []),
+    resolver2.resolve(LibraryRunner, []),
 ]);
-const libraryPoolRunner = await resolver.resolve(LibraryPoolRunner, libraryRunners[0]);
+const libraryPoolRunner = await resolver3.resolve(LibraryPoolRunner, libraryRunners[0]);
 await libraryPoolRunner.addLibrary(libraryRunners[1]);
 ```
 ### RxJS

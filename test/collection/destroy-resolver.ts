@@ -51,10 +51,7 @@ each({
                 }
             }
             const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const devResolver = new IterateDevRunnerResolver ({
-                workerPath: '',
-                runners: [ForceDestroy],
-            });
+            const devResolver = new IterateDevRunnerResolver ({ runners: [ForceDestroy] });
             await devResolver.run();
             await devResolver.resolve(ForceDestroy);
             await devResolver.destroy();
@@ -68,10 +65,7 @@ each({
                 }
             }
             const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const devResolver = new IterateDevRunnerResolver({
-                workerPath: '',
-                runners: [ForceDestroy],
-            });
+            const devResolver = new IterateDevRunnerResolver({ runners: [ForceDestroy] });
             await devResolver.run();
             await devResolver.resolve(ForceDestroy);
             await devResolver.destroy(true);

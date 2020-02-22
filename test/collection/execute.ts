@@ -1,5 +1,7 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { DevRunnerResolver } from '@worker-runner/promise';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
+import { runners } from 'test/common/runner-list';
 import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
@@ -42,6 +44,24 @@ each({
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
                 .toBeResolvedTo(storageData);
+        });
+
+        it ('with instance in arguments from another resolver', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const devResolver =  new DevRunnerResolver({ runners });
+            await devResolver.run();
+            const executableStubRunner = await devResolver
+                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                    ExecutableStubRunner<typeof storageData>>;
+            const withOtherInstanceStubRunner = await resolver
+                .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
+                    WithOtherInstanceStubRunner<typeof storageData>>;
+            await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
+                .toBeResolvedTo(storageData);
+            await devResolver.destroy();
         });
 
         it ('with destroyed instance in arguments', async () => {

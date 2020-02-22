@@ -72,10 +72,7 @@ describe(`Dev destroy runner`, () => {
             }
         }
         const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-        const devResolver = new DevRunnerResolver({
-            workerPath: '',
-            runners: [DestroyableRunner],
-        });
+        const devResolver = new DevRunnerResolver({ runners: [DestroyableRunner] });
         await devResolver.run();
         const destroyableRunner = await devResolver.resolve(DestroyableRunner);
         await destroyableRunner.destroy();
