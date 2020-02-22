@@ -1,15 +1,19 @@
-import { JsonObject } from '@worker-runner/core';
+import { JsonObject, ResolveRunner } from '@worker-runner/core';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class WithOtherInstanceStubRunner<T extends JsonObject = JsonObject> {
 
-    constructor(private executableStubRunner?: ExecutableStubRunner<T>) {}
+    constructor(private executableStubRunner?: ResolveRunner<ExecutableStubRunner<T>>) {}
 
-    public getInstanceStage(): T {
-        return this.executableStubRunner?.getStage() as T;
+    public async getInstanceStage(): Promise<T | undefined> {
+        return this.executableStubRunner?.getStage();
     }
 
-    public pullInstanceStage(executableStubRunner: ExecutableStubRunner<T> ): T {
-        return executableStubRunner?.getStage() as T;
+    public async pullInstanceStage(
+        executableStubRunner: ResolveRunner<ExecutableStubRunner<T>>,
+    ): Promise<T | undefined> {
+        const stage = await executableStubRunner.getStage();
+        executableStubRunner.disconnect();
+        return stage;
     }
 }

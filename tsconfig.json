@@ -10,6 +10,7 @@
         "strictNullChecks": true,
         "strict": true,
         "moduleResolution": "Node",
+        "sourceMap": true,
         "paths": {
             "@worker-runner/*": ["./modules/*"]
         }

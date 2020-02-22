@@ -1,12 +1,17 @@
-import { errorActionToRunnerError, extractError, INodeAction, INodeDestroyAction, INodeExecuteAction, IRunnerConstructorParameter, IRunnerError, IWorkerAction, IWorkerDestroyedAction, NodeAction, NodeRunnerState, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages, WorkerAction } from '..';
-import { INodeInitAction, INodeWorkerDestroyAction } from '../actions/node.actions';
-import { IWorkerRunnerDestroyedAction, IWorkerRunnerExecutedAction, IWorkerRunnerInitAction } from '../actions/worker.actions';
-import { PromisesResolver } from '../runner-promises';
+import { INodeResolverWorkerDestroyAction, NodeResolverAction } from '../actions/node-resolver.actions';
+import { IRunnerControllerInitAction, RunnerControllerAction } from '../actions/runner-controller.actions';
+import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
+import { IWorkerResolverDestroyedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
+import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { ResolveRunnerArguments } from '../runner/resolved-runner';
-import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeInstanceId } from '../runner/runner-bridge';
+import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
+import { RunnerController } from '../runner/runner.controller';
+import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
+import { IRunnerArgument, IRunnerEnvironmentArgument, IRunnerJSONArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -21,16 +26,15 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    private initPromises = new PromisesResolver<IWorkerRunnerInitAction>();
-    private destroyPromises = new PromisesResolver<IWorkerRunnerDestroyedAction>();
-    private destroyWorkerResolver?: () => void;
-    private lastRunnerInstanceId = 0;
+    private initPromises = new PromisesResolver<IRunnerEnvironmentInitedAction>();
+    private lastActionId = 0;
 
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
+    protected destroyPromise?: IPromiseMethods<void>;
+    protected RunnerControllerConstructor = RunnerController;
 
-    /** {instanceId: NodeRunnerState} */
-    protected runnerStates = new Map<number, NodeRunnerState>();
+    protected runnerControllers = new Set<RunnerController<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected config: Required<INodeRunnerResolverConfigBase<R>>;
 
@@ -41,20 +45,36 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
-    public static serializeArguments(args: IRunnerConstructorParameter[]): IRunnerArgument[] {
-        return args.map(argument => {
+    public static async serializeArguments(args: IRunnerParameter[],
+    ): Promise<{
+        args: IRunnerArgument[]
+        transfer: Transferable[],
+    }> {
+        const serializedArgs = {
+            args: new Array<IRunnerArgument>(),
+            transfer: new Array<Transferable>(),
+        };
+        const argsMap = new Map<number, IRunnerArgument>();
+        await Promise.all(args.map(async (argument, index) => {
             if (RunnerBridge.isRunnerBridge(argument)) {
-                return {
+                const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
+                argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
-                    instanceId: (argument as RunnerBridge)[runnerBridgeInstanceId],
-                };
+                    runnerId: action.runnerId,
+                    port: action.port,
+                } as IRunnerEnvironmentArgument);
+                serializedArgs.transfer.push(action.port);
             } else {
-                return {
+                argsMap.set(index, {
                     type: RunnerArgumentType.JSON,
                     data: argument as JsonObject,
-                };
+                } as IRunnerJSONArgument);
             }
-        });
+        }));
+        for (let i = 0; i < args.length; i++) {
+            serializedArgs.args.push(argsMap.get(i) as IRunnerArgument);
+        }
+        return serializedArgs;
     }
 
     public async run(): Promise<void> {
@@ -62,130 +82,88 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerConstructorParameter[]): Promise<{}>;
+    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<{}>;
 
-    /** @returns instanceId */
     protected async sendInitAction(
         runnerId: number,
         args: ResolveRunnerArguments<ConstructorParameters<RunnerConstructor>>,
-    ): Promise<number> {
+    ): Promise<IRunnerEnvironmentInitedAction> {
         if (runnerId < 0) {
+            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
             throw {
-                error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-                errorCode: RunnerErrorCode.RUNNER_INIT_CONSTRUCTOR_NOT_FOUND,
+                error,
+                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
+                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
+                stacktrace: error.stack,
             } as IRunnerError;
         }
-        const instanceId = this.resolveNewRunnerInstanceId();
         try {
-            await this.execute({
-                type: NodeAction.INIT,
-                instanceId,
-                runnerId,
-                arguments: NodeRunnerResolverBase.serializeArguments(args),
-            });
+            const actionId = this.nextActionId();
+            const promise$ = this.initPromises.promise(actionId);
+            const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
+            this.sendAction(
+                {
+                    type: RunnerControllerAction.INIT,
+                    id: actionId,
+                    runnerId,
+                    args: serializedArgs.args,
+                },
+                serializedArgs.transfer,
+            );
+            const action = await promise$;
+            return action;
         } catch (error) {
             throw errorActionToRunnerError(error);
         }
-        return instanceId;
     }
 
-    public async execute(action: INodeInitAction): Promise<IWorkerRunnerInitAction>;
-    public async execute(action: INodeExecuteAction): Promise<IWorkerRunnerExecutedAction>;
-    public async execute(action: INodeDestroyAction): Promise<IWorkerRunnerDestroyedAction>;
-    public async execute(action: INodeWorkerDestroyAction): Promise<IWorkerDestroyedAction>;
-    public async execute(action: INodeAction): Promise<IWorkerAction>;
-    public async execute(action: INodeAction): Promise<IWorkerAction> {
-        let promise$: Promise<IWorkerAction> | undefined;
-        switch (action.type) {
-            case NodeAction.INIT:
-                promise$ = this.initPromises.promise(action.instanceId);
-                break;
-            case NodeAction.EXECUTE:
-                const runnerState = this.runnerStates.get(action.instanceId);
-                if (!runnerState) {
-                    throw {
-                        error: new Error(RunnerErrorMessages.INSTANCE_NOT_FOUND),
-                        errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
-                        message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
-                    } as IRunnerError;
-                }
-                promise$ = runnerState.executePromises.promise(action.actionId);
-                break;
-            case NodeAction.DESTROY:
-                promise$ = this.destroyPromises.promise(action.instanceId);
-                break;
-            case NodeAction.DESTROY_WORKER:
-                promise$ = new Promise(resolver => {
-                    this.destroyWorkerResolver = resolver;
-                });
-                break;
-        }
-        if (promise$) {
-            this.sendAction(action);
-            return promise$;
-        }
-        throw Error(`Action "${action.type}" not found`);
-    }
-
-    protected resolveNewRunnerInstanceId(): number {
-        return this.lastRunnerInstanceId++;
+    protected nextActionId(): number {
+        return this.lastActionId++;
     }
 
     protected onWorkerMessage(message: MessageEvent): void {
         this.handleWorkerAction(message.data);
     }
 
-    protected handleWorkerAction(action: IWorkerAction): void {
+    protected handleWorkerAction(action: IRunnerEnvironmentInitedAction | IRunnerEnvironmentInitErrorAction
+        | IWorkerResolverDestroyedAction,
+    ): void {
         switch (action.type) {
-            case WorkerAction.RUNNER_INIT:
-                this.initRunnerState(action.instanceId);
-                this.initPromises.resolve(action.instanceId, action);
+            case RunnerEnvironmentAction.INITED:
+                this.initPromises.resolve(action.id, action);
                 break;
-            case WorkerAction.RUNNER_INIT_ERROR:
-                this.initPromises.reject(action.instanceId, action);
+            case RunnerEnvironmentAction.INIT_ERROR:
+                this.initPromises.reject(action.id, action);
                 break;
-            case WorkerAction.RUNNER_EXECUTED:
-                this.getRunnerState(action.instanceId).executePromises.resolve(action.actionId, action);
-                break;
-            case WorkerAction.RUNNER_EXECUTE_ERROR:
-                this.getRunnerState(action.instanceId).executePromises.reject(action.actionId, action);
-                break;
-            case WorkerAction.RUNNER_DESTROYED:
-                this.destroyPromises.resolve(action.instanceId, action);
-                this.getRunnerState(action.instanceId).destroy();
-                this.runnerStates.delete(action.instanceId);
-                break;
-            case WorkerAction.RUNNER_DESTROY_ERROR:
-                this.destroyPromises.reject(action.instanceId, action);
-                this.runnerStates.get(action.instanceId)?.destroy();
-                this.runnerStates.delete(action.instanceId);
-                break;
-            case WorkerAction.WORKER_DESTROYED:
-                if (this.destroyWorkerResolver) {
-                    this.destroyWorkerResolver();
-                    this.destroyWorkerResolver = undefined;
+            case WorkerResolverAction.DESTROYED:
+                if (!this.destroyPromise) {
+                    throw new Error('An action was received about the successful destroy,'
+                        + ' but the destroy method was not previously called');
                 }
+                this.destroyPromise.resolve();
+                this.destroyPromise = undefined;
                 break;
         }
     }
 
-    protected getRunnerState(instanceId: number): NodeRunnerState {
-        const runnerStateWithError = this.runnerStates.get(instanceId);
-        if (!runnerStateWithError) {
-            throw Error(RunnerErrorMessages.INSTANCE_NOT_FOUND);
-        }
-        return runnerStateWithError;
-    }
-
-    protected initRunnerState(instanceId: number): void {
-        this.runnerStates.set(instanceId, new NodeRunnerState());
+    protected buildRunnerController(
+        action: IRunnerEnvironmentInitedAction,
+        runnerId: number,
+    ): RunnerController<R> {
+        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
+            onDisconnected: () => this.runnerControllers.delete(runnerController),
+            port: action.port,
+            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
+        });
+        this.runnerControllers.add(runnerController);
+        return runnerController;
     }
 
     protected async initWorker(): Promise<void> {
         const worker = new Worker(this.config.workerPath, { name: this.config.workerName });
         await new Promise(resolve => {
             worker.onmessage = (message) => {
-                if (message.data && message.data.type === WorkerAction.WORKER_INIT) {
+                if (message.data && message.data.type === WorkerResolverAction.INIT) {
                     resolve();
                 }
             };
@@ -194,39 +172,53 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         this.worker.addEventListener('message', this.workerMessageHandler);
     }
 
-    protected destroyRunnerState(): void {
-        this.runnerStates.forEach(state => state.destroy());
-        this.runnerStates.clear();
+    protected destroyRunnerControllers(): void {
+        this.runnerControllers.forEach(state => state.onDisconnect());
+        this.runnerControllers.clear();
     }
 
     /**
      * Destroy workers for runnable resolver
      * @param force Destroy by skipping the call the destruction method on the remaining instances
      */
-    public async destroy(force = false): Promise<IWorkerDestroyedAction> {
+    public async destroy(force = false): Promise<void> {
         if (this.worker) {
-            const destroyResult: IWorkerDestroyedAction =
-                await this.execute({type: NodeAction.DESTROY_WORKER, force});
-            this.destroyRunnerState();
+            const destroyPromise$ = new Promise<void>((resolve, reject) => {
+                this.destroyPromise = {resolve, reject};
+            });
+            this.sendAction({
+                type: NodeResolverAction.DESTROY,
+                force,
+            });
+            await destroyPromise$;
+            this.destroyRunnerControllers();
             this.worker.terminate();
             this.worker = undefined;
-            return destroyResult;
-        } else {
-            throw extractError(new Error(RunnerErrorMessages.WORKER_NOT_INIT));
-        }
-    }
-
-    protected sendAction(action: INodeAction): void {
-        if (this.worker) {
-            this.worker.postMessage(action);
         } else {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-            this.handleWorkerAction({
-                type: WorkerAction.WORKER_ERROR,
+            throw {
+                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
                 error,
                 message: RunnerErrorMessages.WORKER_NOT_INIT,
                 stacktrace: error.stack,
-            });
+            } as IRunnerError;
+        }
+    }
+
+    protected sendAction(
+        action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction,
+        transfer?: Transferable[],
+    ): void {
+        if (this.worker) { // TO use MessageChanel
+            this.worker.postMessage(action, transfer as Transferable[]);
+        } else {
+            const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
+            throw {
+                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
+                error,
+                message: RunnerErrorMessages.WORKER_NOT_INIT,
+                stacktrace: error.stack,
+            } as IRunnerError;
         }
     }
 }

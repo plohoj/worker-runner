@@ -10,9 +10,10 @@ export interface IRunnerJSONArgument {
     data: JsonObject;
 }
 
-export interface IRunnerInstanceArgument {
+export interface IRunnerEnvironmentArgument {
     type: RunnerArgumentType.RUNNER_INSTANCE;
-    instanceId: number;
+    port: MessagePort;
+    runnerId: number;
 }
 
-export type IRunnerArgument = IRunnerJSONArgument | IRunnerInstanceArgument;
+export type IRunnerArgument = IRunnerJSONArgument | IRunnerEnvironmentArgument;

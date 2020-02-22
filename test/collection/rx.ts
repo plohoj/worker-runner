@@ -16,7 +16,7 @@ each({
     });
 
     afterAll(async () => {
-        resolver.destroy();
+        await resolver.destroy();
     });
 
     it('simple observable', async () => {
@@ -46,8 +46,8 @@ each({
         await expectAsync(
             from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
         ).toBeRejectedWith(jasmine.objectContaining({
-            errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
-            message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
+            message: RunnerErrorMessages.RUNNER_NOT_INIT,
         } as IRunnerError));
     });
 
@@ -56,8 +56,8 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
         await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
-            errorCode: RunnerErrorCode.RUNNER_EXECUTE_INSTANCE_NOT_FOUND,
-            message: RunnerErrorMessages.INSTANCE_NOT_FOUND,
+            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
+            message: RunnerErrorMessages.RUNNER_NOT_INIT,
         } as IRunnerError));
     });
 }));

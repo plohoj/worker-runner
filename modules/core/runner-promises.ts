@@ -1,11 +1,18 @@
-export class PromisesResolver<T> {
-    public readonly promises = new Map<number, {resolve: (data: T) => void, reject: (error: any) => void}>();
+export interface IPromiseMethods<T = any, E = any> {
+    resolve: (data: T) => void;
+    reject: (error: E) => void;
+}
+export class PromisesResolver<T, E = any> {
+    public readonly promises = new Map<number, IPromiseMethods<T,  E>>();
 
-    public promise(id: number): Promise<T> {
-        return new Promise((resolve, reject) => this.promises.set(id, {resolve, reject}));
+    public promise<R extends T = T>(id: number): Promise<R> {
+        return new Promise((resolve, reject) => this.promises.set(
+            id,
+            {resolve: resolve as (data: T) => void, reject}),
+        );
     }
 
-    public resolve(id: number, data: T): void {
+    public resolve<R extends T = T>(id: number, data: R): void {
         const promise$ = this.promises.get(id);
         if (promise$) {
             this.promises.delete(id);
@@ -13,11 +20,17 @@ export class PromisesResolver<T> {
         }
     }
 
-    public reject(id: number, error: any): void {
+    public reject<R extends E = E>(id: number, error: R): void {
         const promise$ = this.promises.get(id);
         if (promise$) {
             this.promises.delete(id);
             promise$.reject(error);
         }
+    }
+
+    public forget(id: number): IPromiseMethods<T,  E> | undefined {
+        const promise$ = this.promises.get(id);
+        this.promises.delete(id);
+        return promise$;
     }
 }
