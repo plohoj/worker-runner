@@ -197,7 +197,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         } else {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
             throw {
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
+                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
                 error,
                 message: RunnerErrorMessages.WORKER_NOT_INIT,
                 stacktrace: error.stack,

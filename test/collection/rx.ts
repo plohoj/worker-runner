@@ -16,7 +16,7 @@ each({
     });
 
     afterAll(async () => {
-        resolver.destroy();
+        await resolver.destroy();
     });
 
     it('simple observable', async () => {

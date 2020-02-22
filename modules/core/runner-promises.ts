@@ -27,4 +27,10 @@ export class PromisesResolver<T, E = any> {
             promise$.reject(error);
         }
     }
+
+    public forget(id: number): IPromiseMethods<T,  E> | undefined {
+        const promise$ = this.promises.get(id);
+        this.promises.delete(id);
+        return promise$;
+    }
 }

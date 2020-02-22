@@ -1,5 +1,5 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { rxRunnerResolver } from 'test/common/rx';
+import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
@@ -11,6 +11,7 @@ each({
         Common: runnerResolver,
         Dev: devRunnerResolver,
         Rx: rxRunnerResolver as any as typeof runnerResolver,
+        'Rx Dev': rxDevRunnerResolver as any as typeof devRunnerResolver,
     },
     (mode, resolver) => describe(`${mode} constructor`, () => {
         beforeAll(async () => {
@@ -18,7 +19,7 @@ each({
         });
 
         afterAll(async () => {
-            resolver.destroy();
+            await resolver.destroy();
         });
 
         it ('with arguments', async () => {

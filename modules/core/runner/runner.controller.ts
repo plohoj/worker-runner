@@ -79,13 +79,7 @@ export class RunnerController<R extends RunnerConstructor> {
             type: RunnerControllerAction.DESTROY,
             id: actionId,
         });
-        try {
-            await destroyPromise$;
-        } catch (e) {
-            this.onDisconnect();
-            throw e;
-        }
-        this.onDisconnect();
+        await destroyPromise$;
     }
 
     public async resolveControl(): Promise<IRunnerEnvironmentResolvedAction> {
@@ -105,16 +99,24 @@ export class RunnerController<R extends RunnerConstructor> {
         >>,
     ): void {
         switch (action.type) {
-            case RunnerEnvironmentAction.DESTROYED:
             case RunnerEnvironmentAction.DISCONNECTED:
             case RunnerEnvironmentAction.EXECUTED:
             case RunnerEnvironmentAction.RESOLVED:
                 this.promises.resolve(action.id, action);
-                return;
+                break;
+            case RunnerEnvironmentAction.DESTROYED:
+                const resolvedPromise = this.promises.forget(action.id);
+                this.onDisconnect();
+                resolvedPromise?.resolve(action);
+                break;
             case RunnerEnvironmentAction.EXECUTE_ERROR:
-            case RunnerEnvironmentAction.DESTROY_ERROR:
                 this.promises.reject(action.id, action);
-                return;
+                break;
+            case RunnerEnvironmentAction.DESTROY_ERROR:
+                const rejectedPromise = this.promises.forget(action.id);
+                this.onDisconnect();
+                rejectedPromise?.reject(action);
+                break;
         }
     }
 
@@ -146,6 +148,7 @@ export class RunnerController<R extends RunnerConstructor> {
                 stacktrace: error.stack,
             } as IRunnerError);
         });
+        this.promises.promises.clear();
         if (!this.port) {
             throw {
                 error,

@@ -126,10 +126,23 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         } as IRunnerEnvironmentExecutedAction);
     }
 
+    private notifyControllersAboutDestruction(): void {
+        for (const port of this.ports) {
+            this.sendAction(port, {
+                type: RunnerEnvironmentAction.DESTROYED,
+                id: -1,
+            });
+            port.onmessage = null;
+            port.close();
+        }
+        this.ports = [];
+    }
+
     public async destroy(
         port?: MessagePort,
         action?: IRunnerControllerDestroyAction,
     ): Promise<void> {
+        let isActionSended = false;
         if (this.runnerInstance.destroy) {
             let response: JsonObject | Promise<JsonObject> | void;
             try {
@@ -142,8 +155,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                         id: action.id,
                         ...extractError(error),
                     } as IRunnerEnvironmentDestroyErrorAction);
+                    isActionSended = true;
                 }
-                return;
             }
             if (response instanceof Promise) {
                 try {
@@ -156,17 +169,24 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                             id: action.id,
                             ...extractError(error),
                         } as IRunnerEnvironmentDestroyErrorAction);
+                        isActionSended = true;
                     }
                 }
-                return;
             }
         }
-        if (action && port) {
-            this.sendAction(port, {
-                type: RunnerEnvironmentAction.DESTROYED,
-                id: action.id,
-            } as IRunnerEnvironmentDestroyedAction);
+        if (port) {
+            if (action && !isActionSended) {
+                this.sendAction(port, {
+                    type: RunnerEnvironmentAction.DESTROYED,
+                    id: action.id,
+                } as IRunnerEnvironmentDestroyedAction);
+            }
+            const portIndex = this.ports.indexOf(port);
+            this.ports.splice(portIndex, 1);
+            port.onmessage = null;
+            port.close();
         }
+        this.notifyControllersAboutDestruction();
         this.onDestroyed();
     }
 

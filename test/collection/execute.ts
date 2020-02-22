@@ -1,6 +1,6 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { devRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxRunnerResolver } from 'test/common/rx';
+import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
@@ -11,6 +11,7 @@ each({
         Common: runnerResolver,
         Dev: devRunnerResolver,
         Rx: rxRunnerResolver as any as typeof runnerResolver,
+        'Rx Dev': rxDevRunnerResolver as any as typeof devRunnerResolver,
     },
     (mode, resolver) => describe(`${mode} execute`, () => {
 
@@ -19,7 +20,7 @@ each({
         });
 
         afterAll(async () => {
-            resolver.destroy();
+            await resolver.destroy();
         });
 
         it('with arguments', async () => {

@@ -12,6 +12,8 @@ export class WithOtherInstanceStubRunner<T extends JsonObject = JsonObject> {
     public async pullInstanceStage(
         executableStubRunner: ResolveRunner<ExecutableStubRunner<T>>,
     ): Promise<T | undefined> {
-        return executableStubRunner.getStage();
+        const stage = await executableStubRunner.getStage();
+        executableStubRunner.disconnect();
+        return stage;
     }
 }
