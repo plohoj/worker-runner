@@ -40,19 +40,11 @@ module.exports = (config) => config.set({
         {
           test: /\.ts$/,
           exclude: /node_modules/,
-          use: 'ts-loader',
+          use: [
+            "coverage-istanbul-loader",
+            'ts-loader',
+          ]
         },
-        {
-          enforce: 'post',
-          exclude: /node_modules/,
-          test: /\.ts$/,
-          use: {
-            loader: 'istanbul-instrumenter-loader',
-            options: {
-              esModules: true,
-            }
-          },
-        }
       ],
     },
     resolve: {
@@ -60,11 +52,9 @@ module.exports = (config) => config.set({
       plugins: [new TsconfigPathsPlugin()]
     },
   },
-  reporters: ['progress', 'karma-remap-istanbul'],
-  remapIstanbulReporter: {
-    reports: {
-      html: 'coverage'
-    }
+  reporters: ['coverage-istanbul'],
+  coverageIstanbulReporter: {
+    reports: ['html'],
   },
   webpackMiddleware: {
     stats: 'errors-only',
