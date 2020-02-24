@@ -1,16 +1,16 @@
 import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { DevRunnerResolver } from '@worker-runner/promise';
-import { RxDevRunnerResolver } from '@worker-runner/rx';
-import { devRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { LocalRunnerResolver } from '@worker-runner/promise';
+import { RxLocalRunnerResolver } from '@worker-runner/rx';
+import { localRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { each } from 'test/utils/each';
 
 each({
         Common: runnerResolver,
-        Dev: devRunnerResolver,
+        Local: localRunnerResolver,
         Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Dev': rxDevRunnerResolver as any as typeof devRunnerResolver,
+        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
     },
     (mode, resolver) => describe(`${mode} destroy resolver`, () => {
         it ('for restart', async () => {
@@ -40,10 +40,10 @@ each({
 );
 
 each({
-        Dev: DevRunnerResolver,
-        'Dev Rx': RxDevRunnerResolver as any as typeof DevRunnerResolver,
+        Local: LocalRunnerResolver,
+        'Local Rx': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
     },
-    (mode, IterateDevRunnerResolver) => describe(`${mode} destroy resolver`, () => {
+    (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
         it ('without force mode', async () => {
             class ForceDestroy {
                 public destroy(): void {
@@ -51,10 +51,10 @@ each({
                 }
             }
             const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const devResolver = new IterateDevRunnerResolver ({ runners: [ForceDestroy] });
-            await devResolver.run();
-            await devResolver.resolve(ForceDestroy);
-            await devResolver.destroy();
+            const localResolver = new IterateLocalRunnerResolver ({ runners: [ForceDestroy] });
+            await localResolver.run();
+            await localResolver.resolve(ForceDestroy);
+            await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();
         });
 
@@ -65,10 +65,10 @@ each({
                 }
             }
             const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const devResolver = new IterateDevRunnerResolver({ runners: [ForceDestroy] });
-            await devResolver.run();
-            await devResolver.resolve(ForceDestroy);
-            await devResolver.destroy(true);
+            const localResolver = new IterateLocalRunnerResolver({ runners: [ForceDestroy] });
+            await localResolver.run();
+            await localResolver.resolve(ForceDestroy);
+            await localResolver.destroy(true);
             expect(destroySpy).not.toHaveBeenCalled();
         });
     }),

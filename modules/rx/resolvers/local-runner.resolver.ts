@@ -2,30 +2,30 @@ import { IRunnerError, NodeResolverAction, RunnerConstructor, RunnerErrorCode, R
 import { RxNodeRunnerResolver } from './node-runner.resolver';
 import { RxWorkerRunnerResolver } from './worker-runner.resolver';
 
-export class RxDevRunnerResolver<R extends RunnerConstructor> extends RxNodeRunnerResolver<R> {
+export class RxLocalRunnerResolver<R extends RunnerConstructor> extends RxNodeRunnerResolver<R> {
 
-    private devWorkerRunnerResolver?: RxWorkerRunnerResolver<R>;
+    private localWorkerRunnerResolver?: RxWorkerRunnerResolver<R>;
     protected sendAction: typeof RxNodeRunnerResolver.prototype['sendAction'] = this.sendActionWithError;
 
     protected async initWorker(): Promise<void> {
-        this.devWorkerRunnerResolver = new RxWorkerRunnerResolver(this.config);
-        this.sendAction = this.devWorkerRunnerResolver.handleAction.bind(this.devWorkerRunnerResolver);
-        this.devWorkerRunnerResolver.sendAction = this.handleWorkerAction.bind(this);
+        this.localWorkerRunnerResolver = new RxWorkerRunnerResolver(this.config);
+        this.sendAction = this.localWorkerRunnerResolver.handleAction.bind(this.localWorkerRunnerResolver);
+        this.localWorkerRunnerResolver.sendAction = this.handleWorkerAction.bind(this);
     }
 
     public async destroy(force = false): Promise<void> {
-        if (this.devWorkerRunnerResolver) {
+        if (this.localWorkerRunnerResolver) {
             const destroyPromise$ = new Promise<void>((resolve, reject) => {
                 this.destroyPromise = {resolve, reject};
             });
             this.sendAction({ type: NodeResolverAction.DESTROY, force});
             await destroyPromise$;
             this.destroyRunnerControllers();
-            this.devWorkerRunnerResolver.sendAction = () => {
+            this.localWorkerRunnerResolver.sendAction = () => {
                 // stub
             };
             this.sendAction = this.sendActionWithError;
-            this.devWorkerRunnerResolver = undefined;
+            this.localWorkerRunnerResolver = undefined;
         } else {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
             throw {

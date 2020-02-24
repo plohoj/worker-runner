@@ -1,15 +1,15 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { devRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { localRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 
 each({
         Common: runnerResolver,
-        Dev: devRunnerResolver,
+        Local: localRunnerResolver,
         Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Dev': rxDevRunnerResolver as any as typeof devRunnerResolver,
+        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
     },
     (mode, resolver) => describe(`${mode} disconnect runner`, () => {
 
