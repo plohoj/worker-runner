@@ -15,7 +15,7 @@
     "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
   },
