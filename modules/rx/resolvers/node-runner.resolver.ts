@@ -1,11 +1,11 @@
-import { Constructor, IRunnerParameter, NodeRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
+import { Constructor, IRunnerParameter, NodeAndLocalRunnerResolverBase, ResolveRunnerArguments, RunnerBridge, RunnerConstructor } from '@worker-runner/core';
 import { RxResolveRunner } from '../resolved-runner';
 import { RxRunnerController } from '../runners/runner.controller';
 
 export type IRxRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<RxResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
-export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
+export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
 
     declare protected runnerControllers: Set<RxRunnerController<R>>;
     protected RunnerControllerConstructor = RxRunnerController;

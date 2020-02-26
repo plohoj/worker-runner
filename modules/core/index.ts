@@ -6,6 +6,7 @@ export { IWorkerResolverAction, IWorkerResolverDestroyedAction, WorkerResolverAc
 export { extractError } from './errors/extract-error';
 export { RunnerErrorCode, RunnerErrorMessages } from './errors/runners-errors';
 export { IStacktraceError, StackTraceError } from './errors/stacktrace-error';
+export { NodeAndLocalRunnerResolverBase } from './resolver/node-and-local-runner.resolver';
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
 export { ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './runner/resolved-runner';

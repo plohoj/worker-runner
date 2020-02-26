@@ -1,6 +1,6 @@
-import { IRunnerParameter, NodeRunnerResolverBase, ResolveRunner, ResolveRunnerArguments, RunnerConstructor } from '@worker-runner/core';
+import { IRunnerParameter, NodeAndLocalRunnerResolverBase, ResolveRunner, ResolveRunnerArguments, RunnerConstructor } from '@worker-runner/core';
 
-export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
+export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
 
     public async resolve<RR extends R>(
         runner: RR,
