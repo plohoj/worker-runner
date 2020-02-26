@@ -82,7 +82,18 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<{}>;
+    public async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
+        const runnerId = this.config.runners.indexOf(runner);
+        const action = await this.sendInitAction(runnerId, args);
+        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
+            onDisconnected: () => this.runnerControllers.delete(runnerController),
+            port: action.port,
+            runnerBridgeConstructors: this.runnerBridgeConstructors,
+            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
+        });
+        this.runnerControllers.add(runnerController);
+        return runnerController.resolvedRunner;
+    }
 
     protected async sendInitAction(
         runnerId: number,
@@ -144,20 +155,6 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 this.destroyPromise = undefined;
                 break;
         }
-    }
-
-    protected buildRunnerController(
-        action: IRunnerEnvironmentInitedAction,
-        runnerId: number,
-    ): RunnerController<R> {
-        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
-            onDisconnected: () => this.runnerControllers.delete(runnerController),
-            port: action.port,
-            runnerBridgeConstructors: this.runnerBridgeConstructors,
-            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
-        });
-        this.runnerControllers.add(runnerController);
-        return runnerController;
     }
 
     protected async initWorker(): Promise<void> {
