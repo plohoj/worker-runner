@@ -4,6 +4,7 @@
   "scripts": {
     "build": "node build.js",
     "test": "karma start",
+    "coverage": "karma start --coverage=true",
     "tslint": "tslint -p . -t codeFrame",
     "version:patch": "node version.js",
     "version:minor": "node version.js --type=minor",

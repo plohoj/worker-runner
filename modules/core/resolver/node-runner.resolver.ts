@@ -153,6 +153,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
             onDisconnected: () => this.runnerControllers.delete(runnerController),
             port: action.port,
+            runnerBridgeConstructors: this.runnerBridgeConstructors,
             bridgeConstructor: this.runnerBridgeConstructors[runnerId],
         });
         this.runnerControllers.add(runnerController);

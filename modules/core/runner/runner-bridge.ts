@@ -1,6 +1,5 @@
 import { errorActionToRunnerError } from '../actions/runner-error';
 import { Constructor, IRunnerParameter, RunnerConstructor } from '../types/constructor';
-import { JsonObject } from '../types/json-object';
 import { ResolveRunner } from './resolved-runner';
 import { RunnerController } from './runner.controller';
 
@@ -21,13 +20,13 @@ export class RunnerBridge {
     }
 
     public static isRunnerBridge(instance: any): instance is RunnerBridge {
-        return !!instance[runnerBridgeController];
+        return !!instance && !!instance[runnerBridgeController];
     }
 
     protected async [executeRunnerBridgeMethod](
         methodName: string,
         args: IRunnerParameter[],
-    ): Promise<JsonObject | void> {
+    ): Promise<IRunnerParameter | void> {
         try {
             return this[runnerBridgeController].execute(methodName, args);
         } catch (error) {
@@ -48,6 +47,15 @@ export class RunnerBridge {
     public async destroy(): Promise<void> {
         try {
             await this[runnerBridgeController].destroy();
+        } catch (error) {
+            throw errorActionToRunnerError(error);
+        }
+    }
+
+    public async cloneControl(): Promise<this> {
+        try {
+            const runnerController = await this[runnerBridgeController].cloneControl();
+            return runnerController.resolvedRunner as this;
         } catch (error) {
             throw errorActionToRunnerError(error);
         }

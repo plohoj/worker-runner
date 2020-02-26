@@ -5,6 +5,12 @@ const { resolve } = require("path");
 const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
+  const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
+  let isCoverage = false;
+  if (isCoverageArg) {
+      isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
+  }
+
 const modulesEntry = {};
 moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
 
@@ -41,7 +47,7 @@ module.exports = (config) => config.set({
           test: /\.ts$/,
           exclude: /node_modules/,
           use: [
-            "coverage-istanbul-loader",
+            ...isCoverage ? ["coverage-istanbul-loader"]: [],
             'ts-loader',
           ]
         },
@@ -52,7 +58,8 @@ module.exports = (config) => config.set({
       plugins: [new TsconfigPathsPlugin()]
     },
   },
-  reporters: ['coverage-istanbul'],
+  reporters: isCoverage ? ['coverage-istanbul']: ['progress']
+  ,
   coverageIstanbulReporter: {
     reports: ['html'],
   },

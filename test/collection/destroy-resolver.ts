@@ -41,7 +41,7 @@ each({
 
 each({
         Local: LocalRunnerResolver,
-        'Local Rx': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+        'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
     },
     (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
         it ('without force mode', async () => {

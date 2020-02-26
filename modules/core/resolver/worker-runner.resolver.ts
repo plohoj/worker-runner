@@ -100,6 +100,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 case RunnerArgumentType.RUNNER_INSTANCE:
                     const controller = new RunnerController({
                         bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
+                        runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,
                     });
                     result.controllers.push(controller);
