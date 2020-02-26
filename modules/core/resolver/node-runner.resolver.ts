@@ -83,16 +83,37 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     public async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
-        const runnerId = this.config.runners.indexOf(runner);
+        const runnerId = this.getRunnerId(runner);
         const action = await this.sendInitAction(runnerId, args);
+        return this.buildRunnerController(runnerId, action.port).resolvedRunner;
+    }
+
+    protected getRunnerId(runner: R) {
+        const runnerId = this.config.runners.indexOf(runner);
+        if (runnerId < 0) {
+            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
+            throw {
+                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
+                error,
+                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
+                stacktrace: error.stack,
+            } as IRunnerError;
+        }
+        return runnerId;
+    }
+
+    protected buildRunnerController(
+        runnerId: number,
+        port: MessagePort,
+    ): RunnerController<R> {
         const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
             onDisconnected: () => this.runnerControllers.delete(runnerController),
-            port: action.port,
+            port,
             runnerBridgeConstructors: this.runnerBridgeConstructors,
             bridgeConstructor: this.runnerBridgeConstructors[runnerId],
         });
         this.runnerControllers.add(runnerController);
-        return runnerController.resolvedRunner;
+        return runnerController;
     }
 
     protected async sendInitAction(

@@ -10,8 +10,7 @@ import { RunnerController } from './runner.controller';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     runnerId: number;
-    runnerConstructor: R;
-    runnerArguments: IRunnerParameter[];
+    runner: InstanceType<R>;
     workerRunnerResolver: WorkerRunnerResolverBase<R>;
     port: MessagePort;
     onDestroyed: () => void;
@@ -26,7 +25,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
     constructor(config: IRunnerEnvironmentConfig<R>) {
-        this.runnerInstance = new config.runnerConstructor(...config.runnerArguments) as InstanceType<R>;
+        this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
         config.port.onmessage = this.onPortMessage.bind(this, config.port);

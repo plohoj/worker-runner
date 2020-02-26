@@ -43,7 +43,7 @@ each({
         'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
     },
     (mode, IterateLocalRunnerResolver) => describe(`${mode} return resolved runner`, () => {
-        it ('without clone', async () => {
+        it ('without clone and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateLocalRunnerResolver({ runners });
             await localResolver.run();
@@ -57,7 +57,7 @@ each({
             localResolver.destroy();
         });
 
-        it ('with clone', async () => {
+        it ('with clone and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateLocalRunnerResolver({ runners });
             await localResolver.run();
