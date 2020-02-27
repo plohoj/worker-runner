@@ -70,7 +70,7 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
         }
     }
 
-    protected wrapRunner(runner: InstanceType<R>): RunnerBridge {
+    protected wrapRunner(runnerInstance: InstanceType<R>): RunnerBridge {
         if (!this.localWorkerRunnerResolver) {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
             throw {
@@ -80,8 +80,8 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
                 stacktrace: error.stack,
             } as IRunnerError;
         }
-        const runnerId = this.getRunnerId(Object.getPrototypeOf(runner).constructor);
-        const port = this.localWorkerRunnerResolver.wrapRunner(runnerId, runner);
+        const runnerId = this.getRunnerId(Object.getPrototypeOf(runnerInstance).constructor);
+        const port = this.localWorkerRunnerResolver.wrapRunner(runnerId, runnerInstance);
         const controller = this.buildRunnerController(runnerId, port);
         return controller.resolvedRunner;
     }
