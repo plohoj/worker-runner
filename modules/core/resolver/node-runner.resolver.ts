@@ -77,12 +77,46 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         return serializedArgs;
     }
 
+    /** Launches and prepares RunnerResolver for work */
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
         await this.initWorker();
     }
 
-    public abstract async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<{}>;
+    /** Returns a runner control object that will call the methods of the source instance */
+    public async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
+        const runnerId = this.getRunnerId(runner);
+        const action = await this.sendInitAction(runnerId, args);
+        return this.buildRunnerController(runnerId, action.port).resolvedRunner;
+    }
+
+    protected getRunnerId(runner: R) {
+        const runnerId = this.config.runners.indexOf(runner);
+        if (runnerId < 0) {
+            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
+            throw {
+                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
+                error,
+                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
+                stacktrace: error.stack,
+            } as IRunnerError;
+        }
+        return runnerId;
+    }
+
+    protected buildRunnerController(
+        runnerId: number,
+        port: MessagePort,
+    ): RunnerController<R> {
+        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
+            onDisconnected: () => this.runnerControllers.delete(runnerController),
+            port,
+            runnerBridgeConstructors: this.runnerBridgeConstructors,
+            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
+        });
+        this.runnerControllers.add(runnerController);
+        return runnerController;
+    }
 
     protected async sendInitAction(
         runnerId: number,
@@ -146,19 +180,6 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         }
     }
 
-    protected buildRunnerController(
-        action: IRunnerEnvironmentInitedAction,
-        runnerId: number,
-    ): RunnerController<R> {
-        const runnerController: RunnerController<R> = new this.RunnerControllerConstructor( {
-            onDisconnected: () => this.runnerControllers.delete(runnerController),
-            port: action.port,
-            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
-        });
-        this.runnerControllers.add(runnerController);
-        return runnerController;
-    }
-
     protected async initWorker(): Promise<void> {
         const worker = new Worker(this.config.workerPath, { name: this.config.workerName });
         await new Promise(resolve => {
@@ -178,7 +199,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     /**
-     * Destroy workers for runnable resolver
+     * Destroying of all resolved Runners instance
      * @param force Destroy by skipping the call the destruction method on the remaining instances
      */
     public async destroy(force = false): Promise<void> {

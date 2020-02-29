@@ -44,18 +44,11 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     private async initRunnerInstance(action: IRunnerControllerInitAction): Promise<void> {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
-            let runnerEnvironment: RunnerEnvironment<R>;
             const messageChanel = new MessageChannel();
             const deserializeArgumentsData = this.deserializeArguments(action.args);
+            let runner: InstanceType<R>;
             try {
-                runnerEnvironment = new this.RunnerEnvironmentConstructor({
-                    port: messageChanel.port1,
-                    runnerId: action.runnerId,
-                    runnerConstructor,
-                    runnerArguments: deserializeArgumentsData.args,
-                    workerRunnerResolver: this,
-                    onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
-                });
+                runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
             } catch (error) {
                 this.sendAction({
                     type: RunnerEnvironmentAction.INIT_ERROR,
@@ -67,6 +60,15 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                     .map(controller => controller.disconnect()));
                 return;
             }
+
+            const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+                port: messageChanel.port1,
+                runnerId: action.runnerId,
+                runner,
+                workerRunnerResolver: this,
+                onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+            });
+
             this.runnerEnvironments.add(runnerEnvironment);
             runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
             this.sendAction(
@@ -100,6 +102,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 case RunnerArgumentType.RUNNER_INSTANCE:
                     const controller = new RunnerController({
                         bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
+                        runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,
                     });
                     result.controllers.push(controller);
@@ -130,5 +133,20 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     ): void {
         // @ts-ignore
         postMessage(action, transfer);
+    }
+
+    public wrapRunner(runnerId: number, runner: InstanceType<R>): MessagePort {
+        const messageChanel = new MessageChannel();
+
+        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+            port: messageChanel.port1,
+            runnerId,
+            runner,
+            workerRunnerResolver: this,
+            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+        });
+
+        this.runnerEnvironments.add(runnerEnvironment);
+        return messageChanel.port2;
     }
 }

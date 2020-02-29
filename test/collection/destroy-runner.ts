@@ -1,7 +1,8 @@
 import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { DevRunnerResolver } from '@worker-runner/promise';
-import { devRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxDevRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { LocalRunnerResolver } from '@worker-runner/promise';
+import { RxLocalRunnerResolver } from '@worker-runner/rx';
+import { localRunnerResolver, runnerResolver } from 'test/common/promise';
+import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
@@ -9,9 +10,9 @@ import { each } from 'test/utils/each';
 
 each({
         Common: runnerResolver,
-        Dev: devRunnerResolver,
+        Local: localRunnerResolver,
         Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Dev': rxDevRunnerResolver as any as typeof devRunnerResolver,
+        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
     },
     (mode, resolver) => describe(`${mode} destroy runner`, () => {
 
@@ -64,7 +65,7 @@ each({
     }),
 );
 
-describe(`Dev destroy runner`, () => {
+describe(`Local destroy runner`, () => {
     it ('with extended method', async () => {
         class DestroyableRunner {
             public destroy(): void {
@@ -72,11 +73,33 @@ describe(`Dev destroy runner`, () => {
             }
         }
         const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-        const devResolver = new DevRunnerResolver({ runners: [DestroyableRunner] });
-        await devResolver.run();
-        const destroyableRunner = await devResolver.resolve(DestroyableRunner);
+        const localResolver = new LocalRunnerResolver({ runners: [DestroyableRunner] });
+        await localResolver.run();
+        const destroyableRunner = await localResolver.resolve(DestroyableRunner);
         await destroyableRunner.destroy();
         expect(destroySpy).toHaveBeenCalled();
-        await devResolver.destroy();
+        await localResolver.destroy();
     });
 });
+
+each({
+        Local: LocalRunnerResolver,
+        'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+    },
+    (mode, IterateLocalRunnerResolver) => describe(`${mode} Local destroy runner`, () => {
+        it ('with extended method', async () => {
+            class DestroyableRunner {
+                public destroy(): void {
+                    // stub
+                }
+            }
+            const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
+            const localResolver = new IterateLocalRunnerResolver({ runners: [DestroyableRunner] });
+            await localResolver.run();
+            const destroyableRunner = await localResolver.resolve(DestroyableRunner);
+            await destroyableRunner.destroy();
+            expect(destroySpy).toHaveBeenCalled();
+            await localResolver.destroy();
+        });
+    }),
+);

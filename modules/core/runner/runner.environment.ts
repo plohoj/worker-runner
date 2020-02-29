@@ -1,16 +1,16 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
 import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
+import { RunnerBridge, runnerBridgeController } from './runner-bridge';
 import { RunnerController } from './runner.controller';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     runnerId: number;
-    runnerConstructor: R;
-    runnerArguments: IRunnerParameter[];
+    runner: InstanceType<R>;
     workerRunnerResolver: WorkerRunnerResolverBase<R>;
     port: MessagePort;
     onDestroyed: () => void;
@@ -25,7 +25,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
     constructor(config: IRunnerEnvironmentConfig<R>) {
-        this.runnerInstance = new config.runnerConstructor(...config.runnerArguments) as InstanceType<R>;
+        this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
         config.port.onmessage = this.onPortMessage.bind(this, config.port);
@@ -117,13 +117,28 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected async handleExecuteResponse(
         port: MessagePort,
         action: IRunnerControllerExecuteAction,
-        response: JsonObject,
+        response: IRunnerParameter,
     ): Promise<void> {
-        this.sendAction(port, {
-            type: RunnerEnvironmentAction.EXECUTED,
-            id: action.id,
-            response,
-        } as IRunnerEnvironmentExecutedAction);
+        if (RunnerBridge.isRunnerBridge(response)) {
+            const runnerControl = await response[runnerBridgeController].resolveControl();
+            response.disconnect();
+            this.sendAction(
+                port,
+                {
+                    type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT,
+                    id: action.id,
+                    port: runnerControl.port,
+                    runnerId: runnerControl.runnerId,
+                } as IRunnerEnvironmentExecutedWithRunnerResultAction,
+                [runnerControl.port],
+            );
+        } else {
+            this.sendAction(port, {
+                type: RunnerEnvironmentAction.EXECUTED,
+                id: action.id,
+                response,
+            } as IRunnerEnvironmentExecutedAction);
+        }
     }
 
     private notifyControllersAboutDestruction(): void {

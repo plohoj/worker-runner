@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerParameter } from '../resolved-runner';
 import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
@@ -16,7 +17,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
     protected async handleExecuteResponse(
         port: MessagePort,
         action: IRunnerControllerExecuteAction,
-        response: JsonObject | Observable<JsonObject>,
+        response: IRxRunnerParameter | Observable<JsonObject>,
     ): Promise<void> {
         if (response instanceof Observable) {
             this.observableList.set(action.id, response);

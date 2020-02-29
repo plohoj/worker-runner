@@ -1,12 +1,12 @@
 {
   "name": "@worker-runner/core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "repository": {
     "type": "git",
     "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
   },

@@ -5,6 +5,12 @@ const { resolve } = require("path");
 const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
+  const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
+  let isCoverage = false;
+  if (isCoverageArg) {
+      isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
+  }
+
 const modulesEntry = {};
 moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
 
@@ -40,19 +46,11 @@ module.exports = (config) => config.set({
         {
           test: /\.ts$/,
           exclude: /node_modules/,
-          use: 'ts-loader',
+          use: [
+            ...isCoverage ? ["coverage-istanbul-loader"]: [],
+            'ts-loader',
+          ]
         },
-        {
-          enforce: 'post',
-          exclude: /node_modules/,
-          test: /\.ts$/,
-          use: {
-            loader: 'istanbul-instrumenter-loader',
-            options: {
-              esModules: true,
-            }
-          },
-        }
       ],
     },
     resolve: {
@@ -60,11 +58,10 @@ module.exports = (config) => config.set({
       plugins: [new TsconfigPathsPlugin()]
     },
   },
-  reporters: ['progress', 'karma-remap-istanbul'],
-  remapIstanbulReporter: {
-    reports: {
-      html: 'coverage'
-    }
+  reporters: isCoverage ? ['coverage-istanbul']: ['progress']
+  ,
+  coverageIstanbulReporter: {
+    reports: ['html'],
   },
   webpackMiddleware: {
     stats: 'errors-only',

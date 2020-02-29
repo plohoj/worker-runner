@@ -19,4 +19,8 @@ export class ExecutableStubRunner<T extends JsonObject = JsonObject> {
     public delay(duration: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, duration));
     }
+
+    public destroy(): void {
+        // stub
+    }
 }

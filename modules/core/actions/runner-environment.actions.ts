@@ -5,6 +5,7 @@ import { JsonObject } from '../types/json-object';
 export enum RunnerEnvironmentAction {
     INITED = 10,
     EXECUTED,
+    EXECUTED_WITH_RUNNER_RESULT,
     DISCONNECTED,
     DESTROYED,
 
@@ -25,6 +26,13 @@ export interface IRunnerEnvironmentExecutedAction {
     type: RunnerEnvironmentAction.EXECUTED;
     id: number;
     response: JsonObject;
+}
+
+export interface IRunnerEnvironmentExecutedWithRunnerResultAction {
+    type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT;
+    id: number;
+    port: MessagePort;
+    runnerId: number;
 }
 
 export interface IRunnerEnvironmentDisconnectedAction {
@@ -66,6 +74,6 @@ export type IRunnerEnvironmentAction<T extends RunnerEnvironmentAction = RunnerE
     IRunnerEnvironmentInitedAction | IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDisconnectedAction
         | IRunnerEnvironmentDestroyedAction | IRunnerEnvironmentInitErrorAction
         | IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction
-        | IRunnerEnvironmentResolvedAction,
+        | IRunnerEnvironmentResolvedAction | IRunnerEnvironmentExecutedWithRunnerResultAction,
     {type: T}
 >;
