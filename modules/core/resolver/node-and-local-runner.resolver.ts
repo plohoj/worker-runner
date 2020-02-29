@@ -69,7 +69,10 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
             super.sendAction(action, transfer);
         }
     }
-
+    /**
+     * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
+     * The original Runner instance will be executed in the same area in which it was wrapped.
+     */
     protected wrapRunner(runnerInstance: InstanceType<R>): RunnerBridge {
         if (!this.localWorkerRunnerResolver) {
             const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);

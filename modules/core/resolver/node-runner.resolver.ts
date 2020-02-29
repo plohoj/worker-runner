@@ -77,11 +77,13 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         return serializedArgs;
     }
 
+    /** Launches and prepares RunnerResolver for work */
     public async run(): Promise<void> {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
         await this.initWorker();
     }
 
+    /** Returns a runner control object that will call the methods of the source instance */
     public async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
         const runnerId = this.getRunnerId(runner);
         const action = await this.sendInitAction(runnerId, args);
@@ -197,7 +199,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     /**
-     * Destroy workers for runnable resolver
+     * Destroying of all resolved Runners instance
      * @param force Destroy by skipping the call the destruction method on the remaining instances
      */
     public async destroy(force = false): Promise<void> {

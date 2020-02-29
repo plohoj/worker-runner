@@ -34,7 +34,7 @@ export class RunnerBridge {
         }
     }
 
-    /** Unsubscribe from runner, if the subscription was the last, then runner will be automatically destroyed */
+    /** Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed */
     public async disconnect(): Promise<void> {
         try {
             await this[runnerBridgeController].disconnect();
@@ -43,7 +43,7 @@ export class RunnerBridge {
         }
     }
 
-    /** Remove runner instance from Worker Runners list */
+    /** Destroying and remove Runner instance from resolved Runners list in **RunnerResolver** instance */
     public async destroy(): Promise<void> {
         try {
             await this[runnerBridgeController].destroy();
@@ -52,6 +52,7 @@ export class RunnerBridge {
         }
     }
 
+    /** Returns a new control object for the same Runner instance */
     public async cloneControl(): Promise<this> {
         try {
             const runnerController = await this[runnerBridgeController].cloneControl();
