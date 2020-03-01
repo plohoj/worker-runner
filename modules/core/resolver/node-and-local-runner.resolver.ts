@@ -6,19 +6,21 @@ import { Constructor } from '../types/constructor';
 import { NodeRunnerResolverBase } from './node-runner.resolver';
 import { WorkerRunnerResolverBase } from './worker-runner.resolver';
 
-const stub = () => {
-    // stub
-};
-
 export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 
     private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
+    private localMessageChanel?: MessageChannel;
     protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>>;
 
     protected async initWorker(): Promise<void> {
         if (this.WorkerResolverConstructor) {
             this.localWorkerRunnerResolver = new this.WorkerResolverConstructor(this.config);
-            this.localWorkerRunnerResolver.sendAction = this.handleWorkerAction.bind(this);
+            this.localMessageChanel = new MessageChannel();
+            this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
+            this.localWorkerRunnerResolver.sendAction
+                = this.localMessageChanel.port2.postMessage.bind(this.localMessageChanel.port2);
+            this.localMessageChanel.port2.onmessage
+                = this.localWorkerRunnerResolver.onMessage.bind(this.localWorkerRunnerResolver);
         } else {
             return super.initWorker();
         }
@@ -33,7 +35,12 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
                 this.sendAction({ type: NodeResolverAction.DESTROY, force});
                 await destroyPromise$;
                 this.destroyRunnerControllers();
-                this.localWorkerRunnerResolver.sendAction = stub;
+                this.localWorkerRunnerResolver.sendAction = undefined as any;
+                if (this.localMessageChanel) {
+                    this.localMessageChanel.port2.onmessage = undefined as any;
+                    this.localMessageChanel.port1.onmessage = undefined as any;
+                    this.localMessageChanel = undefined;
+                }
                 this.localWorkerRunnerResolver = undefined;
             } else {
                 const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
@@ -54,8 +61,8 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
         transfer?: Transferable[],
     ): void {
         if (this.WorkerResolverConstructor) {
-            if (this.localWorkerRunnerResolver) {
-                this.localWorkerRunnerResolver.handleAction(action);
+            if (this.localMessageChanel) {
+                this.localMessageChanel.port1.postMessage(action, transfer as Transferable[]);
             } else {
                 const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
                 throw {

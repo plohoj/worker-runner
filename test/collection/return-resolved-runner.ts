@@ -68,7 +68,7 @@ each({
             expect(destroySpy).not.toHaveBeenCalled();
             await executableStubRunner.disconnect();
             expect(destroySpy).not.toHaveBeenCalled();
-            localResolver.destroy();
+            await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();
         });
     }),

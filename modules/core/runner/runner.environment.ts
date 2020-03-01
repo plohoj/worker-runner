@@ -3,7 +3,8 @@ import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnv
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { TransferRunnerData } from '../Transferable-runner-data';
+import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { RunnerBridge, runnerBridgeController } from './runner-bridge';
 import { RunnerController } from './runner.controller';
@@ -117,8 +118,16 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected async handleExecuteResponse(
         port: MessagePort,
         action: IRunnerControllerExecuteAction,
-        response: IRunnerParameter,
+        responseWithTransferData: IRunnerMethodResult,
+        transferable: Transferable[] = [],
     ): Promise<void> {
+        let response: IRunnerSerializedMethodResult;
+        if (responseWithTransferData instanceof TransferRunnerData) {
+            transferable.push(...responseWithTransferData.transfer);
+            response = responseWithTransferData.data;
+        } else {
+            response = responseWithTransferData;
+        }
         if (RunnerBridge.isRunnerBridge(response)) {
             const runnerControl = await response[runnerBridgeController].resolveControl();
             response.disconnect();
@@ -130,14 +139,18 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     port: runnerControl.port,
                     runnerId: runnerControl.runnerId,
                 } as IRunnerEnvironmentExecutedWithRunnerResultAction,
-                [runnerControl.port],
+                [runnerControl.port, ...transferable],
             );
         } else {
-            this.sendAction(port, {
-                type: RunnerEnvironmentAction.EXECUTED,
-                id: action.id,
-                response,
-            } as IRunnerEnvironmentExecutedAction);
+            this.sendAction(
+                port,
+                {
+                    type: RunnerEnvironmentAction.EXECUTED,
+                    id: action.id,
+                    response,
+                } as IRunnerEnvironmentExecutedAction,
+                transferable,
+            );
         }
     }
 

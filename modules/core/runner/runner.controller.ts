@@ -4,7 +4,7 @@ import { IRunnerError } from '../actions/runner-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { PromisesResolver } from '../runner-promises';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { ResolveRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
 
@@ -48,7 +48,7 @@ export class RunnerController<R extends RunnerConstructor> {
     public async execute(
         methodName: string,
         args: IRunnerParameter[],
-    ): Promise<IRunnerParameter | void> {
+    ): Promise<IRunnerSerializedMethodResult> {
         const actionId = this.nextActionId();
         const executePromise$ = this.promises
             .promise<IRunnerEnvironmentExecutedAction | IRunnerEnvironmentExecutedWithRunnerResultAction>(actionId);

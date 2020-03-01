@@ -5,13 +5,14 @@ import { ExtendedStubRunner } from './stubs/extended-stub.runner';
 import { RxStubRunner } from './stubs/rx-stub.runner';
 import { WithLocalResolverStub } from './stubs/with-local-resolver-stub.runner';
 import { WithOtherInstanceStubRunner } from './stubs/with-other-instance-stub.runner';
+import { WithTransferableRunnerStub } from './stubs/with-transferable-data.stub';
 
 export const runners = [
     ErrorStubRunner,
     ExecutableStubRunner,
     ExtendedStubRunner,
     WithOtherInstanceStubRunner,
-
     RxStubRunner,
     WithLocalResolverStub,
+    WithTransferableRunnerStub,
 ];

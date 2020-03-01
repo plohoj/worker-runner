@@ -6,10 +6,10 @@ import { IWorkerResolverDestroyedAction, WorkerResolverAction } from '../actions
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { ResolveRunnerArguments } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { TransferRunnerData } from '../Transferable-runner-data';
+import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { IRunnerArgument, IRunnerEnvironmentArgument, IRunnerJSONArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
@@ -45,7 +45,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
-    public static async serializeArguments(args: IRunnerParameter[],
+    public static async serializeArguments(
+        args: IRunnerParameter[],
     ): Promise<{
         args: IRunnerArgument[]
         transfer: Transferable[],
@@ -55,7 +56,14 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             transfer: new Array<Transferable>(),
         };
         const argsMap = new Map<number, IRunnerArgument>();
-        await Promise.all(args.map(async (argument, index) => {
+        await Promise.all(args.map(async (argumentWithTransferData, index) => {
+            let argument: IRunnerSerializedParameter;
+            if (argumentWithTransferData instanceof TransferRunnerData) {
+                serializedArgs.transfer.push(...argumentWithTransferData.transfer);
+                argument = argumentWithTransferData.data;
+            } else {
+                argument = argumentWithTransferData;
+            }
             if (RunnerBridge.isRunnerBridge(argument)) {
                 const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
                 argsMap.set(index, {
@@ -120,7 +128,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
 
     protected async sendInitAction(
         runnerId: number,
-        args: ResolveRunnerArguments<ConstructorParameters<RunnerConstructor>>,
+        args: IRunnerParameter[],
     ): Promise<IRunnerEnvironmentInitedAction> {
         if (runnerId < 0) {
             const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);

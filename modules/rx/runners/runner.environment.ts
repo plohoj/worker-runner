@@ -1,30 +1,39 @@
-import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerConstructor, RunnerControllerAction, RunnerEnvironment } from '@worker-runner/core';
+import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, RunnerConstructor, RunnerControllerAction, RunnerEnvironment } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRxRunnerParameter } from '../resolved-runner';
+import { IRxRunnerMethodResult } from '../resolved-runner';
 import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
     /** { actionId: Observable } */
-    private observableList = new Map<number, Observable<JsonObject>>();
+    private observableList = new Map<number, Observable<IRxRunnerMethodResult>>();
     /** Event for stop listening the Observable */
     private unsubscribe$ = new Subject<number | 'ALL'>();
 
-    protected declare sendAction: (port: MessagePort, action: IRxRunnerEnvironmentAction) => void;
+    protected declare sendAction: (
+        port: MessagePort,
+        action: IRxRunnerEnvironmentAction,
+        transfer?: Transferable[],
+    ) => void;
 
     protected async handleExecuteResponse(
         port: MessagePort,
         action: IRunnerControllerExecuteAction,
-        response: IRxRunnerParameter | Observable<JsonObject>,
+        response: IRxRunnerMethodResult | Observable<IRxRunnerMethodResult>,
+        transferable: Transferable[] = [],
     ): Promise<void> {
         if (response instanceof Observable) {
             this.observableList.set(action.id, response);
-            this.sendAction(port , {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_INIT,
-                id: action.id,
-            });
+            this.sendAction(
+                port,
+                {
+                    type: RxRunnerEnvironmentAction.RUNNER_RX_INIT,
+                    id: action.id,
+                },
+                transferable,
+            );
         } else {
             await super.handleExecuteResponse(port, action, response);
         }
@@ -57,6 +66,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 break;
             case RxRunnerControllerAction.RX_UNSUBSCRIBE:
                 this.unsubscribe$.next(action.id);
+                this.observableList.delete(action.id);
                 break;
             default:
                 return super.execute(port, action);
@@ -94,26 +104,39 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 }),
             )),
         ).subscribe(
-            (rxResponse) => this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_EMIT,
-                id: action.id,
-                response: rxResponse,
-            } as IRxRunnerEnvironmentEmitAction),
+            this.handleObservableResponse.bind(this, port, action),
             (error) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR,
                 id: action.id,
                 errorCode: RxRunnerErrorCode.ERROR_EMIT,
                 ...extractError(error),
             } as IRxRunnerEnvironmentErrorAction),
-            () => this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
-                id: action.id,
-            } as IRxRunnerEnvironmentCompletedAction),
+            () => {
+                this.sendAction(port, {
+                    type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
+                    id: action.id,
+                } as IRxRunnerEnvironmentCompletedAction);
+                this.observableList.delete(action.id);
+            },
         );
+    }
+
+    private handleObservableResponse(
+        port: MessagePort,
+        action: IRxRunnerControllerSubscribeAction,
+        response: IRxRunnerMethodResult,
+    ) {
+        // TODO Transferable data and Resolved Runner
+        this.sendAction(port, {
+            type: RxRunnerEnvironmentAction.RUNNER_RX_EMIT,
+            id: action.id,
+            response,
+        } as IRxRunnerEnvironmentEmitAction);
     }
 
     public async destroy(port?: MessagePort, action?: IRunnerControllerDestroyAction): Promise<void> {
         this.unsubscribe$.next('ALL');
+        this.observableList.clear();
         super.destroy(port, action);
     }
 }

@@ -1,5 +1,5 @@
 import { errorActionToRunnerError } from '../actions/runner-error';
-import { Constructor, IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { ResolveRunner } from './resolved-runner';
 import { RunnerController } from './runner.controller';
 
@@ -26,7 +26,7 @@ export class RunnerBridge {
     protected async [executeRunnerBridgeMethod](
         methodName: string,
         args: IRunnerParameter[],
-    ): Promise<IRunnerParameter | void> {
+    ): Promise<IRunnerSerializedMethodResult> {
         try {
             return this[runnerBridgeController].execute(methodName, args);
         } catch (error) {

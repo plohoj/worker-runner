@@ -9,7 +9,7 @@ import { ResolveRunner } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
 import { RunnerEnvironment } from '../runner/runner.environment';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
@@ -27,7 +27,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         this.sendAction({type: WorkerResolverAction.INIT});
     }
 
-    private onMessage(message: MessageEvent): void {
+    public onMessage(message: MessageEvent): void {
         this.handleAction(message.data);
     }
 
@@ -90,11 +90,11 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public deserializeArguments(args: IRunnerArgument[]): {
-        args: Array<IRunnerParameter>,
+        args: Array<IRunnerSerializedParameter>,
         controllers: Array<RunnerController<R>>,
     } {
         const result = {
-            args: new Array<IRunnerParameter>(),
+            args: new Array<IRunnerSerializedParameter>(),
             controllers: new Array<RunnerController<R>>(),
         };
         for (const argument of args) {
