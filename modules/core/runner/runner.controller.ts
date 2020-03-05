@@ -90,7 +90,7 @@ export class RunnerController<R extends RunnerConstructor> {
         await destroyPromise$;
     }
 
-    private buildControlClone(runnerId: number, port: MessagePort): this {
+    protected buildControlClone(runnerId: number, port: MessagePort): this {
         const bridgeConstructor = this.runnerBridgeConstructors[runnerId];
         if (!bridgeConstructor) {
             const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);

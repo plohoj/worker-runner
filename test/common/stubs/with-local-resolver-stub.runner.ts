@@ -4,10 +4,11 @@ import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class WithLocalResolverStub<T extends JsonObject> {
-    private localResolver = new LocalRunnerResolver({runners});
+    private localResolver?: LocalRunnerResolver<typeof runners[0]>;
     private localExecutableStubRunner?: ResolveRunner<ExecutableStubRunner<T>>;
 
     public async run(data: T): Promise<void> {
+        this.localResolver = new LocalRunnerResolver({runners});
         await this.localResolver.run();
         this.localExecutableStubRunner = await this.localResolver
             .resolve(ExecutableStubRunner, data) as ResolveRunner<ExecutableStubRunner<T>>;
@@ -25,6 +26,6 @@ export class WithLocalResolverStub<T extends JsonObject> {
     }
 
     public async destroy(): Promise<void> {
-        return this.localResolver.destroy();
+        return this.localResolver?.destroy();
     }
 }

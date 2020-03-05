@@ -10,7 +10,7 @@ export { NodeAndLocalRunnerResolverBase } from './resolver/node-and-local-runner
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
 export { ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './runner/resolved-runner';
-export { RunnerBridge } from './runner/runner-bridge';
+export { RunnerBridge, runnerBridgeController } from './runner/runner-bridge';
 export { RunnerController } from './runner/runner.controller';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/runner.environment';
 export { TransferRunnerData } from './Transferable-runner-data';

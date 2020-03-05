@@ -3,7 +3,7 @@ import { StackTraceError } from '../errors/stacktrace-error';
 import { JsonObject } from '../types/json-object';
 
 export enum RunnerEnvironmentAction {
-    INITED = 10,
+    INITED = 10, // TODO move to WorkerResolverAction
     EXECUTED,
     EXECUTED_WITH_RUNNER_RESULT,
     DISCONNECTED,

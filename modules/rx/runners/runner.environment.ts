@@ -1,9 +1,9 @@
-import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, RunnerConstructor, RunnerControllerAction, RunnerEnvironment } from '@worker-runner/core';
+import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, RunnerBridge, runnerBridgeController, RunnerConstructor, RunnerControllerAction, RunnerEnvironment, TransferRunnerData } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRxRunnerMethodResult } from '../resolved-runner';
+import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
@@ -29,7 +29,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             this.sendAction(
                 port,
                 {
-                    type: RxRunnerEnvironmentAction.RUNNER_RX_INIT,
+                    type: RxRunnerEnvironmentAction.RX_INIT,
                     id: action.id,
                 },
                 transferable,
@@ -82,14 +82,14 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         if (!observable) {
             const error = new Error(RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND);
             this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR,
+                type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
                 error: RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND,
                 stacktrace: error.stack,
                 errorCode: RxRunnerErrorCode.SUBSCRIPTION_NOT_FOUND,
             } as IRxRunnerEnvironmentErrorAction);
             this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
+                type: RxRunnerEnvironmentAction.RX_COMPLETED,
                 id: action.id,
             } as IRxRunnerEnvironmentCompletedAction);
             return;
@@ -106,14 +106,14 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         ).subscribe(
             this.handleObservableResponse.bind(this, port, action),
             (error) => this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR,
+                type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
                 errorCode: RxRunnerErrorCode.ERROR_EMIT,
                 ...extractError(error),
             } as IRxRunnerEnvironmentErrorAction),
             () => {
                 this.sendAction(port, {
-                    type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED,
+                    type: RxRunnerEnvironmentAction.RX_COMPLETED,
                     id: action.id,
                 } as IRxRunnerEnvironmentCompletedAction);
                 this.observableList.delete(action.id);
@@ -121,17 +121,43 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         );
     }
 
-    private handleObservableResponse(
+    private async handleObservableResponse(
         port: MessagePort,
         action: IRxRunnerControllerSubscribeAction,
-        response: IRxRunnerMethodResult,
+        responseWithTransferData: IRxRunnerMethodResult,
     ) {
-        // TODO Transferable data and Resolved Runner
-        this.sendAction(port, {
-            type: RxRunnerEnvironmentAction.RUNNER_RX_EMIT,
-            id: action.id,
-            response,
-        } as IRxRunnerEnvironmentEmitAction);
+        const transferable = new Array<Transferable>();
+        let response: IRxRunnerSerializedMethodResult;
+        if (responseWithTransferData instanceof TransferRunnerData) {
+            transferable.push(...responseWithTransferData.transfer);
+            response = responseWithTransferData.data;
+        } else {
+            response = responseWithTransferData;
+        }
+        if (RunnerBridge.isRunnerBridge(response)) {
+            const runnerControl = await response[runnerBridgeController].resolveControl();
+            response.disconnect();
+            this.sendAction(
+                port,
+                {
+                    type: RxRunnerEnvironmentAction.RX_EMIT_WITH_RUNNER_RESULT,
+                    id: action.id,
+                    port: runnerControl.port,
+                    runnerId: runnerControl.runnerId,
+                } as IRxRunnerEnvironmentEmitWithRunnerResultAction,
+                [runnerControl.port, ...transferable],
+            );
+        } else {
+            this.sendAction(
+                port,
+                {
+                    type: RxRunnerEnvironmentAction.RX_EMIT,
+                    id: action.id,
+                    response,
+                } as IRxRunnerEnvironmentEmitAction,
+                transferable,
+            );
+        }
     }
 
     public async destroy(port?: MessagePort, action?: IRunnerControllerDestroyAction): Promise<void> {

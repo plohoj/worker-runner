@@ -1,7 +1,7 @@
 import { IRunnerArgument } from '../types/runner-argument';
 
 export enum RunnerControllerAction {
-    INIT = 10,
+    INIT = 10,  // TODO move to NodeResolverAction
     EXECUTE,
     DISCONNECT,
     DESTROY,

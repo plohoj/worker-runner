@@ -1,7 +1,8 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerControllerAction, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerSerializedMethodResult, RxResolveRunner } from '../resolved-runner';
 import { RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
@@ -20,16 +21,19 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         >>,
     ): Promise<void> {
         switch (action.type) {
-            case RxRunnerEnvironmentAction.RUNNER_RX_INIT:
+            case RxRunnerEnvironmentAction.RX_INIT:
                 this.runnerObservableInit(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_EMIT:
+            case RxRunnerEnvironmentAction.RX_EMIT:
                 this.runnerObservableEmit(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_ERROR:
+            case RxRunnerEnvironmentAction.RX_EMIT_WITH_RUNNER_RESULT:
+                this.runnerObservableEmitWithRunnerResult(action);
+                break;
+            case RxRunnerEnvironmentAction.RX_ERROR:
                 this.runnerObservableError(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED:
+            case RxRunnerEnvironmentAction.RX_COMPLETED:
                 this.runnerObservableCompleted(action);
                 break;
             default:
@@ -69,6 +73,14 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         this.getSubscriber(action.id).next(action.response);
     }
 
+    private async runnerObservableEmitWithRunnerResult(
+        action: IRxRunnerEnvironmentEmitWithRunnerResultAction,
+    ): Promise<void> {
+        this.getSubscriber(action.id).next(
+            this.buildControlClone(action.runnerId, action.port).resolvedRunner as RxResolveRunner<any>,
+        );
+    }
+
     private runnerObservableError(action: IRxRunnerEnvironmentErrorAction): void {
         this.getSubscriber(action.id).error(action.error);
     }
@@ -78,7 +90,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         this.subscribers$.delete(action.id);
     }
 
-    private getSubscriber(actionId: number): Subscriber<JsonObject> {
+    private getSubscriber(actionId: number): Subscriber<IRxRunnerSerializedMethodResult> {
         const completedSubscriber$ = this.subscribers$.get(actionId);
         const error = new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND);
         if (!completedSubscriber$) {

@@ -2,31 +2,39 @@ import { IRunnerEnvironmentAction, JsonObject, RunnerEnvironmentAction, StackTra
 import { RxRunnerErrorCode } from '../runners-errors';
 
 export enum RxRunnerEnvironmentAction {
-    RUNNER_RX_INIT = 100,
-    RUNNER_RX_EMIT,
-    RUNNER_RX_ERROR,
-    RUNNER_RX_COMPLETED,
+    RX_INIT = 100,
+    RX_EMIT,
+    RX_EMIT_WITH_RUNNER_RESULT,
+    RX_ERROR,
+    RX_COMPLETED,
 }
 
 export interface IRxRunnerEnvironmentInitAction {
-    type: RxRunnerEnvironmentAction.RUNNER_RX_INIT;
+    type: RxRunnerEnvironmentAction.RX_INIT;
     id: number;
 }
 
 export interface IRxRunnerEnvironmentEmitAction {
-    type: RxRunnerEnvironmentAction.RUNNER_RX_EMIT;
+    type: RxRunnerEnvironmentAction.RX_EMIT;
     id: number;
     response: JsonObject;
 }
 
+export interface IRxRunnerEnvironmentEmitWithRunnerResultAction {
+    type: RxRunnerEnvironmentAction.RX_EMIT_WITH_RUNNER_RESULT;
+    id: number;
+    port: MessagePort;
+    runnerId: number;
+}
+
 export type IRxRunnerEnvironmentErrorAction = StackTraceError<{
-    type: RxRunnerEnvironmentAction.RUNNER_RX_ERROR;
+    type: RxRunnerEnvironmentAction.RX_ERROR;
     id: number;
     errorCode: RxRunnerErrorCode;
 }>;
 
 export interface IRxRunnerEnvironmentCompletedAction {
-    type: RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED;
+    type: RxRunnerEnvironmentAction.RX_COMPLETED;
     id: number;
 }
 
@@ -34,6 +42,7 @@ export type IRxRunnerEnvironmentAction<T extends RunnerEnvironmentAction | RxRun
     = RunnerEnvironmentAction | RxRunnerEnvironmentAction>
         = T extends RunnerEnvironmentAction ? IRunnerEnvironmentAction<T> : Extract<
             IRxRunnerEnvironmentInitAction | IRxRunnerEnvironmentEmitAction
-                | IRxRunnerEnvironmentErrorAction | IRxRunnerEnvironmentCompletedAction,
+                | IRxRunnerEnvironmentErrorAction | IRxRunnerEnvironmentCompletedAction
+                | IRxRunnerEnvironmentEmitWithRunnerResultAction,
             {type: T}
         >;
