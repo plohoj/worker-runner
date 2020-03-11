@@ -1,6 +1,6 @@
 import { JsonObject, ResolveRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { from, Observable, of } from 'rxjs';
+import { from, Observable, of, throwError } from 'rxjs';
 import { delay as rxDelay } from 'rxjs/operators';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
@@ -27,6 +27,10 @@ export class RxStubRunner {
         return from(
             this.localResolver.resolve(ExecutableStubRunner, data) as Promise<ResolveRunner<ExecutableStubRunner<T>>>,
         );
+    }
+
+    public emitError<T extends JsonObject>(error: T): Observable<never> {
+        return throwError(error);
     }
 
     public async destroy(): Promise<void> {

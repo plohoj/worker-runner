@@ -73,5 +73,15 @@ each({
             .toPromise() as ResolveRunner<ExecutableStubRunner<typeof storageData>>;
         await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
     });
+
+    it('emit error', async () => {
+        const errorData = {
+            id: 5166,
+            type: 'ERROR',
+        };
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
+        await expectAsync((await (await rxStubRunner.emitError(errorData))).toPromise())
+            .toBeRejectedWith(errorData);
+    });
 }));
 

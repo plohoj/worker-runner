@@ -29,11 +29,13 @@ export type RxResolveRunnerMethod<T extends (...args: any[]) => any, A extends a
                     (...args: RxResolveRunnerArguments<A>) => ReturnType<T> :
                 never :
             ReturnType<T> extends Observable<infer O> ?
-                O extends IRxRunnerMethodResult ?
-                    O extends TransferRunnerData<infer TD> ?
-                        (...args: RxResolveRunnerArguments<A>) => Promise<Observable<TD>> :
-                        (...args: RxResolveRunnerArguments<A>) => Promise<ReturnType<T>> :
-                    never :
+                never extends O ?
+                    (...args: RxResolveRunnerArguments<A>) => Promise<ReturnType<T>> :
+                    O extends IRxRunnerMethodResult ?
+                        O extends TransferRunnerData<infer TD> ?
+                            (...args: RxResolveRunnerArguments<A>) => Promise<Observable<TD>> :
+                            (...args: RxResolveRunnerArguments<A>) => Promise<ReturnType<T>> :
+                        never :
                 never;
 
 type RxResolveRunnerMethods<T> = {
