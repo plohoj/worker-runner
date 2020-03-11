@@ -1,6 +1,6 @@
 import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, RunnerBridge, runnerBridgeController, RunnerConstructor, RunnerControllerAction, RunnerEnvironment, TransferRunnerData } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
-import { filter, takeUntil } from 'rxjs/operators';
+import { filter, mergeMap, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../resolved-runner';
@@ -103,22 +103,23 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                     return actionId === action.id;
                 }),
             )),
-        ).subscribe(
-            this.handleObservableResponse.bind(this, port, action),
-            (error) => this.sendAction(port, {
+            mergeMap(this.handleObservableResponse.bind(this, port, action)),
+        )
+        .subscribe({
+            error: (error) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
                 errorCode: RxRunnerErrorCode.ERROR_EMIT,
                 ...extractError(error),
             } as IRxRunnerEnvironmentErrorAction),
-            () => {
+            complete: () => {
                 this.sendAction(port, {
                     type: RxRunnerEnvironmentAction.RX_COMPLETED,
                     id: action.id,
                 } as IRxRunnerEnvironmentCompletedAction);
                 this.observableList.delete(action.id);
             },
-        );
+        });
     }
 
     private async handleObservableResponse(
@@ -135,7 +136,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             response = responseWithTransferData;
         }
         if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerControl = await response[runnerBridgeController].resolveControl();
+            const runnerControl = await (response as RunnerBridge)[runnerBridgeController].resolveControl();
             response.disconnect();
             this.sendAction(
                 port,

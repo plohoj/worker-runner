@@ -1,4 +1,4 @@
-import { JsonObject, RunnerBridge, TransferableJsonObject, TransferRunnerData } from '@worker-runner/core';
+import { JsonObject, ResolveRunner, RunnerBridge, TransferableJsonObject, TransferRunnerData } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
 export type IRxRunnerSerializedParameter = JsonObject | RxResolveRunner<any> | TransferableJsonObject;
@@ -40,4 +40,4 @@ type RxResolveRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? RxResolveRunnerMethod<T[P]> : never;
 };
 
-export type RxResolveRunner<T> = RxResolveRunnerMethods<T> & RunnerBridge;
+export type RxResolveRunner<T> = (RxResolveRunnerMethods<T> & RunnerBridge) | ResolveRunner<T>;

@@ -1,7 +1,8 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { waitTimeout } from 'test/utils/wait-timeout';
@@ -59,6 +60,18 @@ each({
             errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
             message: RunnerErrorMessages.RUNNER_NOT_INIT,
         } as IRunnerError));
+    });
+
+    it('emit resolved runner', async () => {
+        const storageData = {
+            id: 5136,
+            type: 'STORAGE_DATA',
+        };
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
+        await rxStubRunner.run();
+        const executableStubRunner = await (await rxStubRunner.resolveExecutableRunner(storageData))
+            .toPromise() as ResolveRunner<ExecutableStubRunner<typeof storageData>>;
+        await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
     });
 }));
 

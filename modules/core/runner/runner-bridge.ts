@@ -7,7 +7,7 @@ export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
-export const runnerBridgeController =  Symbol('Execute via NodeResolver method');
+export const runnerBridgeController = Symbol('Execute via NodeResolver method');
 
 export class RunnerBridge {
 
