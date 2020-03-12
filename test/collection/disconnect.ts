@@ -21,7 +21,7 @@ each({
             await resolver.destroy();
         });
 
-        it ('with instance in arguments', async () => {
+        it ('with Resolved Runner in arguments', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',

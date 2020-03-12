@@ -83,5 +83,21 @@ each({
         await expectAsync((await (await rxStubRunner.emitError(errorData))).toPromise())
             .toBeRejectedWith(errorData);
     });
+
+    it('emit error after destroy runner', async () => {
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
+        const observable = await rxStubRunner.emitError(undefined);
+        await rxStubRunner.destroy();
+        await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
+            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
+            message: RunnerErrorMessages.RUNNER_NOT_INIT,
+        } as IRunnerError));
+    });
+
+    it('emit error after unsubscribe', async () => {
+        const rxStubRunner = await resolver.resolve(RxStubRunner);
+        const observable = await rxStubRunner.emitError(undefined);
+        observable.subscribe().unsubscribe();
+    });
 }));
 

@@ -35,7 +35,7 @@ each({
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
 
-        it ('with instance in arguments', async () => {
+        it ('with Resolved Runner in arguments', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -49,7 +49,7 @@ each({
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
         });
 
-        it ('with instance in arguments from another resolver', async () => {
+        it ('with Resolved Runner in arguments from another resolver', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -66,7 +66,7 @@ each({
             await localResolver.destroy();
         });
 
-        it ('with destroyed instance in arguments', async () => {
+        it ('with destroyed Resolved Runner in arguments', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner)).toBeRejectedWith(

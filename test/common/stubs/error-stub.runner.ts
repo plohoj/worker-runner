@@ -1,6 +1,6 @@
 
 export class ErrorStubRunner {
-    constructor(errorMessage?: string) {
+    constructor(errorMessage?: string, anyData?: any) {
         if (errorMessage) {
             throw errorMessage;
         }
