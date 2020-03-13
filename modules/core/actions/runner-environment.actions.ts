@@ -3,23 +3,15 @@ import { StackTraceError } from '../errors/stacktrace-error';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 
 export enum RunnerEnvironmentAction {
-    INITED = 10, // TODO move to WorkerResolverAction
-    EXECUTED,
+    EXECUTED = 10,
     EXECUTED_WITH_RUNNER_RESULT,
     DISCONNECTED,
     DESTROYED,
 
-    INIT_ERROR,
     EXECUTE_ERROR,
     DESTROY_ERROR,
 
     RESOLVED,
-}
-
-export interface IRunnerEnvironmentInitedAction {
-    type: RunnerEnvironmentAction.INITED;
-    id: number;
-    port: MessagePort;
 }
 
 export interface IRunnerEnvironmentExecutedAction {
@@ -45,12 +37,6 @@ export interface IRunnerEnvironmentDestroyedAction {
     id: number;
 }
 
-export type IRunnerEnvironmentInitErrorAction = StackTraceError<{
-    type: RunnerEnvironmentAction.INIT_ERROR;
-    errorCode: RunnerErrorCode.RUNNER_INIT_ERROR;
-    id: number;
-}>;
-
 export type IRunnerEnvironmentExecuteErrorAction = StackTraceError<{
     type: RunnerEnvironmentAction.EXECUTE_ERROR;
     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
@@ -70,9 +56,9 @@ export interface IRunnerEnvironmentResolvedAction {
 }
 
 export type IRunnerEnvironmentAction<T extends RunnerEnvironmentAction = RunnerEnvironmentAction> = Extract<
-    IRunnerEnvironmentInitedAction | IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDisconnectedAction
-        | IRunnerEnvironmentDestroyedAction | IRunnerEnvironmentInitErrorAction
-        | IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction
-        | IRunnerEnvironmentResolvedAction | IRunnerEnvironmentExecutedWithRunnerResultAction,
+    IRunnerEnvironmentExecutedAction  | IRunnerEnvironmentExecuteErrorAction
+        | IRunnerEnvironmentExecutedWithRunnerResultAction| IRunnerEnvironmentDisconnectedAction
+        | IRunnerEnvironmentDestroyedAction | IRunnerEnvironmentDestroyErrorAction
+        | IRunnerEnvironmentResolvedAction,
     {type: T}
 >;

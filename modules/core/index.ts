@@ -1,6 +1,6 @@
 export { NodeResolverAction } from './actions/node-resolver.actions';
-export { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, IRunnerControllerInitAction, IRunnerControllerResolveAction, RunnerControllerAction } from './actions/runner-controller.actions';
-export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentInitedAction, RunnerEnvironmentAction } from './actions/runner-environment.actions';
+export { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from './actions/runner-controller.actions';
+export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAction, RunnerEnvironmentAction } from './actions/runner-environment.actions';
 export { errorActionToRunnerError, IRunnerError } from './actions/runner-error';
 export { IWorkerResolverAction, IWorkerResolverDestroyedAction, WorkerResolverAction } from './actions/worker-resolver.actions';
 export { extractError } from './errors/extract-error';

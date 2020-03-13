@@ -37,7 +37,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected async handleAction(
         port: MessagePort,
-        action: IRunnerControllerAction<Exclude<RunnerControllerAction, RunnerControllerAction.INIT>>,
+        action: IRunnerControllerAction,
     ): Promise<void> {
         switch (action.type) {
             case RunnerControllerAction.EXECUTE:
@@ -232,10 +232,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected sendAction(
         port: MessagePort,
-        action: IRunnerEnvironmentAction<Exclude<
-            RunnerEnvironmentAction,
-            RunnerEnvironmentAction.INITED |  RunnerEnvironmentAction.INIT_ERROR>
-        >,
+        action: IRunnerEnvironmentAction,
         transfer?: Transferable[],
     ): void {
         port.postMessage(action, transfer as Transferable[]);

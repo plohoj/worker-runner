@@ -1,8 +1,6 @@
-import { INodeResolverWorkerDestroyAction, NodeResolverAction } from '../actions/node-resolver.actions';
-import { IRunnerControllerInitAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { INodeResolverAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
-import { IWorkerResolverDestroyedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
+import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
@@ -26,7 +24,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    private initPromises = new PromisesResolver<IRunnerEnvironmentInitedAction>();
+    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction>();
     private lastActionId = 0;
 
     private worker?: Worker;
@@ -130,7 +128,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     protected async sendInitAction(
         runnerId: number,
         args: IRunnerParameter[],
-    ): Promise<IRunnerEnvironmentInitedAction> {
+    ): Promise<IWorkerResolverRunnerInitedAction> {
         if (runnerId < 0) {
             const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
             throw {
@@ -146,7 +144,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
             this.sendAction(
                 {
-                    type: RunnerControllerAction.INIT,
+                    type: NodeResolverAction.INIT_RUNNER,
                     id: actionId,
                     runnerId,
                     args: serializedArgs.args,
@@ -168,14 +166,13 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         this.handleWorkerAction(message.data);
     }
 
-    protected handleWorkerAction(action: IRunnerEnvironmentInitedAction | IRunnerEnvironmentInitErrorAction
-        | IWorkerResolverDestroyedAction,
+    protected handleWorkerAction(action: IWorkerResolverAction,
     ): void {
         switch (action.type) {
-            case RunnerEnvironmentAction.INITED:
+            case WorkerResolverAction.RUNNER_INITED:
                 this.initPromises.resolve(action.id, action);
                 break;
-            case RunnerEnvironmentAction.INIT_ERROR:
+            case WorkerResolverAction.RUNNER_INIT_ERROR:
                 this.initPromises.reject(action.id, action);
                 break;
             case WorkerResolverAction.DESTROYED:
@@ -193,7 +190,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         const worker = new Worker(this.config.workerPath, { name: this.config.workerName });
         await new Promise(resolve => {
             worker.onmessage = (message) => {
-                if (message.data && message.data.type === WorkerResolverAction.INIT) {
+                if (message.data && message.data.type === WorkerResolverAction.WORKER_INITED) {
                     resolve();
                 }
             };
@@ -236,7 +233,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     protected sendAction(
-        action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction,
+        action: INodeResolverAction,
         transfer?: Transferable[],
     ): void {
         if (this.worker) { // TO use MessageChanel

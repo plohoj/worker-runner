@@ -158,10 +158,7 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     protected handleAction(
-        action: IRunnerEnvironmentAction<Exclude<
-            RunnerEnvironmentAction,
-            RunnerEnvironmentAction.INITED | RunnerEnvironmentAction.INIT_ERROR
-        >>,
+        action: IRunnerEnvironmentAction,
     ): void {
         switch (action.type) {
             case RunnerEnvironmentAction.DISCONNECTED:
@@ -187,7 +184,7 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     protected sendAction(
-        action: IRunnerControllerAction<Exclude<RunnerControllerAction, RunnerControllerAction.INIT>>,
+        action: IRunnerControllerAction,
         transfer?: Transferable[],
     ): void {
         if (!this.port) {

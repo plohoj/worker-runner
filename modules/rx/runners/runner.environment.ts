@@ -1,4 +1,4 @@
-import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, runnerBridgeController, RunnerConstructor, RunnerControllerAction, RunnerEnvironment, TransferRunnerData } from '@worker-runner/core';
+import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, runnerBridgeController, RunnerConstructor, RunnerEnvironment, TransferRunnerData } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, mergeMap, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
@@ -41,7 +41,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     public async handleAction(
         port: MessagePort,
-        action: IRunnerControllerAction<Exclude<RunnerControllerAction, RunnerControllerAction.INIT>>
+        action: IRunnerControllerAction
             | IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction,
     ): Promise<void> {
         switch (action.type) {

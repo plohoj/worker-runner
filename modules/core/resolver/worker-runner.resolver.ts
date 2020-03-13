@@ -1,6 +1,4 @@
-import { INodeResolverWorkerDestroyAction, NodeResolverAction } from '../actions/node-resolver.actions';
-import { IRunnerControllerInitAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { INodeResolverAction, INodeResolverInitRunnerAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
@@ -24,16 +22,16 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
     public run(): void {
         self.addEventListener('message', this.onMessage.bind(this));
-        this.sendAction({type: WorkerResolverAction.INIT});
+        this.sendAction({type: WorkerResolverAction.WORKER_INITED});
     }
 
     public onMessage(message: MessageEvent): void {
         this.handleAction(message.data);
     }
 
-    public handleAction(action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction): void {
+    public handleAction(action: INodeResolverAction): void {
         switch (action.type) {
-            case RunnerControllerAction.INIT:
+            case NodeResolverAction.INIT_RUNNER:
                 this.initRunnerInstance(action);
                 break;
             case NodeResolverAction.DESTROY:
@@ -41,7 +39,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 break;
         }
     }
-    private async initRunnerInstance(action: IRunnerControllerInitAction): Promise<void> {
+    private async initRunnerInstance(action: INodeResolverInitRunnerAction): Promise<void> {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
             const messageChanel = new MessageChannel();
@@ -51,7 +49,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
             } catch (error) {
                 this.sendAction({
-                    type: RunnerEnvironmentAction.INIT_ERROR,
+                    type: WorkerResolverAction.RUNNER_INIT_ERROR,
                     id: action.id,
                     errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
                     ...extractError(error),
@@ -72,7 +70,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
             this.sendAction(
                 {
-                    type: RunnerEnvironmentAction.INITED,
+                    type: WorkerResolverAction.RUNNER_INITED,
                     id: action.id,
                     port: messageChanel.port2,
                 },
@@ -80,7 +78,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             );
         } else {
             this.sendAction({
-                type: RunnerEnvironmentAction.INIT_ERROR,
+                type: WorkerResolverAction.RUNNER_INIT_ERROR,
                 id: action.id,
                 errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
@@ -127,7 +125,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public sendAction(
-        action: IWorkerResolverAction | IRunnerEnvironmentInitedAction | IRunnerEnvironmentInitErrorAction,
+        action: IWorkerResolverAction,
         transfer?: Transferable[],
     ): void {
         // @ts-ignore

@@ -1,18 +1,10 @@
 import { IRunnerArgument } from '../types/runner-argument';
 
 export enum RunnerControllerAction {
-    INIT = 10,  // TODO move to NodeResolverAction
-    EXECUTE,
+    EXECUTE = 10,
     DISCONNECT,
     DESTROY,
     RESOLVE,
-}
-
-export interface IRunnerControllerInitAction {
-    type: RunnerControllerAction.INIT;
-    id: number;
-    runnerId: number;
-    args: IRunnerArgument[];
 }
 
 export interface IRunnerControllerExecuteAction {
@@ -38,7 +30,7 @@ export interface IRunnerControllerResolveAction {
 }
 
 export type IRunnerControllerAction<T extends RunnerControllerAction = RunnerControllerAction> = Extract<
-    IRunnerControllerInitAction | IRunnerControllerExecuteAction | IRunnerControllerDisconnectAction
+    IRunnerControllerExecuteAction | IRunnerControllerDisconnectAction
         | IRunnerControllerDestroyAction | IRunnerControllerResolveAction,
     {type: T}
 >;

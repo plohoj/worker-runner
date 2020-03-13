@@ -1,4 +1,4 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerControllerAction, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
@@ -9,16 +9,10 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     /** {actionId: Subscriber} */
     public readonly subscribers$ = new Map<number, Subscriber<JsonObject>>();
 
-    protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction<Exclude<
-        RunnerControllerAction,
-        RunnerControllerAction.INIT
-    >>) => void;
+    protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction) => void;
 
     protected async handleAction(
-        action: IRunnerControllerDestroyAction | IRxRunnerEnvironmentAction | IRunnerEnvironmentAction<Exclude<
-            RunnerEnvironmentAction,
-            RunnerEnvironmentAction.INITED | RunnerEnvironmentAction.INIT_ERROR
-        >>,
+        action: IRunnerControllerDestroyAction | IRxRunnerEnvironmentAction | IRunnerEnvironmentAction,
     ): Promise<void> {
         switch (action.type) {
             case RxRunnerEnvironmentAction.RX_INIT:
@@ -37,10 +31,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
                 this.runnerObservableCompleted(action);
                 break;
             default:
-                super.handleAction(action as IRunnerEnvironmentAction<Exclude<
-                    RunnerEnvironmentAction,
-                    RunnerEnvironmentAction.INITED | RunnerEnvironmentAction.INIT_ERROR
-                >>);
+                super.handleAction(action as IRunnerEnvironmentAction);
                 break;
         }
     }

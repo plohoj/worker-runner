@@ -1,6 +1,5 @@
 import { IRunnerError, NodeResolverAction, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
-import { INodeResolverWorkerDestroyAction } from '../actions/node-resolver.actions';
-import { IRunnerControllerInitAction } from '../actions/runner-controller.actions';
+import { INodeResolverAction } from '../actions/node-resolver.actions';
 import { RunnerBridge } from '../runner/runner-bridge';
 import { Constructor } from '../types/constructor';
 import { NodeRunnerResolverBase } from './node-runner.resolver';
@@ -57,7 +56,7 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
     }
 
     protected sendAction(
-        action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction,
+        action: INodeResolverAction,
         transfer?: Transferable[],
     ): void {
         if (this.WorkerResolverConstructor) {
