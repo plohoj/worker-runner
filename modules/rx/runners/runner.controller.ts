@@ -2,7 +2,7 @@ import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnviron
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRxRunnerSerializedMethodResult, RxResolveRunner } from '../resolved-runner';
+import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
@@ -77,7 +77,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         action: IRxRunnerEnvironmentEmitWithRunnerResultAction,
     ): Promise<void> {
         this.getSubscriber(action.id).next(
-            this.buildControlClone(action.runnerId, action.port).resolvedRunner as RxResolveRunner<any>,
+            this.buildControlClone(action.runnerId, action.port).resolvedRunner,
         );
     }
 
@@ -105,7 +105,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
 
-    public onDisconnect(): void {
+    public onDisconnect(closePort = true): void {
         this.subscribers$.forEach(subscriber => {
             const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
             subscriber.error({
@@ -117,6 +117,6 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             subscriber.complete();
         });
         this.subscribers$.clear();
-        super.onDisconnect();
+        super.onDisconnect(closePort);
     }
 }

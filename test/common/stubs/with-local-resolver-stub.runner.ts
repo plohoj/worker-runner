@@ -14,15 +14,15 @@ export class WithLocalResolverStub<T extends JsonObject> {
             .resolve(ExecutableStubRunner, data) as ResolveRunner<ExecutableStubRunner<T>>;
     }
 
-    public async resolveExecutableRunner(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
+    public async resolveExecutableRunnerWithoutMarkForTransfer(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
         if (!this.localExecutableStubRunner) {
             throw new Error('LocalRunnerResolver not runned');
         }
         return this.localExecutableStubRunner;
     }
 
-    public async resolveExecutableRunnerWithClone(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
-        return await (await this.resolveExecutableRunner()).cloneControl();
+    public async resolveExecutableRunnerWithMarkForTransfer(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
+        return (await this.resolveExecutableRunnerWithoutMarkForTransfer()).markForTransfer();
     }
 
     public async destroy(): Promise<void> {

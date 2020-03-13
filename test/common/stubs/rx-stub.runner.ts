@@ -25,7 +25,8 @@ export class RxStubRunner {
             throw new Error('LocalResolver not exist');
         }
         return from(
-            this.localResolver.resolve(ExecutableStubRunner, data) as Promise<ResolveRunner<ExecutableStubRunner<T>>>,
+            this.localResolver.resolve(ExecutableStubRunner, data).then(executableStubRunner =>
+                executableStubRunner.markForTransfer() as ResolveRunner<ExecutableStubRunner<T>>),
         );
     }
 

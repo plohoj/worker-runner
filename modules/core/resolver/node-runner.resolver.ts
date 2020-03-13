@@ -11,7 +11,7 @@ import { RunnerController } from '../runner/runner.controller';
 import { TransferRunnerData } from '../Transferable-runner-data';
 import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { IRunnerArgument, IRunnerEnvironmentArgument, IRunnerJSONArgument, RunnerArgumentType } from '../types/runner-argument';
+import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -65,18 +65,19 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 argument = argumentWithTransferData;
             }
             if (RunnerBridge.isRunnerBridge(argument)) {
-                const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
+                const controller = (argument as RunnerBridge)[runnerBridgeController];
+                const transferPort = await controller.resolveOrTransferControl();
                 argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
-                    runnerId: action.runnerId,
-                    port: action.port,
-                } as IRunnerEnvironmentArgument);
-                serializedArgs.transfer.push(action.port);
+                    port: transferPort,
+                    runnerId: controller.runnerId,
+                });
+                serializedArgs.transfer.push(transferPort);
             } else {
                 argsMap.set(index, {
                     type: RunnerArgumentType.JSON,
                     data: argument as JsonObject,
-                } as IRunnerJSONArgument);
+                });
             }
         }));
         for (let i = 0; i < args.length; i++) {
@@ -120,7 +121,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             onDisconnected: () => this.runnerControllers.delete(runnerController),
             port,
             runnerBridgeConstructors: this.runnerBridgeConstructors,
-            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
+            runnerId,
         });
         this.runnerControllers.add(runnerController);
         return runnerController;

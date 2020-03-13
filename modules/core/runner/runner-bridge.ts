@@ -61,4 +61,9 @@ export class RunnerBridge {
             throw errorActionToRunnerError(error);
         }
     }
+
+    public markForTransfer(): this {
+        this[runnerBridgeController].markForTransfer();
+        return this;
+    }
 }

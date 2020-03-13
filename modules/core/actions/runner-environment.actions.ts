@@ -1,6 +1,6 @@
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { StackTraceError } from '../errors/stacktrace-error';
-import { JsonObject } from '../types/json-object';
+import { JsonObject, TransferableJsonObject } from '../types/json-object';
 
 export enum RunnerEnvironmentAction {
     INITED = 10, // TODO move to WorkerResolverAction
@@ -25,7 +25,7 @@ export interface IRunnerEnvironmentInitedAction {
 export interface IRunnerEnvironmentExecutedAction {
     type: RunnerEnvironmentAction.EXECUTED;
     id: number;
-    response: JsonObject;
+    response: JsonObject | TransferableJsonObject;
 }
 
 export interface IRunnerEnvironmentExecutedWithRunnerResultAction {
@@ -67,7 +67,6 @@ export interface IRunnerEnvironmentResolvedAction {
     type: RunnerEnvironmentAction.RESOLVED;
     id: number;
     port: MessagePort;
-    runnerId: number;
 }
 
 export type IRunnerEnvironmentAction<T extends RunnerEnvironmentAction = RunnerEnvironmentAction> = Extract<

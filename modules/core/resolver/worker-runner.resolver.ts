@@ -63,7 +63,6 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
             const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
                 port: messageChanel.port1,
-                runnerId: action.runnerId,
                 runner,
                 workerRunnerResolver: this,
                 onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
@@ -101,7 +100,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
                     const controller = new RunnerController({
-                        bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
+                        runnerId: argument.runnerId,
                         runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,
                     });
@@ -140,7 +139,6 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
         const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
             port: messageChanel.port1,
-            runnerId,
             runner,
             workerRunnerResolver: this,
             onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
