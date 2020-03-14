@@ -1,4 +1,4 @@
-import { TransferRunnerData } from '../Transferable-runner-data';
+import { TransferRunnerData } from '../transfer-runner-data';
 import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 import { RunnerBridge } from './runner-bridge';

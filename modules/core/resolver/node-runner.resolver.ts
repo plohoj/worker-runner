@@ -6,7 +6,7 @@ import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
-import { TransferRunnerData } from '../Transferable-runner-data';
+import { TransferRunnerData } from '../transfer-runner-data';
 import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';

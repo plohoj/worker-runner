@@ -1,5 +1,5 @@
 import { ResolveRunner } from '../runner/resolved-runner';
-import { TransferRunnerData } from '../Transferable-runner-data';
+import { TransferRunnerData } from '../transfer-runner-data';
 import { JsonObject, TransferableJsonObject } from './json-object';
 
 export type Constructor<T extends {} = {}, A extends any[] = any[]> = new (...args: A) => T;

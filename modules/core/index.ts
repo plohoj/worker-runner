@@ -13,7 +13,7 @@ export { ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './ru
 export { RunnerBridge, runnerBridgeController } from './runner/runner-bridge';
 export { RunnerController } from './runner/runner.controller';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/runner.environment';
-export { TransferRunnerData } from './Transferable-runner-data';
+export { TransferRunnerData } from './transfer-runner-data';
 export { Constructor, IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { JsonObject, TransferableJsonObject } from './types/json-object';
 

@@ -3,7 +3,7 @@ import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnv
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
-import { TransferRunnerData } from '../Transferable-runner-data';
+import { TransferRunnerData } from '../transfer-runner-data';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { RunnerBridge, runnerBridgeController } from './runner-bridge';

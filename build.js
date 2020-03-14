@@ -41,11 +41,12 @@ async function copyModulesPackage() {
 }
 
 async function copyModulesReadme() {
-    await Promise.all(moduleNames.filter(moduleName => moduleName !== 'core')
-        .map(moduleName => new Promise((resolver, reject) =>
-            copyFile(resolve(`README.md`), resolve(`dist/${moduleName}/README.md`),
-                error => error ? reject(error) : resolver()),
-        )),
+    await Promise.all(moduleNames
+        .map(moduleName => new Promise((resolver, reject) => {
+            const readmeFilePath = moduleName == 'core' ? `modules/core/README.md` : `README.md`
+            copyFile(resolve(readmeFilePath), resolve(`dist/${moduleName}/README.md`),
+                error => error ? reject(error) : resolver());
+        })),
     );
 }
 
