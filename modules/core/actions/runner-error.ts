@@ -1,13 +1,14 @@
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { IStacktraceError, StackTraceError } from '../errors/stacktrace-error';
-import { IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecuteErrorAction, IRunnerEnvironmentInitErrorAction } from './runner-environment.actions';
+import { IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecuteErrorAction } from './runner-environment.actions';
+import { IWorkerResolverRunnerInitErrorAction } from './worker-resolver.actions';
 
 export type IRunnerError = StackTraceError<{
     errorCode: RunnerErrorCode;
 }>;
 
 
-export function errorActionToRunnerError(errorAction: IRunnerEnvironmentInitErrorAction
+export function errorActionToRunnerError(errorAction: IWorkerResolverRunnerInitErrorAction
         | IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction): IRunnerError {
     const runnerError: IRunnerError = {
         error: errorAction.error,

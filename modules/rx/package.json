@@ -1,6 +1,6 @@
 {
   "name": "@worker-runner/rx",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "repository": {
     "type": "git",
     "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
@@ -23,7 +23,7 @@
     "runner"
   ],
   "dependencies": {
-    "@worker-runner/core": "^0.5.0",
+    "@worker-runner/core": "^0.6.0",
     "rxjs": ">=6.0.0"
   }
 }

@@ -1,15 +1,13 @@
-import { INodeResolverWorkerDestroyAction, NodeResolverAction } from '../actions/node-resolver.actions';
-import { IRunnerControllerInitAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { INodeResolverAction, INodeResolverInitRunnerAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { ResolveRunner } from '../runner/resolved-runner';
+import { ResolvedRunner } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
 import { RunnerEnvironment } from '../runner/runner.environment';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
@@ -24,16 +22,16 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
     public run(): void {
         self.addEventListener('message', this.onMessage.bind(this));
-        this.sendAction({type: WorkerResolverAction.INIT});
+        this.sendAction({type: WorkerResolverAction.WORKER_INITED});
     }
 
-    private onMessage(message: MessageEvent): void {
+    public onMessage(message: MessageEvent): void {
         this.handleAction(message.data);
     }
 
-    public handleAction(action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction): void {
+    public handleAction(action: INodeResolverAction): void {
         switch (action.type) {
-            case RunnerControllerAction.INIT:
+            case NodeResolverAction.INIT_RUNNER:
                 this.initRunnerInstance(action);
                 break;
             case NodeResolverAction.DESTROY:
@@ -41,7 +39,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 break;
         }
     }
-    private async initRunnerInstance(action: IRunnerControllerInitAction): Promise<void> {
+    private async initRunnerInstance(action: INodeResolverInitRunnerAction): Promise<void> {
         const runnerConstructor = this.config.runners[action.runnerId];
         if (runnerConstructor) {
             const messageChanel = new MessageChannel();
@@ -51,7 +49,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
             } catch (error) {
                 this.sendAction({
-                    type: RunnerEnvironmentAction.INIT_ERROR,
+                    type: WorkerResolverAction.RUNNER_INIT_ERROR,
                     id: action.id,
                     errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
                     ...extractError(error),
@@ -63,7 +61,6 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
             const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
                 port: messageChanel.port1,
-                runnerId: action.runnerId,
                 runner,
                 workerRunnerResolver: this,
                 onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
@@ -73,7 +70,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
             this.sendAction(
                 {
-                    type: RunnerEnvironmentAction.INITED,
+                    type: WorkerResolverAction.RUNNER_INITED,
                     id: action.id,
                     port: messageChanel.port2,
                 },
@@ -81,7 +78,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             );
         } else {
             this.sendAction({
-                type: RunnerEnvironmentAction.INIT_ERROR,
+                type: WorkerResolverAction.RUNNER_INIT_ERROR,
                 id: action.id,
                 errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
                 error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
@@ -90,23 +87,23 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public deserializeArguments(args: IRunnerArgument[]): {
-        args: Array<IRunnerParameter>,
+        args: Array<IRunnerSerializedParameter>,
         controllers: Array<RunnerController<R>>,
     } {
         const result = {
-            args: new Array<IRunnerParameter>(),
+            args: new Array<IRunnerSerializedParameter>(),
             controllers: new Array<RunnerController<R>>(),
         };
         for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
                     const controller = new RunnerController({
-                        bridgeConstructor: this.runnerBridgeConstructors[argument.runnerId],
+                        runnerId: argument.runnerId,
                         runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,
                     });
                     result.controllers.push(controller);
-                    result.args.push(controller.resolvedRunner as ResolveRunner<R>);
+                    result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
                     break;
                 default:
                     result.args.push(argument.data);
@@ -128,7 +125,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public sendAction(
-        action: IWorkerResolverAction | IRunnerEnvironmentInitedAction | IRunnerEnvironmentInitErrorAction,
+        action: IWorkerResolverAction,
         transfer?: Transferable[],
     ): void {
         // @ts-ignore
@@ -140,7 +137,6 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
 
         const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
             port: messageChanel.port1,
-            runnerId,
             runner,
             workerRunnerResolver: this,
             onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),

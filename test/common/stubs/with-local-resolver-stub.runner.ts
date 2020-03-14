@@ -1,30 +1,31 @@
-import { JsonObject, ResolveRunner } from '@worker-runner/core';
+import { JsonObject, ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class WithLocalResolverStub<T extends JsonObject> {
-    private localResolver = new LocalRunnerResolver({runners});
-    private localExecutableStubRunner?: ResolveRunner<ExecutableStubRunner<T>>;
+    private localResolver?: LocalRunnerResolver<typeof runners[0]>;
+    private localExecutableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>;
 
     public async run(data: T): Promise<void> {
+        this.localResolver = new LocalRunnerResolver({runners});
         await this.localResolver.run();
         this.localExecutableStubRunner = await this.localResolver
-            .resolve(ExecutableStubRunner, data) as ResolveRunner<ExecutableStubRunner<T>>;
+            .resolve(ExecutableStubRunner, data) as ResolvedRunner<ExecutableStubRunner<T>>;
     }
 
-    public async resolveExecutableRunner(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
+    public async resolveExecutableRunnerWithoutMarkForTransfer(): Promise<ResolvedRunner<ExecutableStubRunner<T>>> {
         if (!this.localExecutableStubRunner) {
             throw new Error('LocalRunnerResolver not runned');
         }
         return this.localExecutableStubRunner;
     }
 
-    public async resolveExecutableRunnerWithClone(): Promise<ResolveRunner<ExecutableStubRunner<T>>> {
-        return await (await this.resolveExecutableRunner()).cloneControl();
+    public async resolveExecutableRunnerWithMarkForTransfer(): Promise<ResolvedRunner<ExecutableStubRunner<T>>> {
+        return (await this.resolveExecutableRunnerWithoutMarkForTransfer()).markForTransfer();
     }
 
     public async destroy(): Promise<void> {
-        return this.localResolver.destroy();
+        return this.localResolver?.destroy();
     }
 }

@@ -8,9 +8,11 @@ Worker Runner is a tool to assist use Web Worker.
     * [destroy](#destroy)
     * [disconnect](#disconnect)
     * [cloneControl](#clone-control)
+    * [markForTransfer](#mark-for-transfer)
 1. [Resolved Runner as argument](#resolved-runner-as-argument)
 1. [LocalRunnerResolver](#localrunnerresolver)
-    * [Runner as method result](#runner-as-method-result)
+1. [Resolved Runner as method result](#resolved-runner-as-method-result)
+1. [Transfer data](#transfer-data)
 1. [Usage with RxJs](#usage-with-rxjs)
 
 ## <a name="initialization"></a> Initialization
@@ -78,25 +80,33 @@ Runner that was resolved by `RunnerResolver` has the same methods as the origina
 All called methods will be executed asynchronously and the result of the calculation will be obtained using Promise.  
 Resolved Runner also has a set of methods:
 
-*   <a name="destroy"></a> **`destroy()`**  
+*   ### <a name="destroy"></a> **`destroy()`**  
     Destroying and remove Runner instance from resolved Runners list in `RunnerResolver` instance.
 
-*   <a name="disconnect"></a> **`disconnect()`**  
+*   ### <a name="disconnect"></a> **`disconnect()`**  
     Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed.
 
-*   <a name="clone-control"></a> **`cloneControl()`**  
+*   ### <a name="clone-control"></a> **`cloneControl()`**  
     Returns a new control object for the same Runner instance.
+
+*   ### <a name="mark-for-transfer"></a> **`markForTransfer()`**  
+    When a Runner is flagged for transfer, if it is used 
+    [as argument](#resolved-runner-as-argument) or as [method result](#resolved-runner-as-method-result),
+    the original control will be transferred. The original Resolved Runner will lose control.
+    In this case, the transfer of the Resolved Runner will be faster
+    because it will not take time to request a copy of the control.
+    It is convenient to use as an automatic disconnect after returning the result of a method.
 
 ## <a name="resolved-runner-as-argument"></a> Resolved Runner as argument
 You can use the resolved instance as constructor or methods arguments. Resolved instance **can be declared in another `RunnerResolver` and area**.
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    constructor(...libraries: ResolveRunner<LibraryRunner>[]) {
+    constructor(...libraries: ResolvedRunner<LibraryRunner>[]) {
         // ...
     }
 
-    addLibrary(library: ResolveRunner<LibraryRunner>): void {
+    addLibrary(library: ResolvedRunner<LibraryRunner>): void {
         // ...
     }
 }
@@ -105,48 +115,74 @@ const libraryRunners = await Promise.all([
     resolver1.resolve(LibraryRunner, []),
     resolver2.resolve(LibraryRunner, []),
 ]);
-const libraryPoolRunner = await resolver3.resolve(LibraryPoolRunner, libraryRunners[0]);
+const libraryPoolRunner = await resolver3
+    .resolve(LibraryPoolRunner, libraryRunners[0]);
 await libraryPoolRunner.addLibrary(libraryRunners[1]);
 ```
 ## <a name="localrunnerresolver"></a> LocalRunnerResolver
 The original Runner instance will run in the same area in which it was resolved / wrapped.
 `LocalRunnerResolver` can be used to replace `RunnerResolver` to simplify debugging in development mode and for testing.  
-That allows to use a local Runner as the result of a method or pass it as an argument.
+That allows to use a local Runner as [method result](#resolved-runner-as-method-result) or pass it [as argument](#resolved-runner-as-argument).
 ``` ts
 // ...
 const resolvedLibraryPoolRunner = await resolver.resolve(LibraryPoolRunner);
-const localResolver = new LocalRunnerResolver({runners: [LibraryRunner, LibraryPoolRunner]});
+const localResolver = new LocalRunnerResolver({
+    runners: [LibraryRunner, LibraryPoolRunner]
+});
 const resolvedLibraryRunner = await localResolver.resolve(LibraryRunner, []);
 resolvedLibraryPoolRunner.addLibrary(resolvedLibraryRunner);
 resolvedLibraryRunner.disconnect();
 // ...
 ```
-**WARNING**: Remember to call the `disconnect` or `destroy` method, as appropriate, to avoid memory leaks.
+**WARNING**: Remember to call the [`disconnect()`](#disconnect) or [`destroy()`](#destroy) method, as appropriate, to avoid **memory leaks**.
 
-### Runner as method result
-`LocalRunnerResolver` has a `wrapRunner` method that allows to get an Runner control object that will call the methods of the original Runner instance. The original Runner instance will be executed in the same area in which it was wrapped. That allows you to use an existing Runner instance as a result of a method calculation.
+## <a name="resolved-runner-as-method-result"></a> Resolved Runner as method result
+If the method returns the Resolved Runner as the return value, then its control object will be copied and transferred.  
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    public resolveLibrary(id: number): ResolveRunner<LibraryRunner> {
-        return this.localResolver.wrapRunner(this.libraryRunners[id]);
+    public resolveLibrary(id: number): ResolvedRunner<LibraryRunner> {
+        return this.resolvedLibraryRunners[id];
     }
-    // ...
 }
 ```
-**WARNING**: If the method returns a resolved Runner, it will automatically call the `disconnect` method. If you do not want this action to call the deconstruction method, return a copy of resolved runner using the `cloneControl` method.
+**WARNING**: If you want the Resolved Runner to be **automatically disconnected** after returning the result of the method, in order to avoid **memory leak**, call the [`markForTransfer()`](#mark-for-transfer) method, in which case the control will not be copied, but transferred. At the same time, the original Resolved Runner **will lose control**.
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    public async resolveLibrary(id: number): Promise<ResolveRunner<LibraryRunner>> {
-        return await this.resolvedLibraryRunners[id].cloneControl();
+    public resolveLibrary(id: number): ResolvedRunner<LibraryRunner> {
+        return this.localResolver
+            .wrapRunner(this.libraryRunners[id])
+            .markForTransfer();
     }
-    // ...
 }
+```
+
+## <a name="transfer-data"></a> Transfer data
+If you need to use Transferable data as an argument or as a result of a method,
+wrap such data in the `TransferRunnerData` class.
+```ts
+export class ArrayBufferRunner {
+    // ...
+    public resolveLibrary(
+        id: number,
+        data: ArrayBuffer,
+    ): TransferRunnerData<{ id: number, data: ArrayBuffer}, ArrayBuffer> {
+        // ...
+        return new TransferRunnerData({ id, data}, [data]);
+    }
+}
+// ...
+const arrayBuffer = new ArrayBuffer(8);
+// ...
+resolvedArrayBufferRunner
+    .resolveLibrary(0, new TransferRunnerData(arrayBuffer, [arrayBuffer]),
+);
+
 ```
 
 ## <a name="usage-with-rxjs"></a> Usage with RxJs
-You can also use RxJS Observable to receive events from worker. To do this, use the `@worker-runner/rx` library.
+You can also use RxJS Observable *(or Subject)* to receive events from worker. To do this, use the [`@worker-runner/rx`](https://www.npmjs.com/package/@worker-runner/rx) library.
 ``` ts
 export class LibraryRunner {
     private notification$ = new Subject<string>();

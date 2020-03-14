@@ -1,13 +1,13 @@
 import { errorActionToRunnerError } from '../actions/runner-error';
-import { Constructor, IRunnerParameter, RunnerConstructor } from '../types/constructor';
-import { ResolveRunner } from './resolved-runner';
+import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
+import { ResolvedRunner } from './resolved-runner';
 import { RunnerController } from './runner.controller';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
-    = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
+    = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
-export const runnerBridgeController =  Symbol('Execute via NodeResolver method');
+export const runnerBridgeController = Symbol('Execute via NodeResolver method');
 
 export class RunnerBridge {
 
@@ -26,7 +26,7 @@ export class RunnerBridge {
     protected async [executeRunnerBridgeMethod](
         methodName: string,
         args: IRunnerParameter[],
-    ): Promise<IRunnerParameter | void> {
+    ): Promise<IRunnerSerializedMethodResult> {
         try {
             return this[runnerBridgeController].execute(methodName, args);
         } catch (error) {
@@ -43,7 +43,7 @@ export class RunnerBridge {
         }
     }
 
-    /** Destroying and remove Runner instance from resolved Runners list in **RunnerResolver** instance */
+    /** Destroying and remove Runner instance from resolved Runners list in `RunnerResolver` instance */
     public async destroy(): Promise<void> {
         try {
             await this[runnerBridgeController].destroy();
@@ -60,5 +60,16 @@ export class RunnerBridge {
         } catch (error) {
             throw errorActionToRunnerError(error);
         }
+    }
+    /**
+     * When a Runner is flagged for transfer, if it is used as argument or as method result,
+     * the original control will be transferred. The original Resolved Runner will lose control.
+     * In this case, the transfer of the Resolved Runner will be faster
+     * because it will not take time to request a copy of the control.
+     * It is convenient to use as an automatic disconnect after returning the result of a method.
+     */
+    public markForTransfer(): this {
+        this[runnerBridgeController].markForTransfer();
+        return this;
     }
 }

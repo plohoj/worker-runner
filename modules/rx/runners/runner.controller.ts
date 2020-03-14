@@ -1,42 +1,37 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerControllerAction, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { RxRunnerErrorMessages } from '../runners-errors';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
     /** {actionId: Subscriber} */
     public readonly subscribers$ = new Map<number, Subscriber<JsonObject>>();
 
-    protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction<Exclude<
-        RunnerControllerAction,
-        RunnerControllerAction.INIT
-    >>) => void;
+    protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction) => void;
 
     protected async handleAction(
-        action: IRunnerControllerDestroyAction | IRxRunnerEnvironmentAction | IRunnerEnvironmentAction<Exclude<
-            RunnerEnvironmentAction,
-            RunnerEnvironmentAction.INITED | RunnerEnvironmentAction.INIT_ERROR
-        >>,
+        action: IRunnerControllerDestroyAction | IRxRunnerEnvironmentAction | IRunnerEnvironmentAction,
     ): Promise<void> {
         switch (action.type) {
-            case RxRunnerEnvironmentAction.RUNNER_RX_INIT:
+            case RxRunnerEnvironmentAction.RX_INIT:
                 this.runnerObservableInit(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_EMIT:
+            case RxRunnerEnvironmentAction.RX_EMIT:
                 this.runnerObservableEmit(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_ERROR:
+            case RxRunnerEnvironmentAction.RX_EMIT_WITH_RUNNER_RESULT:
+                this.runnerObservableEmitWithRunnerResult(action);
+                break;
+            case RxRunnerEnvironmentAction.RX_ERROR:
                 this.runnerObservableError(action);
                 break;
-            case RxRunnerEnvironmentAction.RUNNER_RX_COMPLETED:
+            case RxRunnerEnvironmentAction.RX_COMPLETED:
                 this.runnerObservableCompleted(action);
                 break;
             default:
-                super.handleAction(action as IRunnerEnvironmentAction<Exclude<
-                    RunnerEnvironmentAction,
-                    RunnerEnvironmentAction.INITED | RunnerEnvironmentAction.INIT_ERROR
-                >>);
+                super.handleAction(action as IRunnerEnvironmentAction);
                 break;
         }
     }
@@ -69,6 +64,14 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         this.getSubscriber(action.id).next(action.response);
     }
 
+    private async runnerObservableEmitWithRunnerResult(
+        action: IRxRunnerEnvironmentEmitWithRunnerResultAction,
+    ): Promise<void> {
+        this.getSubscriber(action.id).next(
+            this.buildControlClone(action.runnerId, action.port).resolvedRunner,
+        );
+    }
+
     private runnerObservableError(action: IRxRunnerEnvironmentErrorAction): void {
         this.getSubscriber(action.id).error(action.error);
     }
@@ -78,7 +81,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         this.subscribers$.delete(action.id);
     }
 
-    private getSubscriber(actionId: number): Subscriber<JsonObject> {
+    private getSubscriber(actionId: number): Subscriber<IRxRunnerSerializedMethodResult> {
         const completedSubscriber$ = this.subscribers$.get(actionId);
         const error = new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND);
         if (!completedSubscriber$) {
@@ -93,7 +96,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
 
-    public onDisconnect(): void {
+    public onDisconnect(closePort = true): void {
         this.subscribers$.forEach(subscriber => {
             const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
             subscriber.error({
@@ -105,6 +108,6 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             subscriber.complete();
         });
         this.subscribers$.clear();
-        super.onDisconnect();
+        super.onDisconnect(closePort);
     }
 }

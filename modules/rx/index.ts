@@ -1,6 +1,6 @@
 export { RxRunnerControllerAction } from './actions/runner-controller.actions';
 export { RxRunnerEnvironmentAction } from './actions/runner-environment.actions';
-export { RxResolveRunner, RxResolveRunnerMethod } from './resolved-runner';
+export { RxResolvedRunner, RxResolvedRunnerMethod, RxResolveRunner } from './resolved-runner';
 export { RxLocalRunnerResolver } from './resolvers/local-runner.resolver';
 export { RxNodeRunnerResolver } from './resolvers/node-runner.resolver';
 export { RxRunnerResolver } from './resolvers/runner.resolver';

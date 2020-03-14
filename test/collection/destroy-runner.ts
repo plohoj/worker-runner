@@ -1,4 +1,4 @@
-import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -40,9 +40,9 @@ each({
 
         it ('which is used', async () => {
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolveRunner<ExecutableStubRunner>;
+                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())

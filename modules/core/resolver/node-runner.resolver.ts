@@ -1,17 +1,15 @@
-import { INodeResolverWorkerDestroyAction, NodeResolverAction } from '../actions/node-resolver.actions';
-import { IRunnerControllerInitAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentInitedAction, IRunnerEnvironmentInitErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { INodeResolverAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
-import { IWorkerResolverDestroyedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
+import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { IPromiseMethods, PromisesResolver } from '../runner-promises';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { ResolveRunnerArguments } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { TransferRunnerData } from '../transfer-runner-data';
+import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { IRunnerArgument, IRunnerEnvironmentArgument, IRunnerJSONArgument, RunnerArgumentType } from '../types/runner-argument';
+import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -26,7 +24,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    private initPromises = new PromisesResolver<IRunnerEnvironmentInitedAction>();
+    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction>();
     private lastActionId = 0;
 
     private worker?: Worker;
@@ -45,7 +43,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         };
     }
 
-    public static async serializeArguments(args: IRunnerParameter[],
+    public static async serializeArguments(
+        args: IRunnerParameter[],
     ): Promise<{
         args: IRunnerArgument[]
         transfer: Transferable[],
@@ -55,20 +54,28 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             transfer: new Array<Transferable>(),
         };
         const argsMap = new Map<number, IRunnerArgument>();
-        await Promise.all(args.map(async (argument, index) => {
+        await Promise.all(args.map(async (argumentWithTransferData, index) => {
+            let argument: IRunnerSerializedParameter;
+            if (argumentWithTransferData instanceof TransferRunnerData) {
+                serializedArgs.transfer.push(...argumentWithTransferData.transfer);
+                argument = argumentWithTransferData.data;
+            } else {
+                argument = argumentWithTransferData;
+            }
             if (RunnerBridge.isRunnerBridge(argument)) {
-                const action = await (argument as RunnerBridge)[runnerBridgeController].resolveControl();
+                const controller = (argument as RunnerBridge)[runnerBridgeController];
+                const transferPort = await controller.resolveOrTransferControl();
                 argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
-                    runnerId: action.runnerId,
-                    port: action.port,
-                } as IRunnerEnvironmentArgument);
-                serializedArgs.transfer.push(action.port);
+                    port: transferPort,
+                    runnerId: controller.runnerId,
+                });
+                serializedArgs.transfer.push(transferPort);
             } else {
                 argsMap.set(index, {
                     type: RunnerArgumentType.JSON,
                     data: argument as JsonObject,
-                } as IRunnerJSONArgument);
+                });
             }
         }));
         for (let i = 0; i < args.length; i++) {
@@ -112,7 +119,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             onDisconnected: () => this.runnerControllers.delete(runnerController),
             port,
             runnerBridgeConstructors: this.runnerBridgeConstructors,
-            bridgeConstructor: this.runnerBridgeConstructors[runnerId],
+            runnerId,
         });
         this.runnerControllers.add(runnerController);
         return runnerController;
@@ -120,8 +127,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
 
     protected async sendInitAction(
         runnerId: number,
-        args: ResolveRunnerArguments<ConstructorParameters<RunnerConstructor>>,
-    ): Promise<IRunnerEnvironmentInitedAction> {
+        args: IRunnerParameter[],
+    ): Promise<IWorkerResolverRunnerInitedAction> {
         if (runnerId < 0) {
             const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
             throw {
@@ -137,7 +144,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
             this.sendAction(
                 {
-                    type: RunnerControllerAction.INIT,
+                    type: NodeResolverAction.INIT_RUNNER,
                     id: actionId,
                     runnerId,
                     args: serializedArgs.args,
@@ -159,14 +166,13 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         this.handleWorkerAction(message.data);
     }
 
-    protected handleWorkerAction(action: IRunnerEnvironmentInitedAction | IRunnerEnvironmentInitErrorAction
-        | IWorkerResolverDestroyedAction,
+    protected handleWorkerAction(action: IWorkerResolverAction,
     ): void {
         switch (action.type) {
-            case RunnerEnvironmentAction.INITED:
+            case WorkerResolverAction.RUNNER_INITED:
                 this.initPromises.resolve(action.id, action);
                 break;
-            case RunnerEnvironmentAction.INIT_ERROR:
+            case WorkerResolverAction.RUNNER_INIT_ERROR:
                 this.initPromises.reject(action.id, action);
                 break;
             case WorkerResolverAction.DESTROYED:
@@ -184,7 +190,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         const worker = new Worker(this.config.workerPath, { name: this.config.workerName });
         await new Promise(resolve => {
             worker.onmessage = (message) => {
-                if (message.data && message.data.type === WorkerResolverAction.INIT) {
+                if (message.data && message.data.type === WorkerResolverAction.WORKER_INITED) {
                     resolve();
                 }
             };
@@ -227,7 +233,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     protected sendAction(
-        action: INodeResolverWorkerDestroyAction | IRunnerControllerInitAction,
+        action: INodeResolverAction,
         transfer?: Transferable[],
     ): void {
         if (this.worker) { // TO use MessageChanel

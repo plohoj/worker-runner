@@ -1,15 +1,15 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode } from '../errors/runners-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
-import { IRunnerParameter, RunnerConstructor } from '../types/constructor';
+import { TransferRunnerData } from '../transfer-runner-data';
+import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { RunnerBridge, runnerBridgeController } from './runner-bridge';
 import { RunnerController } from './runner.controller';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
-    runnerId: number;
     runner: InstanceType<R>;
     workerRunnerResolver: WorkerRunnerResolverBase<R>;
     port: MessagePort;
@@ -21,7 +21,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private workerRunnerResolver: WorkerRunnerResolverBase<R>;
     private ports = new Array<MessagePort>();
     private onDestroyed: () => void;
-    private runnerId: number;
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
     constructor(config: IRunnerEnvironmentConfig<R>) {
@@ -29,7 +28,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
         config.port.onmessage = this.onPortMessage.bind(this, config.port);
-        this.runnerId = config.runnerId;
         this.onDestroyed = config.onDestroyed;
     }
 
@@ -39,7 +37,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected async handleAction(
         port: MessagePort,
-        action: IRunnerControllerAction<Exclude<RunnerControllerAction, RunnerControllerAction.INIT>>,
+        action: IRunnerControllerAction,
     ): Promise<void> {
         switch (action.type) {
             case RunnerControllerAction.EXECUTE:
@@ -117,27 +115,39 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected async handleExecuteResponse(
         port: MessagePort,
         action: IRunnerControllerExecuteAction,
-        response: IRunnerParameter,
+        responseWithTransferData: IRunnerMethodResult,
+        transferable: Transferable[] = [],
     ): Promise<void> {
+        let response: IRunnerSerializedMethodResult;
+        if (responseWithTransferData instanceof TransferRunnerData) {
+            transferable.push(...responseWithTransferData.transfer);
+            response = responseWithTransferData.data;
+        } else {
+            response = responseWithTransferData;
+        }
         if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerControl = await response[runnerBridgeController].resolveControl();
-            response.disconnect();
+            const runnerController = await response[runnerBridgeController];
+            const transferPort: MessagePort = await runnerController.resolveOrTransferControl();
             this.sendAction(
                 port,
                 {
                     type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT,
                     id: action.id,
-                    port: runnerControl.port,
-                    runnerId: runnerControl.runnerId,
-                } as IRunnerEnvironmentExecutedWithRunnerResultAction,
-                [runnerControl.port],
+                    port: transferPort,
+                    runnerId: runnerController.runnerId,
+                },
+                [transferPort, ...transferable],
             );
         } else {
-            this.sendAction(port, {
-                type: RunnerEnvironmentAction.EXECUTED,
-                id: action.id,
-                response,
-            } as IRunnerEnvironmentExecutedAction);
+            this.sendAction(
+                port,
+                {
+                    type: RunnerEnvironmentAction.EXECUTED,
+                    id: action.id,
+                    response: response as JsonObject,
+                },
+                transferable,
+            );
         }
     }
 
@@ -215,7 +225,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 type: RunnerEnvironmentAction.RESOLVED,
                 id: action.id,
                 port: messageChanel.port2,
-                runnerId: this.runnerId,
             },
             [messageChanel.port2],
         );
@@ -223,10 +232,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected sendAction(
         port: MessagePort,
-        action: IRunnerEnvironmentAction<Exclude<
-            RunnerEnvironmentAction,
-            RunnerEnvironmentAction.INITED |  RunnerEnvironmentAction.INIT_ERROR>
-        >,
+        action: IRunnerEnvironmentAction,
         transfer?: Transferable[],
     ): void {
         port.postMessage(action, transfer as Transferable[]);
