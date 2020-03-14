@@ -9,7 +9,7 @@ export { IStacktraceError, StackTraceError } from './errors/stacktrace-error';
 export { NodeAndLocalRunnerResolverBase } from './resolver/node-and-local-runner.resolver';
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';
-export { ResolveRunner, ResolveRunnerArguments, ResolveRunnerMethod } from './runner/resolved-runner';
+export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod, ResolveRunner } from './runner/resolved-runner';
 export { RunnerBridge, runnerBridgeController } from './runner/runner-bridge';
 export { RunnerController } from './runner/runner.controller';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/runner.environment';

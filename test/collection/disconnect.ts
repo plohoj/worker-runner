@@ -1,4 +1,4 @@
-import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
@@ -27,10 +27,10 @@ each({
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await executableStubRunner.disconnect();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
@@ -39,7 +39,7 @@ each({
 
         it ('after disconnect', async () => {
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolveRunner<ExecutableStubRunner>;
+                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.disconnect();
             await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(jasmine.objectContaining({
                 message: RunnerErrorMessages.RUNNER_NOT_INIT,
@@ -49,7 +49,7 @@ each({
 
         it ('after destroy', async () => {
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolveRunner<ExecutableStubRunner>;
+                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(jasmine.objectContaining({
                 message: RunnerErrorMessages.RUNNER_NOT_INIT,

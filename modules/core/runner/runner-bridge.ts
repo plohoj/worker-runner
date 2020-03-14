@@ -1,10 +1,10 @@
 import { errorActionToRunnerError } from '../actions/runner-error';
 import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
-import { ResolveRunner } from './resolved-runner';
+import { ResolvedRunner } from './resolved-runner';
 import { RunnerController } from './runner.controller';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
-    = Constructor<ResolveRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
+    = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export const executeRunnerBridgeMethod = Symbol('Execute RunnerBridge method');
 export const runnerBridgeController = Symbol('Execute via NodeResolver method');

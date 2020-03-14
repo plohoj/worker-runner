@@ -1,4 +1,4 @@
-import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { runners } from 'test/common/runner-list';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -30,7 +30,7 @@ each({
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
@@ -41,10 +41,10 @@ each({
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
         });
@@ -57,10 +57,10 @@ each({
             const localResolver =  new LocalRunnerResolver({ runners });
             await localResolver.run();
             const executableStubRunner = await localResolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
             await localResolver.destroy();

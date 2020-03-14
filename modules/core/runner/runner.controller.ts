@@ -5,7 +5,7 @@ import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { PromisesResolver } from '../runner-promises';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
-import { ResolveRunner } from './resolved-runner';
+import { ResolvedRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
@@ -17,7 +17,7 @@ export interface IRunnerControllerConfig<R extends RunnerConstructor> {
 
 export class RunnerController<R extends RunnerConstructor> {
     public readonly runnerId: number;
-    public resolvedRunner: ResolveRunner<InstanceType<R>>;
+    public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
     private isMarkedForTransfer = false;
     private promises = new PromisesResolver<

@@ -1,4 +1,4 @@
-import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { runners } from 'test/common/runner-list';
@@ -37,10 +37,10 @@ each({
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
                 .toBeResolvedTo(storageData);
@@ -54,10 +54,10 @@ each({
             const localResolver =  new LocalRunnerResolver({ runners });
             await localResolver.run();
             const executableStubRunner = await localResolver
-                .resolve(ExecutableStubRunner, storageData) as ResolveRunner<
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner) as ResolveRunner<
+                .resolve(WithOtherInstanceStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
                 .toBeResolvedTo(storageData);

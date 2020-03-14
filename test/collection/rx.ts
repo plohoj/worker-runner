@@ -1,4 +1,4 @@
-import { IRunnerError, ResolveRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -70,7 +70,7 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         await rxStubRunner.run();
         const executableStubRunner = await (await rxStubRunner.resolveExecutableRunner(storageData))
-            .toPromise() as ResolveRunner<ExecutableStubRunner<typeof storageData>>;
+            .toPromise() as ResolvedRunner<ExecutableStubRunner<typeof storageData>>;
         await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
     });
 

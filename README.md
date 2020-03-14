@@ -102,11 +102,11 @@ You can use the resolved instance as constructor or methods arguments. Resolved 
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    constructor(...libraries: ResolveRunner<LibraryRunner>[]) {
+    constructor(...libraries: ResolvedRunner<LibraryRunner>[]) {
         // ...
     }
 
-    addLibrary(library: ResolveRunner<LibraryRunner>): void {
+    addLibrary(library: ResolvedRunner<LibraryRunner>): void {
         // ...
     }
 }
@@ -141,7 +141,7 @@ If the method returns the Resolved Runner as the return value, then its control 
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    public resolveLibrary(id: number): ResolveRunner<LibraryRunner> {
+    public resolveLibrary(id: number): ResolvedRunner<LibraryRunner> {
         return this.resolvedLibraryRunners[id];
     }
 }
@@ -150,7 +150,7 @@ export class LibraryPoolRunner {
 ``` ts
 export class LibraryPoolRunner {
     // ...
-    public resolveLibrary(id: number): ResolveRunner<LibraryRunner> {
+    public resolveLibrary(id: number): ResolvedRunner<LibraryRunner> {
         return this.localResolver
             .wrapRunner(this.libraryRunners[id])
             .markForTransfer();

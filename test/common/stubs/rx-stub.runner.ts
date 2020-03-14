@@ -1,4 +1,4 @@
-import { JsonObject, ResolveRunner } from '@worker-runner/core';
+import { JsonObject, ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { from, Observable, of, throwError } from 'rxjs';
 import { delay as rxDelay } from 'rxjs/operators';
@@ -20,13 +20,13 @@ export class RxStubRunner {
         return of(...messages);
     }
 
-    public resolveExecutableRunner<T extends JsonObject>(data: T): Observable<ResolveRunner<ExecutableStubRunner<T>>> {
+    public resolveExecutableRunner<T extends JsonObject>(data: T): Observable<ResolvedRunner<ExecutableStubRunner<T>>> {
         if (!this.localResolver) {
             throw new Error('LocalResolver not exist');
         }
         return from(
             this.localResolver.resolve(ExecutableStubRunner, data).then(executableStubRunner =>
-                executableStubRunner.markForTransfer() as ResolveRunner<ExecutableStubRunner<T>>),
+                executableStubRunner.markForTransfer() as ResolvedRunner<ExecutableStubRunner<T>>),
         );
     }
 

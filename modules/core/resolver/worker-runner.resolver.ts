@@ -3,7 +3,7 @@ import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-r
 import { extractError } from '../errors/extract-error';
 import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { ResolveRunner } from '../runner/resolved-runner';
+import { ResolvedRunner } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
 import { RunnerEnvironment } from '../runner/runner.environment';
@@ -103,7 +103,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                         port: argument.port,
                     });
                     result.controllers.push(controller);
-                    result.args.push(controller.resolvedRunner as ResolveRunner<R>);
+                    result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
                     break;
                 default:
                     result.args.push(argument.data);

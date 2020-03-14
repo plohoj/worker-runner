@@ -1,4 +1,4 @@
-import { ResolveRunner } from '@worker-runner/core';
+import { ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -30,7 +30,7 @@ each({
                 type: 'STORAGE_DATA',
             };
             const withLocalResolverStub = await resolver
-                .resolve(WithLocalResolverStub) as ResolveRunner<WithLocalResolverStub<typeof storageData>>;
+                .resolve(WithLocalResolverStub) as ResolvedRunner<WithLocalResolverStub<typeof storageData>>;
             await withLocalResolverStub.run(storageData);
             const executableStubRunner = await withLocalResolverStub.resolveExecutableRunnerWithoutMarkForTransfer();
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
@@ -48,7 +48,7 @@ each({
             const localResolver = new IterateLocalRunnerResolver({ runners });
             await localResolver.run();
             const withLocalResolverStub = await localResolver
-                .resolve(WithLocalResolverStub) as ResolveRunner<WithLocalResolverStub<any>>;
+                .resolve(WithLocalResolverStub) as ResolvedRunner<WithLocalResolverStub<any>>;
             await withLocalResolverStub.run({});
             const executableStubRunner = await withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer();
             expect(destroySpy).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ each({
             const localResolver = new IterateLocalRunnerResolver({ runners });
             await localResolver.run();
             const withLocalResolverStub = await localResolver
-                .resolve(WithLocalResolverStub) as ResolveRunner<WithLocalResolverStub<any>>;
+                .resolve(WithLocalResolverStub) as ResolvedRunner<WithLocalResolverStub<any>>;
             await withLocalResolverStub.run({});
             const executableStubRunner = await withLocalResolverStub.resolveExecutableRunnerWithoutMarkForTransfer();
             expect(destroySpy).not.toHaveBeenCalled();
