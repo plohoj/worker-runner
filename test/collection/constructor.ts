@@ -1,4 +1,4 @@
-import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { runners } from 'test/common/runner-list';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -69,11 +69,8 @@ each({
         it ('with destroyed Resolved Runner in arguments', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner)).toBeRejectedWith(
-                jasmine.objectContaining({
-                    errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                    message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                } as IRunnerError));
+            await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
+                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
         });
 
         it('with extended class', async () => {
@@ -86,16 +83,16 @@ each({
             await expectAsync(resolver.resolve(ErrorStubRunner, errorMessage)).toBeRejectedWith(
                 jasmine.objectContaining({
                     error: errorMessage,
-                    errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                } as IRunnerError));
+                    errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+                }));
         });
 
         it ('not exist', async () => {
             // @ts-ignore
             await expectAsync(resolver.resolve(class {})).toBeRejectedWith(jasmine.objectContaining({
-                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-            } as IRunnerError));
+                message: WorkerRunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
+                errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+            }));
         });
     }),
 );

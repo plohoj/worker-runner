@@ -1,4 +1,4 @@
-import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -33,9 +33,9 @@ each({
         it ('with exception in method', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
+                errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
                 message: 'DESTROY_EXCEPTION',
-            } as IRunnerError));
+            }));
         });
 
         it ('which is used', async () => {
@@ -47,20 +47,18 @@ each({
             await executableStubRunner.destroy();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
                 .toBeRejectedWith(jasmine.objectContaining({
-                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     error: jasmine.objectContaining({
-                        message: RunnerErrorMessages.RUNNER_NOT_INIT,
+                        message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
                     }),
-                } as IRunnerError));
+                }));
         });
 
         it ('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            } as IRunnerError));
+            await expectAsync(executableStubRunner.destroy())
+                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT); 
         });
     }),
 );

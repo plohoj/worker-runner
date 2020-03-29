@@ -1,4 +1,4 @@
-import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -46,20 +46,15 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         await expectAsync(
             from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
-        ).toBeRejectedWith(jasmine.objectContaining({
-            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            message: RunnerErrorMessages.RUNNER_NOT_INIT,
-        } as IRunnerError));
+        ).toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
     });
 
     it('subscribe after destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
-            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            message: RunnerErrorMessages.RUNNER_NOT_INIT,
-        } as IRunnerError));
+        await expectAsync(observable.toPromise())
+            .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
     });
 
     it('emit resolved runner', async () => {
@@ -88,10 +83,8 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitError(undefined);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(jasmine.objectContaining({
-            errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            message: RunnerErrorMessages.RUNNER_NOT_INIT,
-        } as IRunnerError));
+        await expectAsync(observable.toPromise())
+            .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
     });
 
     it('emit error after unsubscribe', async () => {

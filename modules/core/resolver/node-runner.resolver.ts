@@ -1,15 +1,17 @@
 import { INodeResolverAction, NodeResolverAction } from '../actions/node-resolver.actions';
-import { errorActionToRunnerError, IRunnerError } from '../actions/runner-error';
 import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
-import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
-import { IPromiseMethods, PromisesResolver } from '../runner-promises';
+import { WorkerRunnerErrorMessages } from '../errors/error-message';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { RunnerInitError, RunnerNotInitError, WorkerNotInitError } from '../errors/runner-errors';
+import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
-import { IRunnerBridgeConstructor, RunnerBridge, runnerBridgeController } from '../runner/runner-bridge';
+import { IRunnerBridgeConstructor, RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner/runner-bridge';
 import { RunnerController } from '../runner/runner.controller';
-import { TransferRunnerData } from '../transfer-runner-data';
 import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
 import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
+import { IPromiseMethods, PromisesResolver } from '../utils/runner-promises';
+import { TransferRunnerData } from '../utils/transfer-runner-data';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -24,13 +26,14 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction>();
+    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction, WorkerRunnerError>();
     private lastActionId = 0;
 
     private worker?: Worker;
     private workerMessageHandler = this.onWorkerMessage.bind(this);
     protected destroyPromise?: IPromiseMethods<void>;
-    protected RunnerControllerConstructor = RunnerController;
+    protected readonly RunnerControllerConstructor = RunnerController;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
     protected runnerControllers = new Set<RunnerController<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
@@ -63,7 +66,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 argument = argumentWithTransferData;
             }
             if (RunnerBridge.isRunnerBridge(argument)) {
-                const controller = (argument as RunnerBridge)[runnerBridgeController];
+                const controller = (argument as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
                 const transferPort = await controller.resolveOrTransferControl();
                 argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
@@ -100,13 +103,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     protected getRunnerId(runner: R) {
         const runnerId = this.config.runners.indexOf(runner);
         if (runnerId < 0) {
-            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                error,
-                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new RunnerNotInitError({message: WorkerRunnerErrorMessages.CONSTRUCTOR_NOT_FOUND});
         }
         return runnerId;
     }
@@ -130,13 +127,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         args: IRunnerParameter[],
     ): Promise<IWorkerResolverRunnerInitedAction> {
         if (runnerId < 0) {
-            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
-            throw {
-                error,
-                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new RunnerInitError();
         }
         try {
             const actionId = this.nextActionId();
@@ -154,7 +145,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             const action = await promise$;
             return action;
         } catch (error) {
-            throw errorActionToRunnerError(error);
+            throw new RunnerInitError(this.errorSerializer.serialize(error));
         }
     }
 
@@ -166,19 +157,18 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         this.handleWorkerAction(message.data);
     }
 
-    protected handleWorkerAction(action: IWorkerResolverAction,
-    ): void {
+    protected handleWorkerAction(action: IWorkerResolverAction): void {
         switch (action.type) {
             case WorkerResolverAction.RUNNER_INITED:
                 this.initPromises.resolve(action.id, action);
                 break;
             case WorkerResolverAction.RUNNER_INIT_ERROR:
-                this.initPromises.reject(action.id, action);
+                this.initPromises.reject(action.id, this.errorSerializer.deserialize(action));
                 break;
             case WorkerResolverAction.DESTROYED:
                 if (!this.destroyPromise) {
                     throw new Error('An action was received about the successful destroy,'
-                        + ' but the destroy method was not previously called');
+                        + ' but the destroy method was not previously called'); // TODO
                 }
                 this.destroyPromise.resolve();
                 this.destroyPromise = undefined;
@@ -222,13 +212,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             this.worker.terminate();
             this.worker = undefined;
         } else {
-            const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-            throw {
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new WorkerNotInitError();
         }
     }
 
@@ -236,16 +220,10 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         action: INodeResolverAction,
         transfer?: Transferable[],
     ): void {
-        if (this.worker) { // TO use MessageChanel
+        if (this.worker) { // TODO use MessageChanel
             this.worker.postMessage(action, transfer as Transferable[]);
         } else {
-            const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-            throw {
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new WorkerNotInitError();
         }
     }
 }

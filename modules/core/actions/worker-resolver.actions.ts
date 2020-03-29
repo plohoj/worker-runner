@@ -1,5 +1,4 @@
-import { RunnerErrorCode } from '../errors/runners-errors';
-import { StackTraceError } from '../errors/stacktrace-error';
+import { ISerializedErrorAction } from '../errors/error-serializer';
 
 export enum WorkerResolverAction {
     WORKER_INITED,
@@ -18,11 +17,7 @@ export interface IWorkerResolverRunnerInitedAction {
     port: MessagePort;
 }
 
-export type IWorkerResolverRunnerInitErrorAction = StackTraceError<{
-    type: WorkerResolverAction.RUNNER_INIT_ERROR;
-    errorCode: RunnerErrorCode.RUNNER_INIT_ERROR;
-    id: number;
-}>;
+export type IWorkerResolverRunnerInitErrorAction = ISerializedErrorAction<WorkerResolverAction.RUNNER_INIT_ERROR>;
 
 export interface IWorkerResolverDestroyedAction {
     type: WorkerResolverAction.DESTROYED;
