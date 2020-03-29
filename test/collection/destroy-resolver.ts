@@ -1,4 +1,4 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -25,16 +25,16 @@ each({
 
         it ('when it was already destroyed', async () => {
             await expectAsync(resolver.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-            } as IRunnerError));
+                errorCode: WorkerRunnerErrorCode.WORKER_NOT_INIT,
+                message: WorkerRunnerErrorMessages.WORKER_NOT_INIT,
+            }));
         });
 
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner)).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-            } as IRunnerError));
+                errorCode: WorkerRunnerErrorCode.WORKER_NOT_INIT,
+                message: WorkerRunnerErrorMessages.WORKER_NOT_INIT,
+            }));
         });
     }),
 );

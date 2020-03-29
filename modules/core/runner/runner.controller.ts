@@ -1,10 +1,11 @@
 import { IRunnerControllerAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteErrorAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRunnerError } from '../actions/runner-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { RunnerExecuteError, RunnerInitError, RunnerNotInitError } from '../errors/runner-errors';
+import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
-import { PromisesResolver } from '../runner-promises';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
+import { PromisesResolver } from '../utils/runner-promises';
 import { ResolvedRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
 
@@ -24,22 +25,19 @@ export class RunnerController<R extends RunnerConstructor> {
         IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDestroyedAction
             | IRunnerEnvironmentDisconnectedAction | IRunnerEnvironmentResolvedAction
             | IRunnerEnvironmentExecutedWithRunnerResultAction,
-        IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction | IRunnerError
+        WorkerRunnerError
     >();
     private lastActionId = 0;
     private port?: MessagePort;
     private readonly onDisconnected?: () => void;
     private readonly runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
 
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+
     constructor(config: IRunnerControllerConfig<R>) {
         const bridgeConstructor = config.runnerBridgeConstructors[config.runnerId];
         if (!bridgeConstructor) {
-            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                error,
-                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-            } as IRunnerError;
+            throw new RunnerInitError();
         }
         this.resolvedRunner = new bridgeConstructor(this);
         this.runnerId = config.runnerId;
@@ -116,12 +114,7 @@ export class RunnerController<R extends RunnerConstructor> {
 
     private transferControl(): MessagePort {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-            } as IRunnerError;
+            throw new RunnerNotInitError();
         }
         const port = this.port;
         this.onDisconnect(false);
@@ -130,12 +123,7 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public markForTransfer(): void {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-            } as IRunnerError;
+            throw new RunnerNotInitError();
         }
         this.isMarkedForTransfer = true;
     }
@@ -173,12 +161,12 @@ export class RunnerController<R extends RunnerConstructor> {
                 resolvedPromise?.resolve(action);
                 break;
             case RunnerEnvironmentAction.EXECUTE_ERROR:
-                this.promises.reject(action.id, action);
+                this.promises.reject(action.id, this.errorSerializer.deserialize(action));
                 break;
             case RunnerEnvironmentAction.DESTROY_ERROR:
                 const rejectedPromise = this.promises.forget(action.id);
                 this.onDisconnect();
-                rejectedPromise?.reject(action);
+                rejectedPromise?.reject(this.errorSerializer.deserialize(action));
                 break;
         }
     }
@@ -188,37 +176,22 @@ export class RunnerController<R extends RunnerConstructor> {
         transfer?: Transferable[],
     ): void {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                errorCode: action.type === RunnerControllerAction.EXECUTE ?
-                    RunnerErrorCode.RUNNER_EXECUTE_ERROR :
-                    RunnerErrorCode.RUNNER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            if (action.type === RunnerControllerAction.EXECUTE) {
+                throw new RunnerExecuteError();
+            } else {
+                throw new RunnerNotInitError();
+            }
         }
         this.port.postMessage(action, transfer as Transferable[]);
     }
 
     public onDisconnect(closePort = true): void {
-        const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
         this.promises.promises.forEach(promise => {
-            promise.reject({
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError);
+            promise.reject(new RunnerNotInitError());
         });
         this.promises.promises.clear();
         if (!this.port) {
-            throw {
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new RunnerNotInitError();
         }
         if (closePort) {
             this.port.close();
