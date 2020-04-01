@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerExecuteError, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { runners } from 'test/common/runner-list';
@@ -7,6 +7,7 @@ import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 import { waitTimeout } from 'test/utils/wait-timeout';
 
 each({
@@ -69,7 +70,11 @@ each({
             await executableStubRunner.destroy();
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
-                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+                .toBeRejectedWith(errorContaining(RunnerNotInitError, {
+                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    name: RunnerNotInitError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
 
         it('with promise', async () => {
@@ -85,20 +90,22 @@ each({
         it ('with exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
-            await expectAsync(errorStubRunner.throwError(exceptionError)).toBeRejectedWith(jasmine.objectContaining({
-                error: exceptionError,
-                errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-            }));
+            await expectAsync(errorStubRunner.throwError(exceptionError))
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                    message: exceptionError,
+                    name: RunnerExecuteError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
 
         it ('with stack trace exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
-            await expectAsync(errorStubRunner.throwErrorTrace(exceptionError)).toBeRejectedWith(
-                jasmine.objectContaining({
-                    error: {},
-                    errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+            await expectAsync(errorStubRunner.throwErrorTrace(exceptionError))
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
                     message: exceptionError,
+                    name: Error.name,
+                    stack: jasmine.stringMatching(/throwErrorTrace/),
                 }));
         });
 
@@ -108,10 +115,11 @@ each({
             const exceptDelayDuration = 25;
             await waitTimeout(
                 expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, exceptDelayDuration))
-                    .toBeRejectedWith(jasmine.objectContaining({
-                        error: exceptionError,
-                        errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                    })),
+                    .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                            message: exceptionError,
+                            name: RunnerExecuteError.name,
+                            stack: jasmine.stringMatching(/.+/),
+                        })),
                     exceptDelayDuration + 25,
                     exceptDelayDuration,
                 );
@@ -123,10 +131,10 @@ each({
             const exceptDelayDuration = 25;
             await waitTimeout(
                 expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, exceptDelayDuration))
-                    .toBeRejectedWith(jasmine.objectContaining({
-                        error: {},
-                        errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    .toBeRejectedWith(errorContaining(RunnerExecuteError, {
                         message: exceptionError,
+                        name: Error.name,
+                        stack: jasmine.stringMatching(/error-stub\.runner\./),
                     })),
                     exceptDelayDuration + 25,
                     exceptDelayDuration,
@@ -136,10 +144,12 @@ each({
         it ('not exist runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.amount(53, 95)).toBeRejectedWith(jasmine.objectContaining({
-                message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-                errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-            }));
+            await expectAsync(executableStubRunner.amount(53, 95))
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    name: RunnerExecuteError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
     }),
 );

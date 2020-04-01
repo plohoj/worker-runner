@@ -7,7 +7,7 @@ export { CODE_TO_ERROR_MAP } from './errors/error-code-map';
 export { WorkerRunnerErrorMessages } from './errors/error-message';
 export { ISerializedErrorAction, WorkerRunnerErrorSerializer } from './errors/error-serializer';
 export { RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotInitError, WorkerNotInitError } from './errors/runner-errors';
-export { IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
+export { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
 export { NodeAndLocalRunnerResolverBase } from './resolver/node-and-local-runner.resolver';
 export { INodeRunnerResolverConfigBase, NodeRunnerResolverBase } from './resolver/node-runner.resolver';
 export { WorkerRunnerResolverBase } from './resolver/worker-runner.resolver';

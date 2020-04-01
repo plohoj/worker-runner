@@ -3,30 +3,33 @@ import { WorkerRunnerErrorCode } from './error-code';
 import { WorkerRunnerErrorMessages } from './error-message';
 
 export interface IRunnerErrorConfigBase {
-    message?: string;
     name?: string;
+    message?: string;
 }
 
-export type IRunnerErrorConfigStack = {
+export interface IRunnerErrorConfigStack {
     stack?: string;
-} | {
-    constructorOpt?: ((...args: any[]) => any) | Constructor;
-};
+}
 
-export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase & IRunnerErrorConfigStack;
+export interface IRunnerErrorConfigCaptureOpt {
+    captureOpt?: ((...args: any[]) => any) | Constructor;
+}
+
+export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase
+    & (IRunnerErrorConfigStack | IRunnerErrorConfigCaptureOpt);
 
 export const WORKER_RUNNER_ERROR_CODE = Symbol('asd');
 
 export abstract class WorkerRunnerError extends Error {
-    public static [WORKER_RUNNER_ERROR_CODE]: number;
+    public abstract [WORKER_RUNNER_ERROR_CODE]: number;
 
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(config.message);
-        if ('stack' in config) {
-            this.stack = config.stack;
+        if ((config as IRunnerErrorConfigStack).stack) {
+            this.stack = (config as IRunnerErrorConfigStack).stack;
         } else if (Error.captureStackTrace) {
-            if ('constructorOpt' in config) {
-                Error.captureStackTrace(this, config.constructorOpt);
+            if ((config as IRunnerErrorConfigCaptureOpt).captureOpt) {
+                Error.captureStackTrace(this, (config as IRunnerErrorConfigCaptureOpt).captureOpt);
             }
             Error.captureStackTrace(WorkerRunnerError);
         }
@@ -39,9 +42,10 @@ export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
 
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
-            message: config.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
-            constructorOpt: WorkerRunnerUnexpectedError,
             name: config.name || WorkerRunnerUnexpectedError.name,
+            message: config.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+            stack: (config as IRunnerErrorConfigStack).stack,
+            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || WorkerRunnerUnexpectedError,
         });
     }
 }

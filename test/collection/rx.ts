@@ -1,10 +1,12 @@
 import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { RxRunnerEmitError } from '@worker-runner/rx/errors/runner-errors';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 import { waitTimeout } from 'test/utils/wait-timeout';
 
 each({
@@ -46,15 +48,22 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         await expectAsync(
             from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
-        ).toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+        ).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            name: RunnerNotInitError.name,
+            stack: jasmine.stringMatching(/.+/),
+        }));
     });
 
     it('subscribe after destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise())
-            .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            name: RunnerNotInitError.name,
+            stack: jasmine.stringMatching(/.+/),
+        }));
     });
 
     it('emit resolved runner', async () => {
@@ -76,15 +85,22 @@ each({
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         await expectAsync((await (await rxStubRunner.emitError(errorData))).toPromise())
-            .toBeRejectedWith(errorData);
+            .toBeRejectedWith(errorContaining(RxRunnerEmitError, {
+                message: errorData.toString(),
+                name: RxRunnerEmitError.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
     });
 
     it('emit error after destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitError(undefined);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise())
-            .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            name: RunnerNotInitError.name,
+            stack: jasmine.stringMatching(/.+/),
+        }));
     });
 
     it('emit error after unsubscribe', async () => {

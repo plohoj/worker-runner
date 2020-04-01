@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerDestroyError, RunnerExecuteError, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -7,6 +7,7 @@ import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 
 each({
         Common: runnerResolver,
@@ -32,9 +33,10 @@ each({
 
         it ('with exception in method', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
-            await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
+            await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(errorContaining(RunnerDestroyError, {
                 message: 'DESTROY_EXCEPTION',
+                name: Error.name,
+                stack: jasmine.stringMatching(/.+/),
             }));
         });
 
@@ -46,19 +48,21 @@ each({
                     WithOtherInstanceStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
-                .toBeRejectedWith(jasmine.objectContaining({
-                    errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                    error: jasmine.objectContaining({
-                        message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-                    }),
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                    name: RunnerExecuteError.name,
+                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    stack: jasmine.stringMatching(/.+/),
                 }));
         });
 
         it ('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.destroy())
-                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT); 
+            await expectAsync(executableStubRunner.destroy()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+                name: RunnerNotInitError.name,
+                message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                stack: jasmine.stringMatching(/.+/),
+            }));
         });
     }),
 );
