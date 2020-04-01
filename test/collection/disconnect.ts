@@ -4,6 +4,7 @@ import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 
 each({
         Common: runnerResolver,
@@ -41,16 +42,22 @@ each({
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.disconnect();
-            await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+            await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+                message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                name: RunnerNotInitError.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
         });
 
         it ('after destroy', async () => {
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+            await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
+                message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                name: RunnerNotInitError.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
         });
 
     }),

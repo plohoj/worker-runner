@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerInitError, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { runners } from 'test/common/runner-list';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -7,6 +7,7 @@ import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 import { localRunnerResolver, runnerResolver } from '../common/promise';
 
 each({
@@ -70,7 +71,11 @@ each({
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
-                .toBeRejectedWithError(RunnerNotInitError, WorkerRunnerErrorMessages.RUNNER_NOT_INIT);
+                .toBeRejectedWith(errorContaining(RunnerNotInitError, {
+                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    name: RunnerNotInitError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
 
         it('with extended class', async () => {
@@ -80,18 +85,20 @@ each({
 
         it ('with exception', async () => {
             const errorMessage = 'Constructor Error';
-            await expectAsync(resolver.resolve(ErrorStubRunner, errorMessage)).toBeRejectedWith(
-                jasmine.objectContaining({
-                    error: errorMessage,
-                    errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+            await expectAsync(resolver.resolve(ErrorStubRunner, errorMessage))
+                .toBeRejectedWith(errorContaining(RunnerInitError, {
+                    message: errorMessage,
+                    name: RunnerInitError.name,
+                    stack: jasmine.stringMatching(/.+/),
                 }));
         });
 
         it ('not exist', async () => {
             // @ts-ignore
-            await expectAsync(resolver.resolve(class {})).toBeRejectedWith(jasmine.objectContaining({
+            await expectAsync(resolver.resolve(class {})).toBeRejectedWith(errorContaining(RunnerNotInitError, {
                 message: WorkerRunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-                errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+                name: RunnerNotInitError.name,
+                stack: jasmine.stringMatching(/.+/),
             }));
         });
     }),

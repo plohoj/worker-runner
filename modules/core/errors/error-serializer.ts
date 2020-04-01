@@ -27,16 +27,23 @@ export class WorkerRunnerErrorSerializer {
         alternativeError: Partial<ISerializedError> = {},
     ): ISerializedError {
         if (error instanceof Error) {
+            let errorCode: number | undefined = (error as WorkerRunnerError)[WORKER_RUNNER_ERROR_CODE];
+            if (typeof errorCode !== 'number') {
+                errorCode = alternativeError.errorCode;
+                if (typeof errorCode !== 'number') {
+                    errorCode = WorkerRunnerErrorCode.UNEXPECTED_ERROR;
+                }
+            }
             return {
-                errorCode: (error as any)[WORKER_RUNNER_ERROR_CODE]
-                    || alternativeError.errorCode || WorkerRunnerErrorCode.UNEXPECTED_ERROR,
+                errorCode,
                 name: error.name || alternativeError.name ||  WorkerRunnerUnexpectedError.name,
                 message: error.message || alternativeError.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
                 stack: error.stack || alternativeError.stack,
             };
         }
         return {
-            errorCode: alternativeError.errorCode || WorkerRunnerErrorCode.UNEXPECTED_ERROR,
+            errorCode: typeof alternativeError.errorCode === 'number' ?
+                alternativeError.errorCode : WorkerRunnerErrorCode.UNEXPECTED_ERROR,
             name: alternativeError.name || WorkerRunnerUnexpectedError.name,
             message: error ? String(error) : (alternativeError.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR),
             stack: alternativeError.stack,
@@ -44,12 +51,12 @@ export class WorkerRunnerErrorSerializer {
     }
 
     public deserialize(error: ISerializedError): WorkerRunnerError {
-        let errorConstructor = CODE_TO_ERROR_MAP[error.errorCode];
+        let errorConstructor = this.codeToErrorMap[error.errorCode];
         if (!errorConstructor) {
             errorConstructor = WorkerRunnerUnexpectedError;
         }
         return new errorConstructor({
-            constructorOpt: this.deserialize,
+            captureOpt: this.deserialize,
             ...error,
         });
     }

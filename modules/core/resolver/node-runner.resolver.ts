@@ -142,9 +142,11 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 },
                 serializedArgs.transfer,
             );
-            const action = await promise$;
-            return action;
+            return await promise$;
         } catch (error) {
+            if (error instanceof WorkerRunnerError) {
+                throw error;
+            }
             throw new RunnerInitError(this.errorSerializer.serialize(error));
         }
     }
