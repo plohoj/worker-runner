@@ -1,4 +1,4 @@
-import { ISerializedErrorAction } from '../errors/error-serializer';
+import { ISerializedErrorAction } from '../errors/error.serializer';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 
 export enum RunnerEnvironmentAction {

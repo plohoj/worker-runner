@@ -1,5 +1,5 @@
 import { NodeAndLocalRunnerResolverBase, ResolvedRunnerArguments, RunnerConstructor } from '@worker-runner/core';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerController } from '../runners/runner.controller';
 import { IRxRunnerSerializedParameter, RxResolvedRunner } from '../types/resolved-runner';
 

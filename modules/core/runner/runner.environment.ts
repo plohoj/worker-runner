@@ -2,7 +2,7 @@ import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControl
 import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { WorkerRunnerErrorCode } from '../errors/error-code';
 import { WorkerRunnerErrorMessages } from '../errors/error-message';
-import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RunnerDestroyError, RunnerExecuteError } from '../errors/runner-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';

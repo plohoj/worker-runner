@@ -5,7 +5,7 @@ import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeActio
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { RxWorkerRunnerErrorCode } from '../errors/error-code';
 import { RxWorkerRunnerErrorMessages } from '../errors/error-messages';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerEmitError, RxRunnerSubscriptionNotFoundError } from '../errors/runner-errors';
 import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 

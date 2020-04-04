@@ -2,7 +2,7 @@ import { INodeResolverAction, INodeResolverInitRunnerAction, NodeResolverAction 
 import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { WorkerRunnerErrorCode } from '../errors/error-code';
 import { WorkerRunnerErrorMessages } from '../errors/error-message';
-import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RunnerInitError } from '../errors/runner-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { ResolvedRunner } from '../runner/resolved-runner';
@@ -18,6 +18,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected readonly RunnerEnvironmentConstructor = RunnerEnvironment;
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+    protected readonly RunnerControllerConstructor = RunnerController;
 
     constructor(protected config: IRunnerResolverConfigBase<R>) {
         this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
@@ -121,7 +122,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
-                    const controller = new RunnerController({
+                    const controller = new this.RunnerControllerConstructor({
                         runnerId: argument.runnerId,
                         runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,

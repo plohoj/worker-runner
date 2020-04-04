@@ -1,10 +1,11 @@
 import { IRunnerControllerAction, RunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RunnerExecuteError, RunnerInitError, RunnerNotInitError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
+import { IRunnerArgument } from '../types/runner-argument';
 import { PromisesResolver } from '../utils/runner-promises';
 import { ResolvedRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
@@ -62,7 +63,16 @@ export class RunnerController<R extends RunnerConstructor> {
         const actionId = this.nextActionId();
         const executePromise$ = this.promises
             .promise<IRunnerEnvironmentExecutedAction | IRunnerEnvironmentExecutedWithRunnerResultAction>(actionId);
-        const serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        let serializedArgumentsData: {
+            args: IRunnerArgument[];
+            transfer: Transferable[];
+        };
+        try {
+            serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        } catch (error) {
+            this.promises.forget(actionId);
+            throw error;
+        }
         this.sendAction(
             {
                 type: RunnerControllerAction.EXECUTE,
