@@ -1,7 +1,7 @@
 import { INodeResolverAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
 import { WorkerRunnerErrorMessages } from '../errors/error-message';
-import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RunnerInitError, RunnerNotInitError, WorkerNotInitError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';

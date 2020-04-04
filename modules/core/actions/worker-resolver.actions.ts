@@ -1,4 +1,4 @@
-import { ISerializedErrorAction } from '../errors/error-serializer';
+import { ISerializedErrorAction } from '../errors/error.serializer';
 
 export enum WorkerResolverAction {
     WORKER_INITED,

@@ -3,7 +3,7 @@ import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { RxWorkerRunnerErrorMessages } from '../errors/error-messages';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error-serializer';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {

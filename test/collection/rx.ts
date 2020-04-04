@@ -108,5 +108,13 @@ each({
         const observable = await rxStubRunner.emitError(undefined);
         observable.subscribe().unsubscribe();
     });
+
+    it('emit from other runner', async () => {
+        const firstRxStubRunner = await resolver.resolve(RxStubRunner);
+        const secondRxStubRunner = await resolver.resolve(RxStubRunner);
+        await expectAsync(
+            (await secondRxStubRunner.getObservableFromOtherRxStub(firstRxStubRunner, ['Work', 'Job'])).toPromise(),
+        ).toBeResolvedTo('Job');
+    });
 }));
 

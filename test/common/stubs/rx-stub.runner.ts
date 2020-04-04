@@ -1,7 +1,8 @@
 import { JsonObject, ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
+import { RxResolvedRunner } from '@worker-runner/rx';
 import { from, Observable, of, throwError } from 'rxjs';
-import { delay as rxDelay } from 'rxjs/operators';
+import { concatAll, delay as rxDelay } from 'rxjs/operators';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
@@ -28,6 +29,13 @@ export class RxStubRunner {
             this.localResolver.resolve(ExecutableStubRunner, data).then(executableStubRunner =>
                 executableStubRunner.markForTransfer() as ResolvedRunner<ExecutableStubRunner<T>>),
         );
+    }
+
+    public getObservableFromOtherRxStub(
+        runner: RxResolvedRunner<RxStubRunner>,
+        messages: string[],
+    ): Observable<string> {
+        return from(runner.emitMessages(messages)).pipe(concatAll());
     }
 
     public emitError<T extends JsonObject>(error: T): Observable<never> {
