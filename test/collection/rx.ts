@@ -1,5 +1,5 @@
-import { ResolvedRunner, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
-import { RxRunnerEmitError } from '@worker-runner/rx/errors/runner-errors';
+import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { RxRunnerEmitError } from '@worker-runner/rx';
 import { from } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
@@ -48,9 +48,11 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         await expectAsync(
             from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
-        ).toBeRejectedWith(errorContaining(RunnerNotInitError, {
-            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-            name: RunnerNotInitError.name,
+        ).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                runnerName: RxStubRunner.name,
+            }),
+            name: RunnerWasDisconnectedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -59,9 +61,11 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
-            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-            name: RunnerNotInitError.name,
+        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                runnerName: RxStubRunner.name,
+            }),
+            name: RunnerWasDisconnectedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -96,9 +100,11 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitError(undefined);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
-            message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-            name: RunnerNotInitError.name,
+        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                runnerName: RxStubRunner.name,
+            }),
+            name: RunnerWasDisconnectedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });

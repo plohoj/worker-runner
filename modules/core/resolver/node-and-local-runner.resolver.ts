@@ -3,6 +3,7 @@ import { INodeResolverAction } from '../actions/node-resolver.actions';
 import { WorkerNotInitError } from '../errors/runner-errors';
 import { RunnerBridge } from '../runner/runner-bridge';
 import { Constructor } from '../types/constructor';
+import { IRunnerResolverConfigBase } from './base-runner.resolver';
 import { NodeRunnerResolverBase } from './node-runner.resolver';
 import { WorkerRunnerResolverBase } from './worker-runner.resolver';
 
@@ -10,11 +11,12 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
 
     private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
     private localMessageChanel?: MessageChannel;
-    protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>>;
+    protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>,
+        [Readonly<IRunnerResolverConfigBase<R>>]>;
 
     protected async initWorker(): Promise<void> {
         if (this.WorkerResolverConstructor) {
-            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor(this.config);
+            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor({runners: this.runners});
             this.localMessageChanel = new MessageChannel();
             this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
             this.localWorkerRunnerResolver.sendAction

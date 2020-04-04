@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerDestroyError, RunnerExecuteError, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerDestroyError, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -50,7 +50,9 @@ each({
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
                 .toBeRejectedWith(errorContaining(RunnerExecuteError, {
                     name: RunnerExecuteError.name,
-                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -58,11 +60,14 @@ each({
         it ('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.destroy()).toBeRejectedWith(errorContaining(RunnerNotInitError, {
-                name: RunnerNotInitError.name,
-                message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-                stack: jasmine.stringMatching(/.+/),
-            }));
+            await expectAsync(executableStubRunner.destroy())
+                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+                    name: RunnerWasDisconnectedError.name,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
     }),
 );

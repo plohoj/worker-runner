@@ -1,6 +1,6 @@
 import { Constructor } from '../types/constructor';
 import { WorkerRunnerErrorCode } from './error-code';
-import { WorkerRunnerErrorMessages } from './error-message';
+import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 
 export interface IRunnerErrorConfigBase {
     name?: string;
@@ -43,7 +43,7 @@ export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || WorkerRunnerUnexpectedError.name,
-            message: config.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || WorkerRunnerUnexpectedError,
         });

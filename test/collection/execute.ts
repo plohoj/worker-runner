@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerExecuteError, RunnerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { runners } from 'test/common/runner-list';
@@ -70,9 +70,11 @@ each({
             await executableStubRunner.destroy();
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
-                .toBeRejectedWith(errorContaining(RunnerNotInitError, {
-                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
-                    name: RunnerNotInitError.name,
+                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
+                    name: RunnerWasDisconnectedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -146,7 +148,9 @@ each({
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.amount(53, 95))
                 .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                    message: WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
                     name: RunnerExecuteError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));

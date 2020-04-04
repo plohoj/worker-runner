@@ -1,7 +1,8 @@
 import { IRunnerControllerAction, RunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
-import { RunnerExecuteError, RunnerInitError, RunnerNotInitError } from '../errors/runner-errors';
+import { RunnerExecuteError, RunnerInitError, RunnerWasDisconnectedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
@@ -12,6 +13,7 @@ import { IRunnerBridgeConstructor } from './runner-bridge';
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
     runnerId: number;
+    runners: ReadonlyArray<RunnerConstructor>;
     port: MessagePort;
     runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
     onDisconnected?: () => void;
@@ -33,11 +35,13 @@ export class RunnerController<R extends RunnerConstructor> {
     private readonly onDisconnected?: () => void;
     private readonly runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
 
+    protected readonly runners: ReadonlyArray<RunnerConstructor>;
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
-    constructor(config: IRunnerControllerConfig<R>) {
+    constructor(config: Readonly<IRunnerControllerConfig<R>>) {
         const bridgeConstructor = config.runnerBridgeConstructors[config.runnerId];
         if (!bridgeConstructor) {
+            debugger;
             throw new RunnerInitError();
         }
         this.resolvedRunner = new bridgeConstructor(this);
@@ -46,6 +50,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.port.onmessage = this.onPortMessage.bind(this);
         this.onDisconnected = config.onDisconnected;
         this.runnerBridgeConstructors = config.runnerBridgeConstructors;
+        this.runners = config.runners;
     }
 
     protected onPortMessage(message: MessageEvent): void {
@@ -115,7 +120,12 @@ export class RunnerController<R extends RunnerConstructor> {
             runnerId,
             runnerBridgeConstructors: this.runnerBridgeConstructors,
             port,
+            runners: this.runners,
         }) as this;
+    }
+
+    protected get runnerName(): string {
+        return this.runners[this.runnerId].name;
     }
 
     public async cloneControl(): Promise<this> {
@@ -124,7 +134,9 @@ export class RunnerController<R extends RunnerConstructor> {
 
     private transferControl(): MessagePort {
         if (!this.port) {
-            throw new RunnerNotInitError();
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         const port = this.port;
         this.onDisconnect(false);
@@ -133,7 +145,9 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public markForTransfer(): void {
         if (!this.port) {
-            throw new RunnerNotInitError();
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         this.isMarkedForTransfer = true;
     }
@@ -187,9 +201,13 @@ export class RunnerController<R extends RunnerConstructor> {
     ): void {
         if (!this.port) {
             if (action.type === RunnerControllerAction.EXECUTE) {
-                throw new RunnerExecuteError();
+                throw new RunnerExecuteError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+                });
             } else {
-                throw new RunnerNotInitError();
+                throw new RunnerWasDisconnectedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+                });
             }
         }
         this.port.postMessage(action, transfer as Transferable[]);
@@ -197,11 +215,15 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public onDisconnect(closePort = true): void {
         this.promises.promises.forEach(promise => {
-            promise.reject(new RunnerNotInitError());
+            promise.reject(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
         });
         this.promises.promises.clear();
         if (!this.port) {
-            throw new RunnerNotInitError();
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         if (closePort) {
             this.port.close();

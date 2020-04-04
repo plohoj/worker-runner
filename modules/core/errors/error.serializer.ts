@@ -1,6 +1,6 @@
 import { WorkerRunnerErrorCode } from './error-code';
 import { CODE_TO_ERROR_MAP } from './error-code-map';
-import { WorkerRunnerErrorMessages } from './error-message';
+import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export interface ISerializedError<C extends number = number>
@@ -37,7 +37,7 @@ export class WorkerRunnerErrorSerializer {
             return {
                 errorCode,
                 name: error.name || alternativeError.name ||  WorkerRunnerUnexpectedError.name,
-                message: error.message || alternativeError.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+                message: error.message || alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
                 stack: error.stack || alternativeError.stack,
             };
         }
@@ -45,7 +45,8 @@ export class WorkerRunnerErrorSerializer {
             errorCode: typeof alternativeError.errorCode === 'number' ?
                 alternativeError.errorCode : WorkerRunnerErrorCode.UNEXPECTED_ERROR,
             name: alternativeError.name || WorkerRunnerUnexpectedError.name,
-            message: error ? String(error) : (alternativeError.message || WorkerRunnerErrorMessages.UNEXPECTED_ERROR),
+            message: error ? String(error) : (alternativeError.message
+                || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR()),
             stack: alternativeError.stack,
         };
     }
