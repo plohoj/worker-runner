@@ -7,7 +7,6 @@ import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { waitTimeout } from 'test/utils/wait-timeout';
 
 each({
     Rx: rxRunnerResolver,
@@ -33,13 +32,9 @@ each({
     it('observable with delay', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const emitDelay = 19;
-        await waitTimeout(
-            expectAsync(
-                (await rxStubRunner.emitMessages(['Work', 'Job'], emitDelay)).toPromise(),
-            ).toBeResolvedTo('Job'),
-            emitDelay + 125,
-            emitDelay,
-        );
+        await expectAsync(
+            (await rxStubRunner.emitMessages(['Work', 'Job'], emitDelay)).toPromise(),
+        ).toBeResolvedTo('Job');
         await rxStubRunner.destroy();
     });
 
