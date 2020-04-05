@@ -1,12 +1,16 @@
-const { exec } = require('child_process');
+const { readdirSync, readFile, writeFile } = require('fs');
 const { resolve } = require("path");
-const { readdirSync } = require('fs');
+const mainPackage = require('./package.json');
+const semver = require('semver');
 
 const versionTypeArg = process.argv.find(arg => /--type[ =].+/.test(arg));
 let versionType = 'patch';
 if (versionTypeArg) {
     versionType = versionTypeArg.replace(/--type[ =]/, '');
 }
+
+const newVersion = semver.inc(mainPackage.version, versionType);
+const dependencyVersion = newVersion.replace(new RegExp(`\.${semver.parse(newVersion).patch}$`), '.0');
 
 const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
@@ -16,15 +20,33 @@ const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
  * @param {'major' | 'minor' | 'patch'} type
  * @returns {Promise<string>}
  */
-async function updateVersion(directory, type) {
-    return new Promise((resolver, reject) => 
-        exec(`npm version ${type} --no-git-tag-version`, {cwd: directory},
-                    (error, stdout) => error ? reject(error) : resolver(stdout)),
-    )
+async function updateVersion(path) {
+    return new Promise((resolver, reject) =>  readFile(path, 'utf8', (error, data) => {
+        if (error) {
+            reject(error);
+            return;
+        }
+        const package = JSON.parse(data);
+        package.version = newVersion;
+        if ('dependencies' in package) {
+            for (const dependency in package.dependencies) {
+                if (dependency.includes('@worker-runner/')) {
+                    package.dependencies[dependency] = '^' + dependencyVersion;
+                }
+            }
+        }
+        writeFile(path, JSON.stringify(package, null, '  ') + '\n', 'utf8' ,(error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolver();
+        })
+    }));
 }
 
-function successLog(directory, version) {
-    console.log(`${directory}\t-->\t ${version.replace('\n', '')}`);
+function successLog(directory) {
+    console.log(`${directory}\t-->\t ${newVersion.replace('\n', '')}`);
 }
 
 function errorLog(directory) {
@@ -33,16 +55,16 @@ function errorLog(directory) {
 
 (async function main() {
     await Promise.all([
-        ...moduleNames.map(moduleName => 
-            updateVersion(resolve(`modules/${moduleName}`), versionType)
-                .then(version => successLog(`modules/${moduleName}`, version)),
+        updateVersion(resolve(`./package.json`), versionType)
+            .then(version => successLog(`[main]`, version)),
+        ... moduleNames.map(moduleName => 
+            updateVersion(resolve(`modules/${moduleName}/package.json`))
+                .then(() => successLog(`modules/${moduleName}/package.json`)),
         ),
-        ...moduleNames.map(moduleName => 
-            updateVersion(resolve(`dist/${moduleName}`), versionType)
-                .then(version => successLog(`dist/${moduleName}`, version))
-                .catch(() => errorLog(`dist/${moduleName}`))
+        ... moduleNames.map(moduleName => 
+            updateVersion(resolve(`dist/${moduleName}/package.json`))
+                .then(() => successLog(`dist/${moduleName}/package.json`))
+                .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
-        updateVersion(undefined, versionType)
-            .then(version => successLog(`[main]`, version))
     ]);
 })();
