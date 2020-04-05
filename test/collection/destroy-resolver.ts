@@ -1,4 +1,4 @@
-import { WorkerNotInitError, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { WorkerNotInitError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
@@ -26,7 +26,7 @@ each({
 
         it ('when it was already destroyed', async () => {
             await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(WorkerNotInitError, {
-                message: WorkerRunnerErrorMessages.WORKER_NOT_INIT,
+                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
                 name: WorkerNotInitError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -35,7 +35,7 @@ each({
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
                 .toBeRejectedWith(errorContaining(WorkerNotInitError, {
-                    message: WorkerRunnerErrorMessages.WORKER_NOT_INIT,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
                     name: WorkerNotInitError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));

@@ -1,8 +1,8 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerExecuteError, RunnerNotInitError } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { RxWorkerRunnerErrorMessages } from '../errors/error-messages';
+import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 
@@ -50,7 +50,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
                 //     message: RunnerErrorMessages.RUNNER_NOT_INIT,
                 // } as IRunnerError;
                 console.error(error);
-                debugger; // TODO
+                debugger;
             }
             this.sendAction({
                 type: RxRunnerControllerAction.RX_SUBSCRIBE,
@@ -89,7 +89,9 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     private getSubscriber(actionId: number): Subscriber<IRxRunnerSerializedMethodResult> {
         const completedSubscriber$ = this.subscribers$.get(actionId);
         if (!completedSubscriber$) {
-            throw new RunnerExecuteError({message: RxWorkerRunnerErrorMessages.SUBSCRIBER_NOT_FOUND});
+            throw new RunnerExecuteError({
+                message: RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIBER_NOT_FOUND({runnerName: this.runnerName}),
+            });
         }
         return completedSubscriber$;
     }
@@ -97,7 +99,9 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     public onDisconnect(closePort = true): void {
         this.subscribers$.forEach(subscriber => {
-            subscriber.error(new RunnerNotInitError()); // TODO Will destroyed
+            subscriber.error(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
             subscriber.complete();
         });
         this.subscribers$.clear();

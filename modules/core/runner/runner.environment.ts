@@ -1,7 +1,7 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { WorkerRunnerErrorCode } from '../errors/error-code';
-import { WorkerRunnerErrorMessages } from '../errors/error-message';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RunnerDestroyError, RunnerExecuteError } from '../errors/runner-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
@@ -27,7 +27,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
-    constructor(config: IRunnerEnvironmentConfig<R>) {
+    constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
@@ -37,6 +37,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected onPortMessage(port: MessagePort, message: MessageEvent): void {
         this.handleAction(port, message.data);
+    }
+
+    protected get runnerName(): string {
+        return this.runnerInstance.constructor.name;
     }
 
     protected async handleAction(
@@ -54,7 +58,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                         ... this.errorSerializer.serialize(error, {
                             errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
                             name: RunnerExecuteError.name,
-                            message: WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
                             stack: error?.stack || new Error().stack,
                         }),
                     });
@@ -70,7 +74,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                         ... this.errorSerializer.serialize(error, {
                             errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
                             name: RunnerDestroyError.name,
-                            message: WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
                             stack: error?.stack || new Error().stack,
                         }),
                     });
@@ -79,7 +83,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             case RunnerControllerAction.RESOLVE:
                 try {
                     await this.resolve(port, action);
-                } catch (error) { // TODO
+                } catch (error) {
                     console.error(error);
                     debugger;
                 }
@@ -109,7 +113,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 type: RunnerEnvironmentAction.EXECUTE_ERROR,
                 ... this.errorSerializer.serialize(error, {
                     errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                    message: WorkerRunnerErrorMessages.EXECUTE_ERROR,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                        runnerName: this.runnerName,
+                        methodName: action.method,
+                    }),
                     name: RunnerExecuteError.name,
                     stack: error?.stack || new Error().stack,
                 }),
@@ -127,7 +134,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     type: RunnerEnvironmentAction.EXECUTE_ERROR,
                     ... this.errorSerializer.serialize(error, {
                         errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                        message: WorkerRunnerErrorMessages.EXECUTE_ERROR,
+                        message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                            runnerName: this.runnerName,
+                            methodName: action.method,
+                        }),
                         name: RunnerExecuteError.name,
                         stack: error?.stack || new Error().stack,
                     }),
@@ -227,7 +237,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                         type: RunnerEnvironmentAction.DESTROY_ERROR,
                         ... this.errorSerializer.serialize(error, {
                             errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
-                            message: WorkerRunnerErrorMessages.EXECUTE_ERROR,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                                runnerName: this.runnerName,
+                                methodName: 'destroy',
+                            }),
                             name: RunnerExecuteError.name,
                             stack: error?.stack || new Error().stack,
                         }),
@@ -245,7 +258,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                             type: RunnerEnvironmentAction.DESTROY_ERROR,
                             ... this.errorSerializer.serialize(error, {
                                 errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
-                                message: WorkerRunnerErrorMessages.EXECUTE_ERROR,
+                                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                                    runnerName: this.runnerName,
+                                    methodName: 'destroy',
+                                }),
                                 name: RunnerExecuteError.name,
                                 stack: error?.stack || new Error().stack,
                             }),

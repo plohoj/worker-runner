@@ -1,10 +1,10 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, RunnerConstructor, RunnerEnvironment, RunnerExecuteError, RUNNER_BRIDGE_CONTROLLER, TransferRunnerData, WorkerRunnerErrorCode, WorkerRunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, RunnerConstructor, RunnerEnvironment, RunnerExecuteError, RUNNER_BRIDGE_CONTROLLER, TransferRunnerData, WorkerRunnerErrorCode, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, mergeMap, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { RxWorkerRunnerErrorCode } from '../errors/error-code';
-import { RxWorkerRunnerErrorMessages } from '../errors/error-messages';
+import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerEmitError, RxRunnerSubscriptionNotFoundError } from '../errors/runner-errors';
 import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
@@ -61,7 +61,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                         ... this.errorSerializer.serialize(error, {
                             errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
                             name: RunnerExecuteError.name,
-                            message: WorkerRunnerErrorMessages.UNEXPECTED_ERROR,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
                             stack: error?.stack || new Error().stack,
                         }),
                     });
@@ -101,7 +101,9 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             this.sendAction(port, {
                 id: action.id,
                 type: RxRunnerEnvironmentAction.RX_ERROR,
-                ... this.errorSerializer.serialize(new RxRunnerSubscriptionNotFoundError()),
+                ... this.errorSerializer.serialize(new RxRunnerSubscriptionNotFoundError({
+                    message: RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIPTION_NOT_FOUND({runnerName: this.runnerName}),
+                })),
             } as IRxRunnerEnvironmentErrorAction);
             this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RX_COMPLETED,
@@ -127,7 +129,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
                 ... this.errorSerializer.serialize(error, {
                     errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
-                    message: RxWorkerRunnerErrorMessages.EMITTED_ERROR,
+                    message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
                     name: RxRunnerEmitError.name,
                     stack: error?.stack || new Error().stack,
                 }),

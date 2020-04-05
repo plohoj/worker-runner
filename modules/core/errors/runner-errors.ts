@@ -1,27 +1,27 @@
 import { WorkerRunnerErrorCode } from './error-code';
-import { WorkerRunnerErrorMessages } from './error-message';
+import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export class RunnerInitError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_INIT_ERROR;
-    constructor(config: IWorkerRunnerErrorConfig = {}) {
+    constructor(config: Readonly<IWorkerRunnerErrorConfig> = {}) {
         super({
             name: config.name || RunnerInitError.name,
-            message: config.message || WorkerRunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerInitError,
         });
     }
 }
 
-export class RunnerNotInitError extends WorkerRunnerError {
+export class RunnerWasDisconnectedError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_NOT_INIT;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
-            name: config.name || RunnerNotInitError.name,
-            message: config.message ||  WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            name: config.name || RunnerWasDisconnectedError.name,
+            message: config.message ||  WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED(),
             stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerNotInitError,
+            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerWasDisconnectedError,
         });
     }
 }
@@ -31,7 +31,7 @@ export class RunnerExecuteError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || RunnerExecuteError.name,
-            message: config.message || WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerExecuteError,
         });
@@ -43,7 +43,7 @@ export class RunnerDestroyError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || RunnerDestroyError.name,
-            message: config.message || WorkerRunnerErrorMessages.RUNNER_NOT_INIT,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerDestroyError,
         });
@@ -55,7 +55,7 @@ export class WorkerNotInitError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || WorkerNotInitError.name,
-            message: config.message || WorkerRunnerErrorMessages.WORKER_NOT_INIT,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || WorkerNotInitError,
         });
