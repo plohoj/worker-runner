@@ -81,20 +81,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 }
                 break;
             case RunnerControllerAction.RESOLVE:
-                try {
-                    await this.resolve(port, action);
-                } catch (error) {
-                    console.error(error);
-                    debugger;
-                }
+                await this.resolve(port, action);
                 break;
             case RunnerControllerAction.DISCONNECT:
-                try {
-                    await this.disconnect(port, action);
-                } catch (error) {
-                    console.error(error);
-                    debugger;
-                }
+                await this.disconnect(port, action);
                 break;
         }
     }

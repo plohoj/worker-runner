@@ -36,36 +36,30 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public async handleAction(action: INodeResolverAction): Promise<void> {
-        try {
-            switch (action.type) {
-                case NodeResolverAction.INIT_RUNNER:
-                    try {
-                        await this.initRunnerInstance(action);
-                    } catch (error) {
-                        debugger;
-                        this.sendAction({
-                            id: action.id,
-                            type: WorkerResolverAction.RUNNER_INIT_ERROR,
-                            ... this.errorSerializer.serialize(error, {
-                                errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
-                                name: RunnerInitError.name,
-                                message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
-                                stack: error?.stack || new Error().stack,
-                            }),
-                        });
-                    }
-                    break;
-                case NodeResolverAction.DESTROY:
-                    try {
-                        await this.destroyWorker(action.force);
-                    } catch (error) {
-                        this.sendAction({ type: WorkerResolverAction.DESTROYED });
-                    }
-                    break;
-            }
-        } catch (error) {
-            console.error(error);
-            debugger;
+        switch (action.type) {
+            case NodeResolverAction.INIT_RUNNER:
+                try {
+                    await this.initRunnerInstance(action);
+                } catch (error) {
+                    this.sendAction({
+                        id: action.id,
+                        type: WorkerResolverAction.RUNNER_INIT_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+                            name: RunnerInitError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
+                break;
+            case NodeResolverAction.DESTROY:
+                try {
+                    await this.destroyWorker(action.force);
+                } catch (error) {
+                    this.sendAction({ type: WorkerResolverAction.DESTROYED });
+                }
+                break;
         }
     }
     private async initRunnerInstance(action: INodeResolverInitRunnerAction): Promise<void> {

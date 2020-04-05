@@ -1,0 +1,16 @@
+name: Test in Chrome
+
+on: [push, pull_request]
+
+jobs:
+  test-chrome:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - run: npm ci
+    - run: npm test -- --browsers ChromeHeadless
+      env:
+        CI: true
