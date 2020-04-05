@@ -41,8 +41,9 @@ export class RunnerController<R extends RunnerConstructor> {
     constructor(config: Readonly<IRunnerControllerConfig<R>>) {
         const bridgeConstructor = config.runnerBridgeConstructors[config.runnerId];
         if (!bridgeConstructor) {
-            debugger;
-            throw new RunnerInitError();
+            throw new RunnerInitError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         this.resolvedRunner = new bridgeConstructor(this);
         this.runnerId = config.runnerId;

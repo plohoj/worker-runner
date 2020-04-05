@@ -41,17 +41,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     private runnerObservableInit(action: IRxRunnerEnvironmentInitAction): void {
         const observable = new Observable<JsonObject>(subscriber => {
-            try {
-                this.subscribers$.set(action.id, subscriber);
-            } catch (error) {
-                // throw {
-                //     error,
-                //     errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                //     message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                // } as IRunnerError;
-                console.error(error);
-                debugger;
-            }
+            this.subscribers$.set(action.id, subscriber);
             this.sendAction({
                 type: RxRunnerControllerAction.RX_SUBSCRIBE,
                 id: action.id,
