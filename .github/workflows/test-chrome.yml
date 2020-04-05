@@ -1,6 +1,6 @@
 name: Test in Chrome
 
-on: [push, pull_request]
+on: push
 
 jobs:
   test-chrome:

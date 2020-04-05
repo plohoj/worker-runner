@@ -1,6 +1,6 @@
 name: Test in Firefox
 
-on: [push, pull_request]
+on: push
 
 jobs:
   test-firefox:
