@@ -228,6 +228,7 @@ export class RunnerController<R extends RunnerConstructor> {
         if (closePort) {
             this.port.close();
         }
+        this.port.onmessage = null;
         this.port = undefined;
         this.onDisconnected?.();
     }

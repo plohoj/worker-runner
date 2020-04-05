@@ -1,9 +1,9 @@
-name: Build CI
+name: Test CI
 
 on: [push, pull_request]
 
 jobs:    
-  tslint:
+  test-chrome:
 
     runs-on: ubuntu-latest
 
@@ -11,11 +11,11 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
     - run: npm ci
-    - run: npm run tslint
+    - run: npm test -- --browsers ChromeHeadless
       env:
         CI: true
   
-  build:
+  test-firefox:
 
     runs-on: ubuntu-latest
 
@@ -23,6 +23,6 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
     - run: npm ci
-    - run: npm build
+    - run: npm test -- --browsers FirefoxHeadless
       env:
         CI: true
