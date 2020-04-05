@@ -8,7 +8,6 @@ import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { waitTimeout } from 'test/utils/wait-timeout';
 
 each({
         Common: runnerResolver,
@@ -81,12 +80,7 @@ each({
 
         it('with promise', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
-            const delayDuration = 15;
-            await waitTimeout(
-                expectAsync(executableStubRunner.delay(delayDuration)).toBeResolved(),
-                delayDuration + 25,
-                delayDuration,
-            );
+            await expectAsync(executableStubRunner.delay(4)).toBeResolved();
         });
 
         it ('with exception', async () => {
@@ -114,33 +108,23 @@ each({
         it ('with delay exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
-            const exceptDelayDuration = 25;
-            await waitTimeout(
-                expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, exceptDelayDuration))
-                    .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                            message: exceptionError,
-                            name: RunnerExecuteError.name,
-                            stack: jasmine.stringMatching(/.+/),
-                        })),
-                    exceptDelayDuration + 25,
-                    exceptDelayDuration,
-                );
+            await expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, 6))
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                        message: exceptionError,
+                        name: RunnerExecuteError.name,
+                        stack: jasmine.stringMatching(/.+/),
+                    }));
         });
 
         it ('with delay stack trace exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
-            const exceptDelayDuration = 25;
-            await waitTimeout(
-                expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, exceptDelayDuration))
-                    .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                        message: exceptionError,
-                        name: Error.name,
-                        stack: jasmine.stringMatching(/error-stub\.runner\./),
-                    })),
-                    exceptDelayDuration + 25,
-                    exceptDelayDuration,
-                );
+            await expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, 7))
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                    message: exceptionError,
+                    name: Error.name,
+                    stack: jasmine.stringMatching(/error-stub\.runner\./),
+                }));
         });
 
         it ('not exist runner', async () => {
