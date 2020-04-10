@@ -1,13 +1,16 @@
-import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, IRunnerError, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerEnvironmentAction, JsonObject, RunnerConstructor, RunnerController, RunnerEnvironmentAction, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { Observable, Subscriber } from 'rxjs';
 import { IRxRunnerControllerAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitWithRunnerResultAction, IRxRunnerEnvironmentErrorAction, IRxRunnerEnvironmentInitAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
-import { RxRunnerErrorMessages } from '../runners-errors';
+import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-messages';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
     /** {actionId: Subscriber} */
     public readonly subscribers$ = new Map<number, Subscriber<JsonObject>>();
+
+    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
 
     protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction) => void;
 
@@ -38,15 +41,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     private runnerObservableInit(action: IRxRunnerEnvironmentInitAction): void {
         const observable = new Observable<JsonObject>(subscriber => {
-            try {
-                this.subscribers$.set(action.id, subscriber);
-            } catch (error) {
-                throw {
-                    error,
-                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                    message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                } as IRunnerError;
-            }
+            this.subscribers$.set(action.id, subscriber);
             this.sendAction({
                 type: RxRunnerControllerAction.RX_SUBSCRIBE,
                 id: action.id,
@@ -73,7 +68,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
     private runnerObservableError(action: IRxRunnerEnvironmentErrorAction): void {
-        this.getSubscriber(action.id).error(action.error);
+        this.getSubscriber(action.id).error(this.errorSerializer.deserialize(action));
     }
 
     private runnerObservableCompleted(action: IRxRunnerEnvironmentCompletedAction): void {
@@ -83,14 +78,10 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     private getSubscriber(actionId: number): Subscriber<IRxRunnerSerializedMethodResult> {
         const completedSubscriber$ = this.subscribers$.get(actionId);
-        const error = new Error(RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND);
         if (!completedSubscriber$) {
-            throw {
-                error,
-                message: RxRunnerErrorMessages.SUBSCRIBER_NOT_FOUND,
-                errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                stacktrace: error.stack,
-            };
+            throw new RunnerExecuteError({
+                message: RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIBER_NOT_FOUND({runnerName: this.runnerName}),
+            });
         }
         return completedSubscriber$;
     }
@@ -98,13 +89,9 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     public onDisconnect(closePort = true): void {
         this.subscribers$.forEach(subscriber => {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            subscriber.error({
-                error,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError);
+            subscriber.error(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
             subscriber.complete();
         });
         this.subscribers$.clear();

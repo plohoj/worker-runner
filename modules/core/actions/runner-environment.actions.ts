@@ -1,5 +1,4 @@
-import { RunnerErrorCode } from '../errors/runners-errors';
-import { StackTraceError } from '../errors/stacktrace-error';
+import { ISerializedErrorAction } from '../errors/error.serializer';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 
 export enum RunnerEnvironmentAction {
@@ -37,17 +36,9 @@ export interface IRunnerEnvironmentDestroyedAction {
     id: number;
 }
 
-export type IRunnerEnvironmentExecuteErrorAction = StackTraceError<{
-    type: RunnerEnvironmentAction.EXECUTE_ERROR;
-    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
-    id: number;
-}>;
+export type IRunnerEnvironmentExecuteErrorAction = ISerializedErrorAction<RunnerEnvironmentAction.EXECUTE_ERROR>;
 
-export type IRunnerEnvironmentDestroyErrorAction = StackTraceError<{
-    type: RunnerEnvironmentAction.DESTROY_ERROR;
-    errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
-    id: number;
-}>;
+export type IRunnerEnvironmentDestroyErrorAction = ISerializedErrorAction<RunnerEnvironmentAction.DESTROY_ERROR>;
 
 export interface IRunnerEnvironmentResolvedAction {
     type: RunnerEnvironmentAction.RESOLVED;

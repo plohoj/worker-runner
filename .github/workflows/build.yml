@@ -1,0 +1,28 @@
+name: Build CI
+
+on: push
+
+jobs:    
+  tslint:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - run: npm ci
+    - run: npm run tslint
+      env:
+        CI: true
+  
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - run: npm ci
+    - run: npm build
+      env:
+        CI: true

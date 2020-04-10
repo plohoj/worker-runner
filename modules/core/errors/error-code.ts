@@ -1,0 +1,8 @@
+export enum WorkerRunnerErrorCode {
+    RUNNER_INIT_ERROR,
+    RUNNER_EXECUTE_ERROR,
+    RUNNER_DESTROY_ERROR,
+    RUNNER_NOT_INIT,
+    WORKER_NOT_INIT,
+    UNEXPECTED_ERROR,
+}

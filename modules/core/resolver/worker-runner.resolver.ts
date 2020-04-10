@@ -1,7 +1,9 @@
 import { INodeResolverAction, INodeResolverInitRunnerAction, NodeResolverAction } from '../actions/node-resolver.actions';
 import { IWorkerResolverAction, WorkerResolverAction } from '../actions/worker-resolver.actions';
-import { extractError } from '../errors/extract-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { WorkerRunnerErrorCode } from '../errors/error-code';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RunnerInitError } from '../errors/runner-errors';
 import { resolveRunnerBridgeConstructor } from '../runner/bridge-constructor.resolver';
 import { ResolvedRunner } from '../runner/resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner/runner-bridge';
@@ -14,10 +16,14 @@ import { IRunnerResolverConfigBase } from './base-runner.resolver';
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
-    protected RunnerEnvironmentConstructor = RunnerEnvironment;
+    protected readonly RunnerEnvironmentConstructor = RunnerEnvironment;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+    protected readonly RunnerControllerConstructor = RunnerController;
+    protected readonly runners: ReadonlyArray<R>;
 
-    constructor(protected config: IRunnerResolverConfigBase<R>) {
-        this.runnerBridgeConstructors = this.config.runners.map(runner => resolveRunnerBridgeConstructor(runner));
+    constructor(config: Readonly<IRunnerResolverConfigBase<R>>) {
+        this.runners = config.runners;
+        this.runnerBridgeConstructors = this.runners.map(runner => resolveRunnerBridgeConstructor(runner));
     }
 
     public run(): void {
@@ -29,18 +35,35 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         this.handleAction(message.data);
     }
 
-    public handleAction(action: INodeResolverAction): void {
+    public async handleAction(action: INodeResolverAction): Promise<void> {
         switch (action.type) {
             case NodeResolverAction.INIT_RUNNER:
-                this.initRunnerInstance(action);
+                try {
+                    await this.initRunnerInstance(action);
+                } catch (error) {
+                    this.sendAction({
+                        id: action.id,
+                        type: WorkerResolverAction.RUNNER_INIT_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+                            name: RunnerInitError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
                 break;
             case NodeResolverAction.DESTROY:
-                this.destroyWorker(action.force);
+                try {
+                    await this.destroyWorker(action.force);
+                } catch (error) {
+                    this.sendAction({ type: WorkerResolverAction.DESTROYED });
+                }
                 break;
         }
     }
     private async initRunnerInstance(action: INodeResolverInitRunnerAction): Promise<void> {
-        const runnerConstructor = this.config.runners[action.runnerId];
+        const runnerConstructor = this.runners[action.runnerId];
         if (runnerConstructor) {
             const messageChanel = new MessageChannel();
             const deserializeArgumentsData = this.deserializeArguments(action.args);
@@ -49,10 +72,16 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
             } catch (error) {
                 this.sendAction({
-                    type: WorkerResolverAction.RUNNER_INIT_ERROR,
                     id: action.id,
-                    errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                    ...extractError(error),
+                    type: WorkerResolverAction.RUNNER_INIT_ERROR,
+                    ... this.errorSerializer.serialize(error, {
+                        errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
+                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                            runnerName: runnerConstructor.name,
+                        }),
+                        name: RunnerInitError.name,
+                        stack: error?.stack || new Error().stack,
+                    }),
                 });
                 await Promise.all(deserializeArgumentsData.controllers
                     .map(controller => controller.disconnect()));
@@ -77,12 +106,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
                 [messageChanel.port2],
             );
         } else {
-            this.sendAction({
-                type: WorkerResolverAction.RUNNER_INIT_ERROR,
-                id: action.id,
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                error: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-            });
+            throw new RunnerInitError();
         }
     }
 
@@ -97,10 +121,11 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE:
-                    const controller = new RunnerController({
+                    const controller = new this.RunnerControllerConstructor({
                         runnerId: argument.runnerId,
                         runnerBridgeConstructors: this.runnerBridgeConstructors,
                         port: argument.port,
+                        runners: this.runners,
                     });
                     result.controllers.push(controller);
                     result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
@@ -132,7 +157,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         postMessage(action, transfer);
     }
 
-    public wrapRunner(runnerId: number, runner: InstanceType<R>): MessagePort {
+    public wrapRunner(runner: InstanceType<R>): MessagePort {
         const messageChanel = new MessageChannel();
 
         const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({

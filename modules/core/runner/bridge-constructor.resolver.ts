@@ -1,12 +1,12 @@
 import { Constructor, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { executeRunnerBridgeMethod, IRunnerBridgeConstructor, RunnerBridge } from './runner-bridge';
+import { EXECUTE_RUNNER_BRIDGE_METHOD, IRunnerBridgeConstructor, RunnerBridge } from './runner-bridge';
 
 function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
     for (const key of Object.getOwnPropertyNames(proto.prototype)) {
-        if (key !== 'constructor' && key !== 'destroy') {
+        if (!(key in RunnerBridge.prototype)) {
             construct.prototype[key] = function(this: RunnerBridge, ...args: JsonObject[]) {
-                return this[executeRunnerBridgeMethod](key, args);
+                return this[EXECUTE_RUNNER_BRIDGE_METHOD](key, args);
             };
         }
         const parent = Object.getPrototypeOf(proto);
@@ -17,7 +17,8 @@ function recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
 }
 
 export function resolveRunnerBridgeConstructor<T extends RunnerConstructor>(runner: T): IRunnerBridgeConstructor<T> {
-    const constructor = class extends RunnerBridge {};
-    recursiveOverrideProperty(constructor, runner);
-    return constructor as any;
+    const className = 'Resolved' + runner.name;
+    const ResolvedRunner = {[className]: class extends RunnerBridge {}}[className];
+    recursiveOverrideProperty(ResolvedRunner, runner);
+    return ResolvedRunner as any;
 }

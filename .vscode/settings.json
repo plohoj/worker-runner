@@ -5,7 +5,8 @@
     "workbench.colorCustomizations": {
         "statusBar.background": "#00ffcc",
         "statusBarItem.hoverBackground": "#00cca3",
-        "statusBar.foreground": "#15202b"
+        "statusBar.foreground": "#15202b",
+        "statusBar.border": "#00ffcc"
     },
     "typescript.tsdk": "node_modules\\typescript\\lib",
     "cSpell.words": [

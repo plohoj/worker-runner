@@ -1,5 +1,4 @@
-import { IRunnerEnvironmentAction, JsonObject, RunnerEnvironmentAction, StackTraceError } from '@worker-runner/core';
-import { RxRunnerErrorCode } from '../runners-errors';
+import { IRunnerEnvironmentAction, ISerializedErrorAction, JsonObject, RunnerEnvironmentAction } from '@worker-runner/core';
 
 export enum RxRunnerEnvironmentAction {
     RX_INIT = 100,
@@ -27,11 +26,7 @@ export interface IRxRunnerEnvironmentEmitWithRunnerResultAction {
     runnerId: number;
 }
 
-export type IRxRunnerEnvironmentErrorAction = StackTraceError<{
-    type: RxRunnerEnvironmentAction.RX_ERROR;
-    id: number;
-    errorCode: RxRunnerErrorCode;
-}>;
+export type IRxRunnerEnvironmentErrorAction = ISerializedErrorAction<RxRunnerEnvironmentAction.RX_ERROR>;
 
 export interface IRxRunnerEnvironmentCompletedAction {
     type: RxRunnerEnvironmentAction.RX_COMPLETED;
