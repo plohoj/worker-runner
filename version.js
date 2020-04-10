@@ -1,3 +1,4 @@
+const { exec } = require('child_process');
 const { readdirSync, readFile, writeFile } = require('fs');
 const { resolve } = require("path");
 const mainPackage = require('./package.json');
@@ -66,5 +67,7 @@ function errorLog(directory) {
                 .then(() => successLog(`dist/${moduleName}/package.json`))
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
-    ]);
+    ]).then(() => new Promise((resolver, reject) => {
+        exec(`git commit -m "v${newVersion}" -a`, (error, stdout) => error ? reject(error) : resolver(stdout))
+    }));
 })();
