@@ -8,8 +8,10 @@ on:
 
 jobs:
   update-minor-version:
-    if: github.event.pull_request.merged == true
+
+    if: github.event.pull_request.merged == true && !contains(github.event.pull_request.title, 'skip')
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
