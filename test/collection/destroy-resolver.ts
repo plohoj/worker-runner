@@ -1,10 +1,11 @@
-import { IRunnerError, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { WorkerNotInitError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 
 each({
         Common: runnerResolver,
@@ -24,17 +25,20 @@ each({
         });
 
         it ('when it was already destroyed', async () => {
-            await expectAsync(resolver.destroy()).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-            } as IRunnerError));
+            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(WorkerNotInitError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+                name: WorkerNotInitError.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
         });
 
         it ('and resolve Runner', async () => {
-            await expectAsync(resolver.resolve(ExecutableStubRunner)).toBeRejectedWith(jasmine.objectContaining({
-                errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-            } as IRunnerError));
+            await expectAsync(resolver.resolve(ExecutableStubRunner))
+                .toBeRejectedWith(errorContaining(WorkerNotInitError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+                    name: WorkerNotInitError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
     }),
 );

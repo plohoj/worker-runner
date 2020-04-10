@@ -1,12 +1,14 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentExecuteErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { extractError } from '../errors/extract-error';
-import { RunnerErrorCode } from '../errors/runners-errors';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { WorkerRunnerErrorCode } from '../errors/error-code';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RunnerDestroyError, RunnerExecuteError } from '../errors/runner-errors';
 import { WorkerRunnerResolverBase } from '../resolver/worker-runner.resolver';
-import { TransferRunnerData } from '../transfer-runner-data';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
 import { JsonObject } from '../types/json-object';
-import { RunnerBridge, runnerBridgeController } from './runner-bridge';
+import { TransferRunnerData } from '../utils/transfer-runner-data';
+import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner-bridge';
 import { RunnerController } from './runner.controller';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
@@ -23,7 +25,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private onDestroyed: () => void;
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
-    constructor(config: IRunnerEnvironmentConfig<R>) {
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+
+    constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
@@ -35,16 +39,46 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.handleAction(port, message.data);
     }
 
+    protected get runnerName(): string {
+        return this.runnerInstance.constructor.name;
+    }
+
     protected async handleAction(
         port: MessagePort,
         action: IRunnerControllerAction,
     ): Promise<void> {
         switch (action.type) {
             case RunnerControllerAction.EXECUTE:
-                await this.execute(port, action);
+                try {
+                    await this.execute(port, action);
+                } catch (error) {
+                    this.sendAction(port, {
+                        id: action.id,
+                        type: RunnerEnvironmentAction.EXECUTE_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                            name: RunnerExecuteError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
                 break;
             case RunnerControllerAction.DESTROY:
-                await this.destroy(port, action);
+                try {
+                    await this.destroy(port, action);
+                } catch (error) {
+                    this.sendAction(port, {
+                        id: action.id,
+                        type: RunnerEnvironmentAction.DESTROY_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
+                            name: RunnerDestroyError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
                 break;
             case RunnerControllerAction.RESOLVE:
                 await this.resolve(port, action);
@@ -65,11 +99,18 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             response = this.runnerInstance[action.method](...deserializeArgumentsData.args);
         } catch (error) {
             this.sendAction(port, {
-                type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                 id: action.id,
-                ...extractError(error),
-            } as IRunnerEnvironmentExecuteErrorAction);
+                type: RunnerEnvironmentAction.EXECUTE_ERROR,
+                ... this.errorSerializer.serialize(error, {
+                    errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                        runnerName: this.runnerName,
+                        methodName: action.method,
+                    }),
+                    name: RunnerExecuteError.name,
+                    stack: error?.stack || new Error().stack,
+                }),
+            });
             await Promise.all(deserializeArgumentsData.controllers
                 .map(controller => controller.disconnect()));
             return;
@@ -79,11 +120,18 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 await this.handleExecuteResponse(port, action, await response);
             } catch (error) {
                 this.sendAction(port, {
-                    type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                    errorCode: RunnerErrorCode.RUNNER_EXECUTE_ERROR,
                     id: action.id,
-                    ...extractError(error),
-                } as IRunnerEnvironmentExecuteErrorAction);
+                    type: RunnerEnvironmentAction.EXECUTE_ERROR,
+                    ... this.errorSerializer.serialize(error, {
+                        errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                        message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                            runnerName: this.runnerName,
+                            methodName: action.method,
+                        }),
+                        name: RunnerExecuteError.name,
+                        stack: error?.stack || new Error().stack,
+                    }),
+                });
                 await Promise.all(deserializeArgumentsData.controllers
                     .map(controller => controller.disconnect()));
                 return;
@@ -126,7 +174,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             response = responseWithTransferData;
         }
         if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerController = await response[runnerBridgeController];
+            const runnerController = await response[RUNNER_BRIDGE_CONTROLLER];
             const transferPort: MessagePort = await runnerController.resolveOrTransferControl();
             this.sendAction(
                 port,
@@ -175,11 +223,18 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             } catch (error) {
                 if (action && port) {
                     this.sendAction(port, {
-                        type: RunnerEnvironmentAction.DESTROY_ERROR,
-                        errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
                         id: action.id,
-                        ...extractError(error),
-                    } as IRunnerEnvironmentDestroyErrorAction);
+                        type: RunnerEnvironmentAction.DESTROY_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                                runnerName: this.runnerName,
+                                methodName: 'destroy',
+                            }),
+                            name: RunnerExecuteError.name,
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
                     isActionSended = true;
                 }
             }
@@ -189,11 +244,18 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 } catch (error) {
                     if (action && port) {
                         this.sendAction(port, {
-                            type: RunnerEnvironmentAction.DESTROY_ERROR,
-                            errorCode: RunnerErrorCode.RUNNER_DESTROY_ERROR,
                             id: action.id,
-                            ...extractError(error),
-                        } as IRunnerEnvironmentDestroyErrorAction);
+                            type: RunnerEnvironmentAction.DESTROY_ERROR,
+                            ... this.errorSerializer.serialize(error, {
+                                errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
+                                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                                    runnerName: this.runnerName,
+                                    methodName: 'destroy',
+                                }),
+                                name: RunnerExecuteError.name,
+                                stack: error?.stack || new Error().stack,
+                            }),
+                        });
                         isActionSended = true;
                     }
                 }
@@ -202,8 +264,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         if (port) {
             if (action && !isActionSended) {
                 this.sendAction(port, {
-                    type: RunnerEnvironmentAction.DESTROYED,
                     id: action.id,
+                    type: RunnerEnvironmentAction.DESTROYED,
                 } as IRunnerEnvironmentDestroyedAction);
             }
             const portIndex = this.ports.indexOf(port);

@@ -1,7 +1,9 @@
-import { IRunnerError, NodeResolverAction, RunnerConstructor, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { NodeResolverAction, RunnerConstructor } from '@worker-runner/core';
 import { INodeResolverAction } from '../actions/node-resolver.actions';
+import { WorkerNotInitError } from '../errors/runner-errors';
 import { RunnerBridge } from '../runner/runner-bridge';
 import { Constructor } from '../types/constructor';
+import { IRunnerResolverConfigBase } from './base-runner.resolver';
 import { NodeRunnerResolverBase } from './node-runner.resolver';
 import { WorkerRunnerResolverBase } from './worker-runner.resolver';
 
@@ -9,11 +11,12 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
 
     private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
     private localMessageChanel?: MessageChannel;
-    protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>>;
+    protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>,
+        [Readonly<IRunnerResolverConfigBase<R>>]>;
 
     protected async initWorker(): Promise<void> {
         if (this.WorkerResolverConstructor) {
-            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor(this.config);
+            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor({runners: this.runners});
             this.localMessageChanel = new MessageChannel();
             this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
             this.localWorkerRunnerResolver.sendAction
@@ -42,13 +45,7 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
                 }
                 this.localWorkerRunnerResolver = undefined;
             } else {
-                const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-                throw {
-                    errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                    error,
-                    message: RunnerErrorMessages.WORKER_NOT_INIT,
-                    stacktrace: error.stack,
-                } as IRunnerError;
+                throw new WorkerNotInitError();
             }
         } else {
             return super.destroy(force);
@@ -63,13 +60,7 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
             if (this.localMessageChanel) {
                 this.localMessageChanel.port1.postMessage(action, transfer as Transferable[]);
             } else {
-                const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-                throw {
-                    errorCode: RunnerErrorCode.WORKER_NOT_INIT,
-                    error,
-                    message: RunnerErrorMessages.WORKER_NOT_INIT,
-                    stacktrace: error.stack,
-                } as IRunnerError;
+                throw new WorkerNotInitError();
             }
         } else {
             super.sendAction(action, transfer);
@@ -81,16 +72,10 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
      */
     protected wrapRunner(runnerInstance: InstanceType<R>): RunnerBridge {
         if (!this.localWorkerRunnerResolver) {
-            const error = new Error(RunnerErrorMessages.WORKER_NOT_INIT);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                error,
-                message: RunnerErrorMessages.WORKER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new WorkerNotInitError();
         }
         const runnerId = this.getRunnerId(Object.getPrototypeOf(runnerInstance).constructor);
-        const port = this.localWorkerRunnerResolver.wrapRunner(runnerId, runnerInstance);
+        const port = this.localWorkerRunnerResolver.wrapRunner(runnerInstance);
         const controller = this.buildRunnerController(runnerId, port);
         return controller.resolvedRunner;
     }

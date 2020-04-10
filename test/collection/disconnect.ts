@@ -1,9 +1,10 @@
-import { IRunnerError, ResolvedRunner, RunnerErrorCode, RunnerErrorMessages } from '@worker-runner/core';
+import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localRunnerResolver, runnerResolver } from 'test/common/promise';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
+import { errorContaining } from 'test/utils/error-containing';
 
 each({
         Common: runnerResolver,
@@ -41,20 +42,28 @@ each({
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.disconnect();
-            await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(jasmine.objectContaining({
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            } as IRunnerError));
+            await expectAsync(executableStubRunner.disconnect())
+                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
+                    name: RunnerWasDisconnectedError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
 
         it ('after destroy', async () => {
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.destroy();
-            await expectAsync(executableStubRunner.disconnect()).toBeRejectedWith(jasmine.objectContaining({
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-            } as IRunnerError));
+            await expectAsync(executableStubRunner.disconnect())
+                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                        runnerName: ExecutableStubRunner.name,
+                    }),
+                    name: RunnerWasDisconnectedError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                }));
         });
 
     }),

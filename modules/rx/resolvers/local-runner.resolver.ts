@@ -1,5 +1,5 @@
 import { RunnerConstructor } from '@worker-runner/core';
-import { RxResolvedRunner } from '../resolved-runner';
+import { RxResolvedRunner } from '../types/resolved-runner';
 import { RxNodeRunnerResolver } from './node-runner.resolver';
 import { RxWorkerRunnerResolver } from './worker-runner.resolver';
 

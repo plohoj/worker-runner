@@ -1,16 +1,21 @@
-import { extractError, IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, runnerBridgeController, RunnerConstructor, RunnerEnvironment, TransferRunnerData } from '@worker-runner/core';
+import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerExecuteAction, JsonObject, RunnerBridge, RunnerConstructor, RunnerEnvironment, RunnerExecuteError, RUNNER_BRIDGE_CONTROLLER, TransferRunnerData, WorkerRunnerErrorCode, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { Observable, Subject } from 'rxjs';
 import { filter, mergeMap, takeUntil } from 'rxjs/operators';
 import { IRxRunnerControllerSubscribeAction, IRxRunnerControllerUnsubscribeAction, RxRunnerControllerAction } from '../actions/runner-controller.actions';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentCompletedAction, IRxRunnerEnvironmentErrorAction, RxRunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../resolved-runner';
-import { RxRunnerErrorCode, RxRunnerErrorMessages } from '../runners-errors';
+import { RxWorkerRunnerErrorCode } from '../errors/error-code';
+import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-messages';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RxRunnerEmitError, RxRunnerSubscriptionNotFoundError } from '../errors/runner-errors';
+import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
     /** { actionId: Observable } */
     private observableList = new Map<number, Observable<IRxRunnerMethodResult>>();
     /** Event for stop listening the Observable */
     private unsubscribe$ = new Subject<number | 'ALL'>();
+
+    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
 
     protected declare sendAction: (
         port: MessagePort,
@@ -47,7 +52,20 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         switch (action.type) {
             case RxRunnerControllerAction.RX_SUBSCRIBE:
             case RxRunnerControllerAction.RX_UNSUBSCRIBE:
-                this.execute(port, action);
+                try {
+                    this.execute(port, action);
+                } catch (error) {
+                    this.sendAction(port, {
+                        id: action.id,
+                        type: RxRunnerEnvironmentAction.RX_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                            name: RunnerExecuteError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
                 break;
             default:
                 super.handleAction(port, action);
@@ -80,13 +98,12 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         const observable = this.observableList.get(action.id);
         this.observableList.delete(action.id);
         if (!observable) {
-            const error = new Error(RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND);
             this.sendAction(port, {
-                type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
-                error: RxRunnerErrorMessages.SUBSCRIPTION_NOT_FOUND,
-                stacktrace: error.stack,
-                errorCode: RxRunnerErrorCode.SUBSCRIPTION_NOT_FOUND,
+                type: RxRunnerEnvironmentAction.RX_ERROR,
+                ... this.errorSerializer.serialize(new RxRunnerSubscriptionNotFoundError({
+                    message: RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIPTION_NOT_FOUND({runnerName: this.runnerName}),
+                })),
             } as IRxRunnerEnvironmentErrorAction);
             this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RX_COMPLETED,
@@ -109,8 +126,13 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             error: (error) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
-                errorCode: RxRunnerErrorCode.ERROR_EMIT,
-                ...extractError(error),
+                errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
+                ... this.errorSerializer.serialize(error, {
+                    errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
+                    message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
+                    name: RxRunnerEmitError.name,
+                    stack: error?.stack || new Error().stack,
+                }),
             } as IRxRunnerEnvironmentErrorAction),
             complete: () => {
                 this.sendAction(port, {
@@ -136,7 +158,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             response = responseWithTransferData;
         }
         if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerController = await (response as RunnerBridge)[runnerBridgeController];
+            const runnerController = await (response as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
             const transferPort: MessagePort =  await runnerController.resolveOrTransferControl();
             this.sendAction(
                 port,

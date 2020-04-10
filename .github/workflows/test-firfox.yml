@@ -1,0 +1,16 @@
+name: Test in Firefox
+
+on: push
+
+jobs:
+  test-firefox:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - run: npm ci
+    - run: npm test -- --browsers FirefoxHeadless
+      env:
+        CI: true

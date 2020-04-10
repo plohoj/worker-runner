@@ -1,15 +1,19 @@
 import { IRunnerControllerAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDestroyErrorAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteErrorAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
-import { IRunnerError } from '../actions/runner-error';
-import { RunnerErrorCode, RunnerErrorMessages } from '../errors/runners-errors';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, IRunnerEnvironmentDisconnectedAction, IRunnerEnvironmentExecutedAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RunnerExecuteError, RunnerInitError, RunnerWasDisconnectedError } from '../errors/runner-errors';
+import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { NodeRunnerResolverBase } from '../resolver/node-runner.resolver';
-import { PromisesResolver } from '../runner-promises';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
+import { IRunnerArgument } from '../types/runner-argument';
+import { PromisesResolver } from '../utils/runner-promises';
 import { ResolvedRunner } from './resolved-runner';
 import { IRunnerBridgeConstructor } from './runner-bridge';
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
     runnerId: number;
+    runners: ReadonlyArray<RunnerConstructor>;
     port: MessagePort;
     runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
     onDisconnected?: () => void;
@@ -24,22 +28,22 @@ export class RunnerController<R extends RunnerConstructor> {
         IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDestroyedAction
             | IRunnerEnvironmentDisconnectedAction | IRunnerEnvironmentResolvedAction
             | IRunnerEnvironmentExecutedWithRunnerResultAction,
-        IRunnerEnvironmentExecuteErrorAction | IRunnerEnvironmentDestroyErrorAction | IRunnerError
+        WorkerRunnerError
     >();
     private lastActionId = 0;
     private port?: MessagePort;
     private readonly onDisconnected?: () => void;
     private readonly runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
 
-    constructor(config: IRunnerControllerConfig<R>) {
+    protected readonly runners: ReadonlyArray<RunnerConstructor>;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+
+    constructor(config: Readonly<IRunnerControllerConfig<R>>) {
         const bridgeConstructor = config.runnerBridgeConstructors[config.runnerId];
         if (!bridgeConstructor) {
-            const error = new Error(RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_INIT_ERROR,
-                error,
-                message: RunnerErrorMessages.CONSTRUCTOR_NOT_FOUND,
-            } as IRunnerError;
+            throw new RunnerInitError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         this.resolvedRunner = new bridgeConstructor(this);
         this.runnerId = config.runnerId;
@@ -47,6 +51,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.port.onmessage = this.onPortMessage.bind(this);
         this.onDisconnected = config.onDisconnected;
         this.runnerBridgeConstructors = config.runnerBridgeConstructors;
+        this.runners = config.runners;
     }
 
     protected onPortMessage(message: MessageEvent): void {
@@ -64,7 +69,16 @@ export class RunnerController<R extends RunnerConstructor> {
         const actionId = this.nextActionId();
         const executePromise$ = this.promises
             .promise<IRunnerEnvironmentExecutedAction | IRunnerEnvironmentExecutedWithRunnerResultAction>(actionId);
-        const serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        let serializedArgumentsData: {
+            args: IRunnerArgument[];
+            transfer: Transferable[];
+        };
+        try {
+            serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        } catch (error) {
+            this.promises.forget(actionId);
+            throw error;
+        }
         this.sendAction(
             {
                 type: RunnerControllerAction.EXECUTE,
@@ -107,7 +121,12 @@ export class RunnerController<R extends RunnerConstructor> {
             runnerId,
             runnerBridgeConstructors: this.runnerBridgeConstructors,
             port,
+            runners: this.runners,
         }) as this;
+    }
+
+    protected get runnerName(): string {
+        return this.runners[this.runnerId].name;
     }
 
     public async cloneControl(): Promise<this> {
@@ -116,12 +135,9 @@ export class RunnerController<R extends RunnerConstructor> {
 
     private transferControl(): MessagePort {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-            } as IRunnerError;
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         const port = this.port;
         this.onDisconnect(false);
@@ -130,12 +146,9 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public markForTransfer(): void {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-            } as IRunnerError;
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         this.isMarkedForTransfer = true;
     }
@@ -173,12 +186,12 @@ export class RunnerController<R extends RunnerConstructor> {
                 resolvedPromise?.resolve(action);
                 break;
             case RunnerEnvironmentAction.EXECUTE_ERROR:
-                this.promises.reject(action.id, action);
+                this.promises.reject(action.id, this.errorSerializer.deserialize(action));
                 break;
             case RunnerEnvironmentAction.DESTROY_ERROR:
                 const rejectedPromise = this.promises.forget(action.id);
                 this.onDisconnect();
-                rejectedPromise?.reject(action);
+                rejectedPromise?.reject(this.errorSerializer.deserialize(action));
                 break;
         }
     }
@@ -188,41 +201,35 @@ export class RunnerController<R extends RunnerConstructor> {
         transfer?: Transferable[],
     ): void {
         if (!this.port) {
-            const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
-            throw {
-                errorCode: action.type === RunnerControllerAction.EXECUTE ?
-                    RunnerErrorCode.RUNNER_EXECUTE_ERROR :
-                    RunnerErrorCode.RUNNER_NOT_INIT,
-                error,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            if (action.type === RunnerControllerAction.EXECUTE) {
+                throw new RunnerExecuteError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+                });
+            } else {
+                throw new RunnerWasDisconnectedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+                });
+            }
         }
         this.port.postMessage(action, transfer as Transferable[]);
     }
 
     public onDisconnect(closePort = true): void {
-        const error = new Error(RunnerErrorMessages.RUNNER_NOT_INIT);
         this.promises.promises.forEach(promise => {
-            promise.reject({
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError);
+            promise.reject(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
         });
         this.promises.promises.clear();
         if (!this.port) {
-            throw {
-                error,
-                errorCode: RunnerErrorCode.RUNNER_NOT_INIT,
-                message: RunnerErrorMessages.RUNNER_NOT_INIT,
-                stacktrace: error.stack,
-            } as IRunnerError;
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
         }
         if (closePort) {
             this.port.close();
         }
+        this.port.onmessage = null;
         this.port = undefined;
         this.onDisconnected?.();
     }

@@ -1,4 +1,4 @@
-import { TransferableJsonObject } from './types/json-object';
+import { TransferableJsonObject } from '../types/json-object';
 
 /** Allows you to use `Transferable` data as argument or a method result. */
 export class TransferRunnerData<
