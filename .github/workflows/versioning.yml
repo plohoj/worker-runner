@@ -9,7 +9,7 @@ on:
 jobs:
   update-minor-version:
 
-    if: github.event.pull_request.merged && !contains(github.event.pull_request.title, '[skip versioning]')
+    if: github.event.pull_request.merged === true && !contains(github.event.pull_request.title, 'skip')
     runs-on: ubuntu-latest
 
     steps:
