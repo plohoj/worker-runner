@@ -1,0 +1,26 @@
+name: Release publication
+
+on:
+  release:
+    branches: [master]
+    types: [created]
+
+jobs:
+  release-publication:
+
+    name: Release publication
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Run Build
+      run: npm build
+    - name: Publish to npm repository
+      run: npm run publish
+      env:
+        NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

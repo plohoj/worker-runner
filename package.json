@@ -3,8 +3,9 @@
   "version": "0.7.0",
   "scripts": {
     "build": "node build.js",
-    "test": "karma start --single-run",
-    "test:serve": "karma start",
+    "test": "karma start",
+    "test:chrome": "karma start -- --browsers ChromeHeadless",
+    "test:firefox": "karma start -- --browsers FirefoxHeadless",
     "coverage": "karma start --coverage=true",
     "tslint": "tslint -p . -t codeFrame",
     "version:patch": "node version.js",

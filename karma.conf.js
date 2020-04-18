@@ -22,7 +22,6 @@ module.exports = (config) => config.set({
     { pattern: './test/rx-worker.ts', watched: false, included: false },
   ],
   frameworks: ['jasmine'],
-  browsers: ['ChromeHeadless', 'FirefoxHeadless'],
   preprocessors: {
     './test/main.ts': ['webpack'],
     './test/worker.ts': ['webpack'],

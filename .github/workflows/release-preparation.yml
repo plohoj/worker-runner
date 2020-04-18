@@ -1,0 +1,29 @@
+name: Release preparation
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release-preparation:
+
+    name: Release preparation
+    if: contains(github.event.head_commit.message, '[prepare release]')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Get version from package.json
+      run: echo "::set-output name=version::$(node -pe "require('./package.json').version")"
+      id: get_version
+    - name: Create Release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ format('v{0}', steps.get_version.outputs.version) }}
+        release_name: ${{ format('v{0}', steps.get_version.outputs.version) }}
+        draft: true
