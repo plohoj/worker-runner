@@ -22,6 +22,7 @@
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
   },
+  "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "devDependencies": {
     "@types/jasmine": "^3.5.10",

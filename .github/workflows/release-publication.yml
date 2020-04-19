@@ -3,7 +3,7 @@ name: Release publication
 on:
   release:
     branches: [master]
-    types: [created]
+    types: [published]
 
 jobs:
   release-publication:

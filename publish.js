@@ -16,5 +16,9 @@ async function publish(moduleName) {
 (async function main() {
     console.log('Publication on npm repositories ...');
     await Promise.all(moduleNames.map(moduleName => publish(moduleName)
-        .then(() => console.log(`${moduleName}\t-->\tDone`))));
+        .then(() => console.log(`${moduleName}\t-->\tDone`))))
+        .catch(error => {
+            console.error(error);
+            process.exit(1);
+        });
 })();

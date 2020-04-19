@@ -68,6 +68,10 @@ function errorLog(directory) {
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
     ]).then(() => new Promise((resolver, reject) => {
-        exec(`git commit -m "v${newVersion}" -a`, (error, stdout) => error ? reject(error) : resolver(stdout))
-    }));
+        exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
+            (error, stdout) => error ? reject(error) : resolver(stdout))
+    })).catch(error => {
+        console.error(error);
+        process.exit(1);
+    });
 })();
