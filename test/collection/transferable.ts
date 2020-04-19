@@ -26,7 +26,10 @@ each({
             int8Array[0] = initialNumber;
             const withTransferableRunnerStub = await resolver.resolve(WithTransferableRunnerStub,
                 new TransferRunnerData(int8Array.buffer, [int8Array.buffer]));
-            expect(int8Array[0]).toBeUndefined();
+            try {
+                expect(int8Array[0]).toBeUndefined();
+            // tslint:disable-next-line: no-empty
+            } catch {}
             expect(int8Array.length).toBe(0);
             const arrayBuffer = await withTransferableRunnerStub.transferArrayBuffer();
             const int8ArrayResponse = new Int8Array(arrayBuffer);
@@ -41,7 +44,10 @@ each({
             const withTransferableRunnerStub = await resolver.resolve(WithTransferableRunnerStub);
             await withTransferableRunnerStub
                 .setArrayBuffer(new TransferRunnerData(int8Array.buffer, [int8Array.buffer]));
-            expect(int8Array[0]).toBeUndefined();
+            try {
+                expect(int8Array[0]).toBeUndefined();
+            // tslint:disable-next-line: no-empty
+            } catch {}
             expect(int8Array.length).toBe(0);
             const arrayBuffer = await withTransferableRunnerStub.transferArrayBuffer();
             const int8ArrayResponse = new Int8Array(arrayBuffer);

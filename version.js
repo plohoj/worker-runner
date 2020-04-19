@@ -57,7 +57,9 @@ function errorLog(directory) {
 (async function main() {
     await Promise.all([
         updateVersion(resolve(`./package.json`), versionType)
-            .then(version => successLog(`[main]`, version)),
+            .then(version => successLog(`/package.json`, version)),
+        updateVersion(resolve(`./package-lock.json`), versionType)
+            .then(version => successLog(`./package-lock.json`, version)),
         ... moduleNames.map(moduleName => 
             updateVersion(resolve(`modules/${moduleName}/package.json`))
                 .then(() => successLog(`modules/${moduleName}/package.json`)),
