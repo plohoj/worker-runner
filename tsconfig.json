@@ -5,7 +5,7 @@
         "lib": [
             "webworker"
         ],
-        "target": "ES2017",
+        "target": "ES2015",
         "outDir": "./dist",
         "strictNullChecks": true,
         "strict": true,
