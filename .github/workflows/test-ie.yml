@@ -1,0 +1,21 @@
+name: Test in IE11
+
+on: push
+
+jobs:
+  test-ie:
+
+    name: Test in Internet Explorer 11
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Run test in Internet Explorer 11
+      run: npm test -- --single-run --browsers IE
+      env:
+        CI: true
