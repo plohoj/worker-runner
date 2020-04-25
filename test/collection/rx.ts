@@ -7,6 +7,7 @@ import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
+import { isIE } from 'test/utils/is-internet-explorrer';
 
 each({
     Rx: rxRunnerResolver,
@@ -83,12 +84,15 @@ each({
             type: 'ERROR',
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
+        const expectedProperty: Record<any, any> = {
+            message: errorData.toString(),
+            name: RxRunnerEmitError.name,
+        };
+        if (!isIE) {
+            expectedProperty.stack = jasmine.stringMatching(/.+/);
+        }
         await expectAsync((await (await rxStubRunner.emitError(errorData))).toPromise())
-            .toBeRejectedWith(errorContaining(RxRunnerEmitError, {
-                message: errorData.toString(),
-                name: RxRunnerEmitError.name,
-                stack: jasmine.stringMatching(/.+/),
-            }));
+            .toBeRejectedWith(errorContaining(RxRunnerEmitError, expectedProperty));
     });
 
     it('emit error after destroy runner', async () => {

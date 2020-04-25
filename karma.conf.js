@@ -22,7 +22,6 @@ module.exports = (config) => config.set({
     { pattern: './test/rx-worker.ts', watched: false, included: false },
   ],
   frameworks: ['jasmine'],
-  browsers: ['ChromeHeadless', 'FirefoxHeadless'],
   preprocessors: {
     './test/main.ts': ['webpack'],
     './test/worker.ts': ['webpack'],
@@ -49,6 +48,17 @@ module.exports = (config) => config.set({
           exclude: /node_modules/,
           use: [
             ...isCoverage ? ["coverage-istanbul-loader"]: [],
+            {
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', {
+                      useBuiltIns: 'usage',
+                      corejs: 3,
+                  }],
+                ],
+              },
+            },
             'ts-loader',
           ]
         },

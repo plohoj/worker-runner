@@ -123,7 +123,7 @@ each({
                 .toBeRejectedWith(errorContaining(RunnerExecuteError, {
                     message: exceptionError,
                     name: Error.name,
-                    stack: jasmine.stringMatching(/error-stub\.runner\./),
+                    stack: jasmine.stringMatching(/.+/),
                 }));
         });
 

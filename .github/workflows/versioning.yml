@@ -1,23 +1,82 @@
 name: Versioning
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - master
+  push:
+    branches: [master]
 
 jobs:
   update-minor-version:
-    if: github.event.pull_request.merged == true
+
+    name: Updating minor version
+    if: |
+      startsWith(github.event.head_commit.message, 'Merge ')
+      && !contains(github.event.head_commit.message, '[versioning skip]')
+      && !contains(github.event.head_commit.message, '[version patch]')
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-    - run: npm ci
-    - run: |
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.PUSH_TOKEN }}
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Configure commit author
+      run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-    - run: npm run version:minor
-    - uses: ad-m/github-push-action@master
+    - name: Updating version
+      run: npm run version:minor
+    - name: Push to a branch
+      run: git push origin HEAD
+
+  update-patch-version:
+
+    name: Updating patch version
+    if: |
+      startsWith(github.event.head_commit.message, 'Merge ')
+      && contains(github.event.head_commit.message, '[version patch]')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PUSH_TOKEN }}
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Configure commit author
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    - name: Updating version
+      run: npm run version:patch
+    - name: Push to a branch
+      run: git push origin HEAD
+
+  release-preparation:
+
+    name: Release preparation
+    if: contains(github.event.head_commit.message, '[prepare release]')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Get version from package.json
+      run: echo "::set-output name=version::$(node -pe "require('./package.json').version")"
+      id: get_version
+    - name: Create Release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ format('v{0}', steps.get_version.outputs.version) }}
+        release_name: ${{ format('v{0}', steps.get_version.outputs.version) }}
+        draft: true

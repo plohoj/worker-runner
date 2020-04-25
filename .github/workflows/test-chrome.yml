@@ -5,12 +5,17 @@ on: push
 jobs:
   test-chrome:
 
+    name: Test in Chrome
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-    - run: npm ci
-    - run: npm test -- --browsers ChromeHeadless
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+    - name: Set up node
+      uses: actions/setup-node@v1
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Run test in Chrome
+      run: npm test -- --single-run --browsers ChromeHeadless
       env:
         CI: true

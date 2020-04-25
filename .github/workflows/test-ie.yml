@@ -1,12 +1,12 @@
-name: Test in Firefox
+name: Test in IE11
 
 on: push
 
 jobs:
-  test-firefox:
+  test-ie:
 
-    name: Test in Firefox
-    runs-on: ubuntu-latest
+    name: Test in Internet Explorer 11
+    runs-on: windows-latest
 
     steps:
     - name: Checkout to commit
@@ -15,7 +15,7 @@ jobs:
       uses: actions/setup-node@v1
     - name: Install npm dependencies
       run: npm ci
-    - name: Run test in Firefox
-      run: npm test -- --single-run --browsers FirefoxHeadless
+    - name: Run test in Internet Explorer 11
+      run: npm test -- --single-run --browsers IE
       env:
         CI: true

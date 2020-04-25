@@ -1,5 +1,5 @@
 import { IRunnerControllerAction, IRunnerControllerDestroyAction, IRunnerControllerDisconnectAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from '../actions/runner-controller.actions';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyedAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentDestroyErrorAction, RunnerEnvironmentAction } from '../actions/runner-environment.actions';
 import { WorkerRunnerErrorCode } from '../errors/error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
@@ -149,15 +149,15 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private async disconnect(port: MessagePort, action: IRunnerControllerDisconnectAction): Promise<void> {
         const portIndex = this.ports.indexOf(port);
         this.ports.splice(portIndex, 1);
+        if (this.ports.length === 0) {
+            await this.destroy();
+        }
         this.sendAction(port, {
             type: RunnerEnvironmentAction.DISCONNECTED,
             id: action.id,
         });
         port.onmessage = null;
         port.close();
-        if (this.ports.length === 0) {
-            this.destroy();
-        }
     }
 
     protected async handleExecuteResponse(
@@ -215,14 +215,14 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         port?: MessagePort,
         action?: IRunnerControllerDestroyAction,
     ): Promise<void> {
-        let isActionSended = false;
+        let destroyError: IRunnerEnvironmentDestroyErrorAction | undefined;
         if (this.runnerInstance.destroy) {
             let response: JsonObject | Promise<JsonObject> | void;
             try {
                 response = (this.runnerInstance.destroy as () => void | Promise<JsonObject>)();
             } catch (error) {
                 if (action && port) {
-                    this.sendAction(port, {
+                    destroyError = {
                         id: action.id,
                         type: RunnerEnvironmentAction.DESTROY_ERROR,
                         ... this.errorSerializer.serialize(error, {
@@ -234,8 +234,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                             name: RunnerExecuteError.name,
                             stack: error?.stack || new Error().stack,
                         }),
-                    });
-                    isActionSended = true;
+                    };
                 }
             }
             if (response instanceof Promise) {
@@ -243,7 +242,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     await response;
                 } catch (error) {
                     if (action && port) {
-                        this.sendAction(port, {
+                        destroyError = {
                             id: action.id,
                             type: RunnerEnvironmentAction.DESTROY_ERROR,
                             ... this.errorSerializer.serialize(error, {
@@ -255,25 +254,26 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                                 name: RunnerExecuteError.name,
                                 stack: error?.stack || new Error().stack,
                             }),
-                        });
-                        isActionSended = true;
+                        };
                     }
                 }
             }
         }
         if (port) {
-            if (action && !isActionSended) {
-                this.sendAction(port, {
-                    id: action.id,
-                    type: RunnerEnvironmentAction.DESTROYED,
-                } as IRunnerEnvironmentDestroyedAction);
-            }
             const portIndex = this.ports.indexOf(port);
             this.ports.splice(portIndex, 1);
             port.onmessage = null;
+            this.notifyControllersAboutDestruction();
+            if (action) {
+                this.sendAction(port, destroyError || {
+                    id: action.id,
+                    type: RunnerEnvironmentAction.DESTROYED,
+                });
+            }
             port.close();
+        } else {
+            this.notifyControllersAboutDestruction();
         }
-        this.notifyControllersAboutDestruction();
         this.onDestroyed();
     }
 

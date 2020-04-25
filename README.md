@@ -3,6 +3,7 @@
 [![Build](https://github.com/plohoj/worker-runner/workflows/Build%20CI/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Build+CI%22+branch%3Amaster)
 [![Test in Chrome](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Chrome/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Chrome%22+branch%3Amaster)
 [![Test in Firefox](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Firefox/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Firefox%22+branch%3Amaster)
+[![Test in IE11](https://github.com/plohoj/worker-runner/workflows/Test%20in%20IE11/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test%20in%20IE11%22+branch%3Amaster)
 [![npm version](https://badge.fury.io/js/%40worker-runner%2Fcore.svg)](https://www.npmjs.com/search?q=%40worker-runner)
 
 Worker Runner is a tool to assist use Web Worker.
@@ -20,6 +21,7 @@ Worker Runner is a tool to assist use Web Worker.
 1. [Resolved Runner as method result](#resolved-runner-as-method-result)
 1. [Transfer data](#transfer-data)
 1. [Usage with RxJs](#usage-with-rxjs)
+1. [Warning](#warning)
 
 ## <a name="initialization"></a> Initialization
 Declare your classes with the methods you need.
@@ -203,3 +205,7 @@ const libraryRunner = await resolver.resolve(LibraryRunner);
     // ...
 })
 ```
+
+## <a name="warning"></a> Warning
+
+Internet Explorer requires **polyfill** for `Symbol` and `Promise`

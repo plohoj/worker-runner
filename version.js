@@ -57,7 +57,9 @@ function errorLog(directory) {
 (async function main() {
     await Promise.all([
         updateVersion(resolve(`./package.json`), versionType)
-            .then(version => successLog(`[main]`, version)),
+            .then(version => successLog(`/package.json`, version)),
+        updateVersion(resolve(`./package-lock.json`), versionType)
+            .then(version => successLog(`./package-lock.json`, version)),
         ... moduleNames.map(moduleName => 
             updateVersion(resolve(`modules/${moduleName}/package.json`))
                 .then(() => successLog(`modules/${moduleName}/package.json`)),
@@ -68,6 +70,10 @@ function errorLog(directory) {
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
     ]).then(() => new Promise((resolver, reject) => {
-        exec(`git commit -m "v${newVersion}" -a`, (error, stdout) => error ? reject(error) : resolver(stdout))
-    }));
+        exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
+            (error, stdout) => error ? reject(error) : resolver(stdout))
+    })).catch(error => {
+        console.error(error);
+        process.exit(1);
+    });
 })();
