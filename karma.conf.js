@@ -48,6 +48,17 @@ module.exports = (config) => config.set({
           exclude: /node_modules/,
           use: [
             ...isCoverage ? ["coverage-istanbul-loader"]: [],
+            {
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', {
+                      useBuiltIns: 'usage',
+                      corejs: 3,
+                  }],
+                ],
+              },
+            },
             'ts-loader',
           ]
         },
