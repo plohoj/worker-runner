@@ -10,7 +10,7 @@ jobs:
     name: Updating minor version
     if: |
       startsWith(github.event.head_commit.message, 'Merge ')
-      && !contains(github.event.head_commit.message, '[versioning skip]')
+      && !contains(github.event.head_commit.message, '[version skip]')
       && !contains(github.event.head_commit.message, '[version patch]')
     runs-on: ubuntu-latest
 
