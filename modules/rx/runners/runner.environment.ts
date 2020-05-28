@@ -126,7 +126,6 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             error: (error) => this.sendAction(port, {
                 type: RxRunnerEnvironmentAction.RX_ERROR,
                 id: action.id,
-                errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
                 ... this.errorSerializer.serialize(error, {
                     errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
                     message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
