@@ -13,8 +13,8 @@
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.d.ts",
-  "main": "./umd/core.umd.js",
-  "module": "./esm/core.mjs",
+  "main": "./umd/core.js",
+  "module": "./esm/core.js",
   "keywords": [
     "worker-runner"
   ]

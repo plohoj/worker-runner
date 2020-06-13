@@ -10,8 +10,7 @@ jobs:
     name: Updating minor version
     if: |
       startsWith(github.event.head_commit.message, 'Merge ')
-      && !contains(github.event.head_commit.message, '[version skip]')
-      && !contains(github.event.head_commit.message, '[version patch]')
+      && contains(github.event.head_commit.message, '[minor version]')
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +36,7 @@ jobs:
     name: Updating patch version
     if: |
       startsWith(github.event.head_commit.message, 'Merge ')
-      && contains(github.event.head_commit.message, '[version patch]')
+      && contains(github.event.head_commit.message, '[patch version]')
     runs-on: ubuntu-latest
 
     steps:

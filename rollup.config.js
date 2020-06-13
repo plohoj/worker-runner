@@ -6,14 +6,6 @@ const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 const moduleFormats = ["umd", "esm"];
 
-function fileName(moduleName, moduleFormat) {
-    switch (moduleFormat) {
-        case 'esm': return `${moduleName}.mjs`;
-        case 'umd': return `${moduleName}.umd.js`;
-        default: return `${moduleName}.js`
-    }
-}
-
 function generateBuildConfig(moduleName, moduleFormat) {
     /** @type {import('rollup').RollupOptions} */
     const config = {
@@ -27,7 +19,7 @@ function generateBuildConfig(moduleName, moduleFormat) {
                 '@worker-runner/promise': 'WorkerRunnerPromise',
                 '@worker-runner/rx': 'WorkerRunnerRx',
             },
-            file: `dist/${moduleName}/${moduleFormat}/${fileName(moduleName, moduleFormat)}`,
+            file: `dist/${moduleName}/${moduleFormat}/${moduleName}.js`,
             sourcemap: true,
             format: moduleFormat,
         },

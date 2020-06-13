@@ -5,11 +5,11 @@ const { resolve } = require("path");
 const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
-  const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
-  let isCoverage = false;
-  if (isCoverageArg) {
-      isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
-  }
+const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
+let isCoverage = false;
+if (isCoverageArg) {
+    isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
+}
 
 const modulesEntry = {};
 moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
