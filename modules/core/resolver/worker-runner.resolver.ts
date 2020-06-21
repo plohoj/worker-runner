@@ -14,6 +14,7 @@ import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
+    private readonly onMessageHandler = this.onMessage.bind(this);
     protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected readonly RunnerEnvironmentConstructor = RunnerEnvironment;
@@ -27,7 +28,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
     }
 
     public run(): void {
-        self.addEventListener('message', this.onMessage.bind(this));
+        self.addEventListener('message', this.onMessageHandler);
         this.sendAction({type: WorkerResolverAction.WORKER_INITED});
     }
 
@@ -147,6 +148,7 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         }
         this.runnerEnvironments.clear();
         this.sendAction({ type: WorkerResolverAction.DESTROYED });
+        self.removeEventListener('message', this.onMessageHandler);
     }
 
     public sendAction(
