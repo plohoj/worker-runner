@@ -43,7 +43,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
 
     constructor(config: Readonly<INodeRunnerResolverConfigBase<R>>) {
         this.runners = config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners;
-        this.workerName = config.workerPath || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName;
+        this.workerName = config.workerName || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName;
         this.workerPath = config.workerPath || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerPath;
     }
 
