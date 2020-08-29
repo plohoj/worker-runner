@@ -3,9 +3,9 @@ name: Build CI
 on: push
 
 jobs:    
-  tslint:
+  eslint:
 
-    name: TSlint
+    name: ESlint
     runs-on: ubuntu-latest
 
     steps:
@@ -15,8 +15,8 @@ jobs:
       uses: actions/setup-node@v1
     - name: Install npm dependencies
       run: npm ci
-    - name: Run TSLint
-      run: npm run tslint
+    - name: Run ESLint
+      run: npm run lint
       env:
         CI: true
   

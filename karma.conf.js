@@ -1,14 +1,15 @@
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+// eslint-disable-next-line unicorn/prevent-abbreviations
 const { readdirSync } = require('fs');
 const { resolve } = require("path");
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
-const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
+const isCoverageArgument = process.argv.find(argument => /--coverage[ =].+/.test(argument));
 let isCoverage = false;
-if (isCoverageArg) {
-    isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
+if (isCoverageArgument) {
+    isCoverage = isCoverageArgument.replace(/--type[ =]/, '').includes('true');
 }
 
 const modulesEntry = {};
@@ -60,6 +61,7 @@ module.exports = (config) => config.set({
               },
             },
             'ts-loader',
+            'eslint-loader',
           ]
         },
       ],
