@@ -12,6 +12,7 @@ export interface IRunnerErrorConfigStack {
 }
 
 export interface IRunnerErrorConfigCaptureOpt {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     captureOpt?: ((...args: any[]) => any) | Constructor;
 }
 

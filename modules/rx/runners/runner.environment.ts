@@ -10,39 +10,17 @@ import { RxRunnerEmitError, RxRunnerSubscriptionNotFoundError } from '../errors/
 import { IRxRunnerMethodResult, IRxRunnerSerializedMethodResult } from '../types/resolved-runner';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
-    /** { actionId: Observable } */
-    private observableList = new Map<number, Observable<IRxRunnerMethodResult>>();
-    /** Event for stop listening the Observable */
-    private unsubscribe$ = new Subject<number | 'ALL'>();
-
     protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
-
     protected declare sendAction: (
         port: MessagePort,
         action: IRxRunnerEnvironmentAction,
         transfer?: Transferable[],
     ) => void;
 
-    protected async handleExecuteResponse(
-        port: MessagePort,
-        action: IRunnerControllerExecuteAction,
-        response: IRxRunnerMethodResult | Observable<IRxRunnerMethodResult>,
-        transferable: Transferable[] = [],
-    ): Promise<void> {
-        if (response instanceof Observable) {
-            this.observableList.set(action.id, response);
-            this.sendAction(
-                port,
-                {
-                    type: RxRunnerEnvironmentAction.RX_INIT,
-                    id: action.id,
-                },
-                transferable,
-            );
-        } else {
-            await super.handleExecuteResponse(port, action, response);
-        }
-    }
+    /** { actionId: Observable } */
+    private observableList = new Map<number, Observable<IRxRunnerMethodResult>>();
+    /** Event for stop listening the Observable */
+    private unsubscribe$ = new Subject<number | 'ALL'>();
 
     public async handleAction(
         port: MessagePort,
@@ -88,6 +66,33 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 break;
             default:
                 return super.execute(port, action);
+        }
+    }
+
+    public async destroy(port?: MessagePort, action?: IRunnerControllerDestroyAction): Promise<void> {
+        this.unsubscribe$.next('ALL');
+        this.observableList.clear();
+        super.destroy(port, action);
+    }
+
+    protected async handleExecuteResponse(
+        port: MessagePort,
+        action: IRunnerControllerExecuteAction,
+        response: IRxRunnerMethodResult | Observable<IRxRunnerMethodResult>,
+        transferable: Transferable[] = [],
+    ): Promise<void> {
+        if (response instanceof Observable) {
+            this.observableList.set(action.id, response);
+            this.sendAction(
+                port,
+                {
+                    type: RxRunnerEnvironmentAction.RX_INIT,
+                    id: action.id,
+                },
+                transferable,
+            );
+        } else {
+            await super.handleExecuteResponse(port, action, response);
         }
     }
 
@@ -180,11 +185,5 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
                 transferable,
             );
         }
-    }
-
-    public async destroy(port?: MessagePort, action?: IRunnerControllerDestroyAction): Promise<void> {
-        this.unsubscribe$.next('ALL');
-        this.observableList.clear();
-        super.destroy(port, action);
     }
 }

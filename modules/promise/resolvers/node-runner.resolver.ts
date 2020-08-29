@@ -3,7 +3,11 @@ import { IRunnerSerializedParameter, NodeAndLocalRunnerResolverBase, ResolvedRun
 export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
     declare public resolve: <RR extends R>(
         runner: RR,
-        ...args: RR extends new (...args: infer A) => any ?
-            A extends Array<IRunnerSerializedParameter> ? ResolvedRunnerArguments<A> : never : never
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...args: RR extends new (...args: infer A) => any
+            ? A extends Array<IRunnerSerializedParameter>
+                ? ResolvedRunnerArguments<A>
+                : never
+            : never
     ) => Promise<ResolvedRunner<InstanceType<RR>>>;
 }

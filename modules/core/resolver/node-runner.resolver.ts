@@ -26,11 +26,7 @@ const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBas
 };
 
 export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
-    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction, WorkerRunnerError>();
-    private lastActionId = 0;
 
-    private worker?: Worker;
-    private workerMessageHandler = this.onWorkerMessage.bind(this);
     protected destroyPromise?: IPromiseMethods<void>;
     protected readonly RunnerControllerConstructor = RunnerController;
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
@@ -40,6 +36,12 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     protected readonly workerName: string;
     protected readonly runners: ReadonlyArray<R>;
     protected readonly workerPath: string;
+
+    private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction, WorkerRunnerError>();
+    private lastActionId = 0;
+
+    private worker?: Worker;
+    private workerMessageHandler = this.onWorkerMessage.bind(this);
 
     constructor(config: Readonly<INodeRunnerResolverConfigBase<R>>) {
         this.runners = config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners;
@@ -53,7 +55,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         args: IRunnerArgument[]
         transfer: Transferable[],
     }> {
-        const serializedArgs = {
+        const serializedArguments = {
             args: new Array<IRunnerArgument>(),
             transfer: new Array<Transferable>(),
         };
@@ -61,7 +63,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         await Promise.all(args.map(async (argumentWithTransferData, index) => {
             let argument: IRunnerSerializedParameter;
             if (argumentWithTransferData instanceof TransferRunnerData) {
-                serializedArgs.transfer.push(...argumentWithTransferData.transfer);
+                serializedArguments.transfer.push(...argumentWithTransferData.transfer);
                 argument = argumentWithTransferData.data;
             } else {
                 argument = argumentWithTransferData;
@@ -74,7 +76,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                     port: transferPort,
                     runnerId: controller.runnerId,
                 });
-                serializedArgs.transfer.push(transferPort);
+                serializedArguments.transfer.push(transferPort);
             } else {
                 argsMap.set(index, {
                     type: RunnerArgumentType.JSON,
@@ -83,9 +85,9 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             }
         }));
         for (let i = 0; i < args.length; i++) {
-            serializedArgs.args.push(argsMap.get(i) as IRunnerArgument);
+            serializedArguments.args.push(argsMap.get(i) as IRunnerArgument);
         }
-        return serializedArgs;
+        return serializedArguments;
     }
 
     /** Launches and prepares RunnerResolver for work */
@@ -101,7 +103,29 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         return this.buildRunnerController(runnerId, action.port).resolvedRunner;
     }
 
-    protected getRunnerId(runner: R) {
+    /**
+     * Destroying of all resolved Runners instance
+     * @param force Destroy by skipping the call the destruction method on the remaining instances
+     */
+    public async destroy(force = false): Promise<void> {
+        if (this.worker) {
+            const destroyPromise$ = new Promise<void>((resolve, reject) => {
+                this.destroyPromise = {resolve, reject};
+            });
+            this.sendAction({
+                type: NodeResolverAction.DESTROY,
+                force,
+            });
+            await destroyPromise$;
+            this.destroyRunnerControllers();
+            this.worker.terminate();
+            this.worker = undefined;
+        } else {
+            throw new WorkerNotInitError();
+        }
+    }
+
+    protected getRunnerId(runner: R): number {
         const runnerId = this.runners.indexOf(runner);
         if (runnerId < 0) {
             throw new RunnerInitError({
@@ -133,15 +157,15 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         try {
             const actionId = this.nextActionId();
             const promise$ = this.initPromises.promise(actionId);
-            const serializedArgs = await NodeRunnerResolverBase.serializeArguments(args);
+            const serializedArguments = await NodeRunnerResolverBase.serializeArguments(args);
             this.sendAction(
                 {
                     type: NodeResolverAction.INIT_RUNNER,
                     id: actionId,
                     runnerId,
-                    args: serializedArgs.args,
+                    args: serializedArguments.args,
                 },
-                serializedArgs.transfer,
+                serializedArguments.transfer,
             );
             return await promise$;
         } catch (error) {
@@ -200,28 +224,6 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     protected destroyRunnerControllers(): void {
         this.runnerControllers.forEach(state => state.onDisconnect());
         this.runnerControllers.clear();
-    }
-
-    /**
-     * Destroying of all resolved Runners instance
-     * @param force Destroy by skipping the call the destruction method on the remaining instances
-     */
-    public async destroy(force = false): Promise<void> {
-        if (this.worker) {
-            const destroyPromise$ = new Promise<void>((resolve, reject) => {
-                this.destroyPromise = {resolve, reject};
-            });
-            this.sendAction({
-                type: NodeResolverAction.DESTROY,
-                force,
-            });
-            await destroyPromise$;
-            this.destroyRunnerControllers();
-            this.worker.terminate();
-            this.worker = undefined;
-        } else {
-            throw new WorkerNotInitError();
-        }
     }
 
     protected sendAction(

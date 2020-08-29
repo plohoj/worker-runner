@@ -1,22 +1,16 @@
 import { ResolvedRunner, RunnerInitError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
+import { resolverList } from 'test/common/resolver-list';
 import { runners } from 'test/common/runner-list';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { localRunnerResolver, runnerResolver } from '../common/promise';
 
-each({
-        Common: runnerResolver,
-        Local: localRunnerResolver,
-        Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
-    },
-    (mode, resolver) => describe(`${mode} constructor`, () => {
+each(resolverList, (mode, resolver) =>
+    describe(`${mode} constructor`, () => {
         beforeAll(async () => {
             await resolver.run();
         });
@@ -97,8 +91,8 @@ each({
 
         it ('not exist', async () => {
             class AnonymRunner {}
-            // @ts-ignore
-            await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerInitError, {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await expectAsync(resolver.resolve(AnonymRunner as any)).toBeRejectedWith(errorContaining(RunnerInitError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
                 name: RunnerInitError.name,
                 stack: jasmine.stringMatching(/.+/),

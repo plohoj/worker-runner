@@ -33,11 +33,13 @@ export interface IRxRunnerEnvironmentCompletedAction {
     id: number;
 }
 
-export type IRxRunnerEnvironmentAction<T extends RunnerEnvironmentAction | RxRunnerEnvironmentAction
-    = RunnerEnvironmentAction | RxRunnerEnvironmentAction>
-        = T extends RunnerEnvironmentAction ? IRunnerEnvironmentAction<T> : Extract<
-            IRxRunnerEnvironmentInitAction | IRxRunnerEnvironmentEmitAction
-                | IRxRunnerEnvironmentErrorAction | IRxRunnerEnvironmentCompletedAction
-                | IRxRunnerEnvironmentEmitWithRunnerResultAction,
-            {type: T}
-        >;
+export type IRxRunnerEnvironmentAction<
+    T extends RunnerEnvironmentAction | RxRunnerEnvironmentAction= RunnerEnvironmentAction | RxRunnerEnvironmentAction
+> = T extends RunnerEnvironmentAction
+    ? IRunnerEnvironmentAction<T>
+    : Extract<
+        IRxRunnerEnvironmentInitAction | IRxRunnerEnvironmentEmitAction
+            | IRxRunnerEnvironmentErrorAction | IRxRunnerEnvironmentCompletedAction
+            | IRxRunnerEnvironmentEmitWithRunnerResultAction,
+        {type: T}
+    >;

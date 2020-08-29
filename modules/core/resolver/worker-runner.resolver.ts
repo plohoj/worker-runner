@@ -14,13 +14,15 @@ import { IRunnerArgument, RunnerArgumentType } from '../types/runner-argument';
 import { IRunnerResolverConfigBase } from './base-runner.resolver';
 
 export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
-    private readonly onMessageHandler = this.onMessage.bind(this);
+    
     protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
     protected runnerBridgeConstructors = new Array<IRunnerBridgeConstructor<R>>();
     protected readonly RunnerEnvironmentConstructor = RunnerEnvironment;
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly RunnerControllerConstructor = RunnerController;
     protected readonly runners: ReadonlyArray<R>;
+    
+    private readonly onMessageHandler = this.onMessage.bind(this);
 
     constructor(config: Readonly<IRunnerResolverConfigBase<R>>) {
         this.runners = config.runners;
@@ -57,12 +59,75 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
             case NodeResolverAction.DESTROY:
                 try {
                     await this.destroyWorker(action.force);
-                } catch (error) {
+                } catch {
                     this.sendAction({ type: WorkerResolverAction.DESTROYED });
                 }
                 break;
         }
     }
+
+    public deserializeArguments(args: IRunnerArgument[]): {
+        args: Array<IRunnerSerializedParameter>,
+        controllers: Array<RunnerController<R>>,
+    } {
+        const result = {
+            args: new Array<IRunnerSerializedParameter>(),
+            controllers: new Array<RunnerController<R>>(),
+        };
+        for (const argument of args) {
+            switch (argument.type) {
+                case RunnerArgumentType.RUNNER_INSTANCE: {
+                    const controller = new this.RunnerControllerConstructor({
+                        runnerId: argument.runnerId,
+                        runnerBridgeConstructors: this.runnerBridgeConstructors,
+                        port: argument.port,
+                        runners: this.runners,
+                    });
+                    result.controllers.push(controller);
+                    result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
+                    break;
+                }
+                default:
+                    result.args.push(argument.data);
+            }
+        }
+        return result;
+    }
+
+    public async destroyWorker(force = false): Promise<void> {
+        if (!force) {
+            const destroying$ = new Array<Promise<void>>();
+            this.runnerEnvironments.forEach((runnerEnvironment) => {
+                destroying$.push(runnerEnvironment.destroy());
+            });
+            await Promise.all(destroying$);
+        }
+        this.runnerEnvironments.clear();
+        this.sendAction({ type: WorkerResolverAction.DESTROYED });
+        self.removeEventListener('message', this.onMessageHandler);
+    }
+
+    public sendAction(
+        action: IWorkerResolverAction,
+        transfer?: Transferable[],
+    ): void {
+        postMessage(action, transfer as Transferable[]);
+    }
+
+    public wrapRunner(runner: InstanceType<R>): MessagePort {
+        const messageChanel = new MessageChannel();
+
+        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+            port: messageChanel.port1,
+            runner,
+            workerRunnerResolver: this,
+            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+        });
+
+        this.runnerEnvironments.add(runnerEnvironment);
+        return messageChanel.port2;
+    }
+
     private async initRunnerInstance(action: INodeResolverInitRunnerAction): Promise<void> {
         const runnerConstructor = this.runners[action.runnerId];
         if (runnerConstructor) {
@@ -109,67 +174,5 @@ export abstract class WorkerRunnerResolverBase<R extends RunnerConstructor> {
         } else {
             throw new RunnerInitError();
         }
-    }
-
-    public deserializeArguments(args: IRunnerArgument[]): {
-        args: Array<IRunnerSerializedParameter>,
-        controllers: Array<RunnerController<R>>,
-    } {
-        const result = {
-            args: new Array<IRunnerSerializedParameter>(),
-            controllers: new Array<RunnerController<R>>(),
-        };
-        for (const argument of args) {
-            switch (argument.type) {
-                case RunnerArgumentType.RUNNER_INSTANCE:
-                    const controller = new this.RunnerControllerConstructor({
-                        runnerId: argument.runnerId,
-                        runnerBridgeConstructors: this.runnerBridgeConstructors,
-                        port: argument.port,
-                        runners: this.runners,
-                    });
-                    result.controllers.push(controller);
-                    result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
-                    break;
-                default:
-                    result.args.push(argument.data);
-            }
-        }
-        return result;
-    }
-
-    public async destroyWorker(force = false): Promise<void> {
-        if (!force) {
-            const destroying$ = new Array<Promise<void>>();
-            this.runnerEnvironments.forEach((runnerEnvironment) => {
-                destroying$.push(runnerEnvironment.destroy());
-            });
-            await Promise.all(destroying$);
-        }
-        this.runnerEnvironments.clear();
-        this.sendAction({ type: WorkerResolverAction.DESTROYED });
-        self.removeEventListener('message', this.onMessageHandler);
-    }
-
-    public sendAction(
-        action: IWorkerResolverAction,
-        transfer?: Transferable[],
-    ): void {
-        // @ts-ignore
-        postMessage(action, transfer);
-    }
-
-    public wrapRunner(runner: InstanceType<R>): MessagePort {
-        const messageChanel = new MessageChannel();
-
-        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
-            port: messageChanel.port1,
-            runner,
-            workerRunnerResolver: this,
-            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
-        });
-
-        this.runnerEnvironments.add(runnerEnvironment);
-        return messageChanel.port2;
     }
 }

@@ -8,6 +8,7 @@ type Expected<T> = {
     [P in keyof T]?: ExpectedRecursive<T[P]>
 };
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 export function errorContaining<T extends {}>(
     errorConstructor: Constructor<T>,
     sample: Expected<T>,
@@ -15,6 +16,7 @@ export function errorContaining<T extends {}>(
     return {
         asymmetricMatch(compareTo, customTesters) {
             const check = compareTo instanceof errorConstructor
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 && jasmine.objectContaining(sample as any).asymmetricMatch(compareTo, customTesters);
             if (!check) {
                 console.error(compareTo);

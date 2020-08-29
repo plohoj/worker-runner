@@ -1,7 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface IPromiseMethods<T = any, E = any> {
     resolve: (data: T) => void;
     reject: (error: E) => void;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class PromisesResolver<T, E = any> {
     public readonly promises = new Map<number, IPromiseMethods<T,  E>>();
 

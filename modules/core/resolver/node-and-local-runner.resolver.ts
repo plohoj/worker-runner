@@ -9,24 +9,10 @@ import { WorkerRunnerResolverBase } from './worker-runner.resolver';
 
 export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 
-    private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
-    private localMessageChanel?: MessageChannel;
     protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>,
         [Readonly<IRunnerResolverConfigBase<R>>]>;
-
-    protected async initWorker(): Promise<void> {
-        if (this.WorkerResolverConstructor) {
-            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor({runners: this.runners});
-            this.localMessageChanel = new MessageChannel();
-            this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
-            this.localWorkerRunnerResolver.sendAction
-                = this.localMessageChanel.port2.postMessage.bind(this.localMessageChanel.port2);
-            this.localMessageChanel.port2.onmessage
-                = this.localWorkerRunnerResolver.onMessage.bind(this.localWorkerRunnerResolver);
-        } else {
-            return super.initWorker();
-        }
-    }
+    private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
+    private localMessageChanel?: MessageChannel;
 
     public async destroy(force = false): Promise<void> {
         if (this.WorkerResolverConstructor) {
@@ -49,6 +35,20 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
             }
         } else {
             return super.destroy(force);
+        }
+    }
+
+    protected async initWorker(): Promise<void> {
+        if (this.WorkerResolverConstructor) {
+            this.localWorkerRunnerResolver = new this.WorkerResolverConstructor({runners: this.runners});
+            this.localMessageChanel = new MessageChannel();
+            this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
+            this.localWorkerRunnerResolver.sendAction
+                = this.localMessageChanel.port2.postMessage.bind(this.localMessageChanel.port2);
+            this.localMessageChanel.port2.onmessage
+                = this.localWorkerRunnerResolver.onMessage.bind(this.localWorkerRunnerResolver);
+        } else {
+            return super.initWorker();
         }
     }
 

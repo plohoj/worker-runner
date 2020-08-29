@@ -1,16 +1,10 @@
 import { TransferRunnerData } from '@worker-runner/core';
-import { localRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { resolverList } from 'test/common/resolver-list';
 import { WithTransferableRunnerStub } from 'test/common/stubs/with-transferable-data.stub';
 import { each } from 'test/utils/each';
 
-each({
-        Common: runnerResolver,
-        Local: localRunnerResolver,
-        Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
-    },
-    (mode, resolver) => describe(`${mode} Transfer data`, () => {
+each(resolverList, (mode, resolver) =>
+    describe(`${mode} Transfer data`, () => {
 
         beforeAll(async () => {
             await resolver.run();
@@ -28,7 +22,7 @@ each({
                 new TransferRunnerData(int8Array.buffer, [int8Array.buffer]));
             try {
                 expect(int8Array[0]).toBeUndefined();
-            // tslint:disable-next-line: no-empty
+            // eslint-disable-next-line no-empty
             } catch {}
             expect(int8Array.length).toBe(0);
             const arrayBuffer = await withTransferableRunnerStub.transferArrayBuffer();
@@ -46,7 +40,7 @@ each({
                 .setArrayBuffer(new TransferRunnerData(int8Array.buffer, [int8Array.buffer]));
             try {
                 expect(int8Array[0]).toBeUndefined();
-            // tslint:disable-next-line: no-empty
+            // eslint-disable-next-line no-empty
             } catch {}
             expect(int8Array.length).toBe(0);
             const arrayBuffer = await withTransferableRunnerStub.transferArrayBuffer();

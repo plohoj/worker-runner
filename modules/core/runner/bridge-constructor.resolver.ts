@@ -20,5 +20,6 @@ export function resolveRunnerBridgeConstructor<T extends RunnerConstructor>(runn
     const className = 'Resolved' + runner.name;
     const ResolvedRunner = {[className]: class extends RunnerBridge {}}[className];
     recursiveOverrideProperty(ResolvedRunner, runner);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ResolvedRunner as any;
 }

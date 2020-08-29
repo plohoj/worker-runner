@@ -23,6 +23,9 @@ export class RunnerController<R extends RunnerConstructor> {
     public readonly runnerId: number;
     public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
+    protected readonly runners: ReadonlyArray<RunnerConstructor>;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+
     private isMarkedForTransfer = false;
     private promises = new PromisesResolver<
         IRunnerEnvironmentExecutedAction | IRunnerEnvironmentDestroyedAction
@@ -34,9 +37,6 @@ export class RunnerController<R extends RunnerConstructor> {
     private port?: MessagePort;
     private readonly onDisconnected?: () => void;
     private readonly runnerBridgeConstructors: Array<IRunnerBridgeConstructor<R>>;
-
-    protected readonly runners: ReadonlyArray<RunnerConstructor>;
-    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
     constructor(config: Readonly<IRunnerControllerConfig<R>>) {
         const bridgeConstructor = config.runnerBridgeConstructors[config.runnerId];
@@ -52,14 +52,6 @@ export class RunnerController<R extends RunnerConstructor> {
         this.onDisconnected = config.onDisconnected;
         this.runnerBridgeConstructors = config.runnerBridgeConstructors;
         this.runners = config.runners;
-    }
-
-    protected onPortMessage(message: MessageEvent): void {
-        this.handleAction(message.data);
-    }
-
-    protected nextActionId(): number {
-        return this.lastActionId++;
     }
 
     public async execute(
@@ -116,32 +108,8 @@ export class RunnerController<R extends RunnerConstructor> {
         await destroyPromise$;
     }
 
-    protected buildControlClone(runnerId: number, port: MessagePort): this {
-        return new (this.constructor as typeof RunnerController)({
-            runnerId,
-            runnerBridgeConstructors: this.runnerBridgeConstructors,
-            port,
-            runners: this.runners,
-        }) as this;
-    }
-
-    protected get runnerName(): string {
-        return this.runners[this.runnerId].name;
-    }
-
     public async cloneControl(): Promise<this> {
         return this.buildControlClone(this.runnerId, await this.resolveControl());
-    }
-
-    private transferControl(): MessagePort {
-        if (!this.port) {
-            throw new RunnerWasDisconnectedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
-            });
-        }
-        const port = this.port;
-        this.onDisconnect(false);
-        return port;
     }
 
     public markForTransfer(): void {
@@ -170,6 +138,47 @@ export class RunnerController<R extends RunnerConstructor> {
         return this.resolveControl();
     }
 
+    public onDisconnect(closePort = true): void {
+        this.promises.promises.forEach(promise => {
+            promise.reject(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
+        });
+        this.promises.promises.clear();
+        if (!this.port) {
+            throw new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            });
+        }
+        if (closePort) {
+            this.port.close();
+        }
+        this.port.onmessage = null;
+        this.port = undefined;
+        this.onDisconnected?.();
+    }
+    
+    protected onPortMessage(message: MessageEvent): void {
+        this.handleAction(message.data);
+    }
+
+    protected nextActionId(): number {
+        return this.lastActionId++;
+    }
+
+    protected buildControlClone(runnerId: number, port: MessagePort): this {
+        return new (this.constructor as typeof RunnerController)({
+            runnerId,
+            runnerBridgeConstructors: this.runnerBridgeConstructors,
+            port,
+            runners: this.runners,
+        }) as this;
+    }
+
+    protected get runnerName(): string {
+        return this.runners[this.runnerId].name;
+    }
+
     protected handleAction(
         action: IRunnerEnvironmentAction,
     ): void {
@@ -180,19 +189,21 @@ export class RunnerController<R extends RunnerConstructor> {
             case RunnerEnvironmentAction.RESOLVED:
                 this.promises.resolve(action.id, action);
                 break;
-            case RunnerEnvironmentAction.DESTROYED:
+            case RunnerEnvironmentAction.DESTROYED: {
                 const resolvedPromise = this.promises.forget(action.id);
                 this.onDisconnect();
                 resolvedPromise?.resolve(action);
                 break;
+            }
             case RunnerEnvironmentAction.EXECUTE_ERROR:
                 this.promises.reject(action.id, this.errorSerializer.deserialize(action));
                 break;
-            case RunnerEnvironmentAction.DESTROY_ERROR:
+            case RunnerEnvironmentAction.DESTROY_ERROR: {
                 const rejectedPromise = this.promises.forget(action.id);
                 this.onDisconnect();
                 rejectedPromise?.reject(this.errorSerializer.deserialize(action));
                 break;
+            }
         }
     }
 
@@ -214,23 +225,14 @@ export class RunnerController<R extends RunnerConstructor> {
         this.port.postMessage(action, transfer as Transferable[]);
     }
 
-    public onDisconnect(closePort = true): void {
-        this.promises.promises.forEach(promise => {
-            promise.reject(new RunnerWasDisconnectedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
-            }));
-        });
-        this.promises.promises.clear();
+    private transferControl(): MessagePort {
         if (!this.port) {
             throw new RunnerWasDisconnectedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
             });
         }
-        if (closePort) {
-            this.port.close();
-        }
-        this.port.onmessage = null;
-        this.port = undefined;
-        this.onDisconnected?.();
+        const port = this.port;
+        this.onDisconnect(false);
+        return port;
     }
 }

@@ -18,15 +18,9 @@ export class RunnerBridge {
         this[RUNNER_BRIDGE_CONTROLLER] = controller;
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     public static isRunnerBridge(instance: any): instance is RunnerBridge {
         return !!instance && !!instance[RUNNER_BRIDGE_CONTROLLER];
-    }
-
-    protected async [EXECUTE_RUNNER_BRIDGE_METHOD](
-        methodName: string,
-        args: IRunnerParameter[],
-    ): Promise<IRunnerSerializedMethodResult> {
-        return this[RUNNER_BRIDGE_CONTROLLER].execute(methodName, args);
     }
 
     /** Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed */
@@ -54,5 +48,12 @@ export class RunnerBridge {
     public markForTransfer(): this {
         this[RUNNER_BRIDGE_CONTROLLER].markForTransfer();
         return this;
+    }
+    
+    protected async [EXECUTE_RUNNER_BRIDGE_METHOD](
+        methodName: string,
+        args: IRunnerParameter[],
+    ): Promise<IRunnerSerializedMethodResult> {
+        return this[RUNNER_BRIDGE_CONTROLLER].execute(methodName, args);
     }
 }

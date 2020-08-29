@@ -19,13 +19,16 @@ export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
 }
 
 export class RunnerEnvironment<R extends RunnerConstructor> {
+
     public runnerInstance: InstanceType<R>;
+
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+
     private workerRunnerResolver: WorkerRunnerResolverBase<R>;
     private ports = new Array<MessagePort>();
     private onDestroyed: () => void;
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
-    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
     constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.runnerInstance = config.runner;
@@ -33,60 +36,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.ports.push(config.port);
         config.port.onmessage = this.onPortMessage.bind(this, config.port);
         this.onDestroyed = config.onDestroyed;
-    }
-
-    protected onPortMessage(port: MessagePort, message: MessageEvent): void {
-        this.handleAction(port, message.data);
-    }
-
-    protected get runnerName(): string {
-        return this.runnerInstance.constructor.name;
-    }
-
-    protected async handleAction(
-        port: MessagePort,
-        action: IRunnerControllerAction,
-    ): Promise<void> {
-        switch (action.type) {
-            case RunnerControllerAction.EXECUTE:
-                try {
-                    await this.execute(port, action);
-                } catch (error) {
-                    this.sendAction(port, {
-                        id: action.id,
-                        type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                        ... this.errorSerializer.serialize(error, {
-                            errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                            name: RunnerExecuteError.name,
-                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
-                            stack: error?.stack || new Error().stack,
-                        }),
-                    });
-                }
-                break;
-            case RunnerControllerAction.DESTROY:
-                try {
-                    await this.destroy(port, action);
-                } catch (error) {
-                    this.sendAction(port, {
-                        id: action.id,
-                        type: RunnerEnvironmentAction.DESTROY_ERROR,
-                        ... this.errorSerializer.serialize(error, {
-                            errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
-                            name: RunnerDestroyError.name,
-                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
-                            stack: error?.stack || new Error().stack,
-                        }),
-                    });
-                }
-                break;
-            case RunnerControllerAction.RESOLVE:
-                await this.resolve(port, action);
-                break;
-            case RunnerControllerAction.DISCONNECT:
-                await this.disconnect(port, action);
-                break;
-        }
     }
 
     public async execute(
@@ -146,70 +95,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.connectedControllers.push(...controllers);
     }
 
-    private async disconnect(port: MessagePort, action: IRunnerControllerDisconnectAction): Promise<void> {
-        const portIndex = this.ports.indexOf(port);
-        this.ports.splice(portIndex, 1);
-        if (this.ports.length === 0) {
-            await this.destroy();
-        }
-        this.sendAction(port, {
-            type: RunnerEnvironmentAction.DISCONNECTED,
-            id: action.id,
-        });
-        port.onmessage = null;
-        port.close();
-    }
-
-    protected async handleExecuteResponse(
-        port: MessagePort,
-        action: IRunnerControllerExecuteAction,
-        responseWithTransferData: IRunnerMethodResult,
-        transferable: Transferable[] = [],
-    ): Promise<void> {
-        let response: IRunnerSerializedMethodResult;
-        if (responseWithTransferData instanceof TransferRunnerData) {
-            transferable.push(...responseWithTransferData.transfer);
-            response = responseWithTransferData.data;
-        } else {
-            response = responseWithTransferData;
-        }
-        if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerController = await response[RUNNER_BRIDGE_CONTROLLER];
-            const transferPort: MessagePort = await runnerController.resolveOrTransferControl();
-            this.sendAction(
-                port,
-                {
-                    type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT,
-                    id: action.id,
-                    port: transferPort,
-                    runnerId: runnerController.runnerId,
-                },
-                [transferPort, ...transferable],
-            );
-        } else {
-            this.sendAction(
-                port,
-                {
-                    type: RunnerEnvironmentAction.EXECUTED,
-                    id: action.id,
-                    response: response as JsonObject,
-                },
-                transferable,
-            );
-        }
-    }
-
-    private notifyControllersAboutDestruction(): void {
-        for (const port of this.ports) {
-            this.sendAction(port, {
-                type: RunnerEnvironmentAction.DESTROYED,
-                id: -1,
-            });
-            port.onmessage = null;
-            port.close();
-        }
-        this.ports = [];
-    }
 
     public async destroy(
         port?: MessagePort,
@@ -277,6 +162,133 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.onDestroyed();
     }
 
+    protected onPortMessage(port: MessagePort, message: MessageEvent): void {
+        this.handleAction(port, message.data);
+    }
+
+    protected get runnerName(): string {
+        return this.runnerInstance.constructor.name;
+    }
+
+    protected async handleAction(
+        port: MessagePort,
+        action: IRunnerControllerAction,
+    ): Promise<void> {
+        switch (action.type) {
+            case RunnerControllerAction.EXECUTE:
+                try {
+                    await this.execute(port, action);
+                } catch (error) {
+                    this.sendAction(port, {
+                        id: action.id,
+                        type: RunnerEnvironmentAction.EXECUTE_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                            name: RunnerExecuteError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
+                break;
+            case RunnerControllerAction.DESTROY:
+                try {
+                    await this.destroy(port, action);
+                } catch (error) {
+                    this.sendAction(port, {
+                        id: action.id,
+                        type: RunnerEnvironmentAction.DESTROY_ERROR,
+                        ... this.errorSerializer.serialize(error, {
+                            errorCode: WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR,
+                            name: RunnerDestroyError.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            stack: error?.stack || new Error().stack,
+                        }),
+                    });
+                }
+                break;
+            case RunnerControllerAction.RESOLVE:
+                await this.resolve(port, action);
+                break;
+            case RunnerControllerAction.DISCONNECT:
+                await this.disconnect(port, action);
+                break;
+        }
+    }
+
+    protected async handleExecuteResponse(
+        port: MessagePort,
+        action: IRunnerControllerExecuteAction,
+        responseWithTransferData: IRunnerMethodResult,
+        transferable: Transferable[] = [],
+    ): Promise<void> {
+        let response: IRunnerSerializedMethodResult;
+        if (responseWithTransferData instanceof TransferRunnerData) {
+            transferable.push(...responseWithTransferData.transfer);
+            response = responseWithTransferData.data;
+        } else {
+            response = responseWithTransferData;
+        }
+        if (RunnerBridge.isRunnerBridge(response)) {
+            const runnerController = await response[RUNNER_BRIDGE_CONTROLLER];
+            const transferPort: MessagePort = await runnerController.resolveOrTransferControl();
+            this.sendAction(
+                port,
+                {
+                    type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT,
+                    id: action.id,
+                    port: transferPort,
+                    runnerId: runnerController.runnerId,
+                },
+                [transferPort, ...transferable],
+            );
+        } else {
+            this.sendAction(
+                port,
+                {
+                    type: RunnerEnvironmentAction.EXECUTED,
+                    id: action.id,
+                    response: response as JsonObject,
+                },
+                transferable,
+            );
+        }
+    }
+
+    protected sendAction(
+        port: MessagePort,
+        action: IRunnerEnvironmentAction,
+        transfer?: Transferable[],
+    ): void {
+        port.postMessage(action, transfer as Transferable[]);
+    }
+    
+    private async disconnect(port: MessagePort, action: IRunnerControllerDisconnectAction): Promise<void> {
+        const portIndex = this.ports.indexOf(port);
+        this.ports.splice(portIndex, 1);
+        if (this.ports.length === 0) {
+            await this.destroy();
+        }
+        this.sendAction(port, {
+            type: RunnerEnvironmentAction.DISCONNECTED,
+            id: action.id,
+        });
+        port.onmessage = null;
+        port.close();
+    }
+
+    private notifyControllersAboutDestruction(): void {
+        for (const port of this.ports) {
+            this.sendAction(port, {
+                type: RunnerEnvironmentAction.DESTROYED,
+                id: -1,
+            });
+            port.onmessage = null;
+            port.close();
+        }
+        this.ports = [];
+    }
+
     private async resolve(port: MessagePort, action: IRunnerControllerResolveAction): Promise<void> {
         const messageChanel = new MessageChannel();
         messageChanel.port1.onmessage = this.onPortMessage.bind(this, messageChanel.port1);
@@ -290,13 +302,5 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             },
             [messageChanel.port2],
         );
-    }
-
-    protected sendAction(
-        port: MessagePort,
-        action: IRunnerEnvironmentAction,
-        transfer?: Transferable[],
-    ): void {
-        port.postMessage(action, transfer as Transferable[]);
     }
 }

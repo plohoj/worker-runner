@@ -14,6 +14,17 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
 
     protected declare sendAction: (action: IRxRunnerControllerAction | IRunnerControllerAction) => void;
 
+    public onDisconnect(closePort = true): void {
+        this.subscribers$.forEach(subscriber => {
+            subscriber.error(new RunnerWasDisconnectedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
+            }));
+            subscriber.complete();
+        });
+        this.subscribers$.clear();
+        super.onDisconnect(closePort);
+    }
+
     protected async handleAction(
         action: IRunnerControllerDestroyAction | IRxRunnerEnvironmentAction | IRunnerEnvironmentAction,
     ): Promise<void> {
@@ -84,17 +95,5 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             });
         }
         return completedSubscriber$;
-    }
-
-
-    public onDisconnect(closePort = true): void {
-        this.subscribers$.forEach(subscriber => {
-            subscriber.error(new RunnerWasDisconnectedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.runnerName}),
-            }));
-            subscriber.complete();
-        });
-        this.subscribers$.clear();
-        super.onDisconnect(closePort);
     }
 }

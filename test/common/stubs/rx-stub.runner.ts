@@ -38,7 +38,7 @@ export class RxStubRunner {
         return from(runner.emitMessages(messages)).pipe(concatAll());
     }
 
-    public emitError<T extends JsonObject>(error: T): Observable<never> {
+    public emitError<T extends JsonObject>(error?: T): Observable<never> {
         return throwError(error);
     }
 

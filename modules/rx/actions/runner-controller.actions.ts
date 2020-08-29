@@ -15,7 +15,8 @@ export interface IRxRunnerControllerUnsubscribeAction {
     id: number;
 }
 
-export type IRxRunnerControllerAction<T extends RunnerControllerAction | RxRunnerControllerAction
-    = RunnerControllerAction | RxRunnerControllerAction>
-        = T extends RunnerControllerAction ? IRunnerControllerAction<T>
-        : Extract<(IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction), {type: T}>;
+export type IRxRunnerControllerAction<
+    T extends RunnerControllerAction | RxRunnerControllerAction = RunnerControllerAction | RxRunnerControllerAction
+> = T extends RunnerControllerAction
+    ? IRunnerControllerAction<T>
+    : Extract<(IRxRunnerControllerSubscribeAction | IRxRunnerControllerUnsubscribeAction), {type: T}>;

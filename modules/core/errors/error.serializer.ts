@@ -23,6 +23,7 @@ export class WorkerRunnerErrorSerializer {
     protected readonly codeToErrorMap = CODE_TO_ERROR_MAP;
 
     public serialize(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         error: any = {},
         alternativeError: Partial<ISerializedError> = {},
     ): ISerializedError {
@@ -42,11 +43,13 @@ export class WorkerRunnerErrorSerializer {
             };
         }
         return {
-            errorCode: typeof alternativeError.errorCode === 'number' ?
-                alternativeError.errorCode : WorkerRunnerErrorCode.UNEXPECTED_ERROR,
+            errorCode: typeof alternativeError.errorCode === 'number'
+                ? alternativeError.errorCode
+                : WorkerRunnerErrorCode.UNEXPECTED_ERROR,
             name: alternativeError.name || WorkerRunnerUnexpectedError.name,
-            message: error ? String(error) : (alternativeError.message
-                || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR()),
+            message: error
+                ? String(error)
+                : (alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR()),
             stack: alternativeError.stack,
         };
     }

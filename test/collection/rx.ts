@@ -84,6 +84,7 @@ each({
             type: 'ERROR',
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const expectedProperty: Record<any, any> = {
             message: errorData.toString(),
             name: RxRunnerEmitError.name,
@@ -97,7 +98,7 @@ each({
 
     it('emit error after destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const observable = await rxStubRunner.emitError(undefined);
+        const observable = await rxStubRunner.emitError();
         await rxStubRunner.destroy();
         await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
@@ -110,7 +111,7 @@ each({
 
     it('emit error after unsubscribe', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const observable = await rxStubRunner.emitError(undefined);
+        const observable = await rxStubRunner.emitError();
         observable.subscribe().unsubscribe();
     });
 
