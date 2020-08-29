@@ -48,6 +48,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.resolvedRunner = new bridgeConstructor(this);
         this.runnerId = config.runnerId;
         this.port = config.port;
+        // eslint-disable-next-line unicorn/prefer-add-event-listener
         this.port.onmessage = this.onPortMessage.bind(this);
         this.onDisconnected = config.onDisconnected;
         this.runnerBridgeConstructors = config.runnerBridgeConstructors;
@@ -153,6 +154,7 @@ export class RunnerController<R extends RunnerConstructor> {
         if (closePort) {
             this.port.close();
         }
+        // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
         this.port.onmessage = null;
         this.port = undefined;
         this.onDisconnected?.();

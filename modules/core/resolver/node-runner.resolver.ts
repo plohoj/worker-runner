@@ -39,9 +39,8 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
 
     private initPromises = new PromisesResolver<IWorkerResolverRunnerInitedAction, WorkerRunnerError>();
     private lastActionId = 0;
-
     private worker?: Worker;
-    private workerMessageHandler = this.onWorkerMessage.bind(this);
+    private readonly workerMessageHandler = this.onWorkerMessage.bind(this);
 
     constructor(config: Readonly<INodeRunnerResolverConfigBase<R>>) {
         this.runners = config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners;
@@ -211,6 +210,7 @@ export abstract class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     protected async initWorker(): Promise<void> {
         const worker = new Worker(this.workerPath, { name: this.workerName });
         await new Promise(resolve => {
+            // eslint-disable-next-line unicorn/prefer-add-event-listener
             worker.onmessage = (message) => {
                 if (message.data && message.data.type === WorkerResolverAction.WORKER_INITED) {
                     resolve();

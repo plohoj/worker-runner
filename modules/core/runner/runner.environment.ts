@@ -34,6 +34,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.ports.push(config.port);
+        // eslint-disable-next-line unicorn/prefer-add-event-listener
         config.port.onmessage = this.onPortMessage.bind(this, config.port);
         this.onDestroyed = config.onDestroyed;
     }
@@ -147,6 +148,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         if (port) {
             const portIndex = this.ports.indexOf(port);
             this.ports.splice(portIndex, 1);
+            // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
             port.onmessage = null;
             this.notifyControllersAboutDestruction();
             if (action) {
@@ -273,6 +275,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             type: RunnerEnvironmentAction.DISCONNECTED,
             id: action.id,
         });
+        // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
         port.onmessage = null;
         port.close();
     }
@@ -283,6 +286,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 type: RunnerEnvironmentAction.DESTROYED,
                 id: -1,
             });
+            // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
             port.onmessage = null;
             port.close();
         }
@@ -291,6 +295,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     private async resolve(port: MessagePort, action: IRunnerControllerResolveAction): Promise<void> {
         const messageChanel = new MessageChannel();
+        // eslint-disable-next-line unicorn/prefer-add-event-listener
         messageChanel.port1.onmessage = this.onPortMessage.bind(this, messageChanel.port1);
         this.ports.push(messageChanel.port1);
         this.sendAction(

@@ -61,7 +61,13 @@ module.exports = (config) => config.set({
               },
             },
             'ts-loader',
-            'eslint-loader',
+            {
+              loader: 'eslint-loader',
+              options: {
+                emitError: true,
+                emitWarning: true,
+              },
+            }
           ]
         },
       ],

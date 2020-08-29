@@ -7,10 +7,13 @@ import { IRunnerResolverConfigBase } from './base-runner.resolver';
 import { NodeRunnerResolverBase } from './node-runner.resolver';
 import { WorkerRunnerResolverBase } from './worker-runner.resolver';
 
+// TODO Implement connection as component
 export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 
-    protected WorkerResolverConstructor?: Constructor<WorkerRunnerResolverBase<R>,
-        [Readonly<IRunnerResolverConfigBase<R>>]>;
+    protected WorkerResolverConstructor?: Constructor<
+        WorkerRunnerResolverBase<R>,
+        [Readonly<IRunnerResolverConfigBase<R>>]
+    >;
     private localWorkerRunnerResolver?: WorkerRunnerResolverBase<R>;
     private localMessageChanel?: MessageChannel;
 
@@ -23,10 +26,15 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
                 this.sendAction({ type: NodeResolverAction.DESTROY, force});
                 await destroyPromise$;
                 this.destroyRunnerControllers();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 this.localWorkerRunnerResolver.sendAction = undefined as any;
                 if (this.localMessageChanel) {
-                    this.localMessageChanel.port2.onmessage = undefined as any;
-                    this.localMessageChanel.port1.onmessage = undefined as any;
+                    // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
+                    this.localMessageChanel.port2.onmessage = null;
+                    // eslint-disable-next-line unicorn/prefer-add-event-listener, unicorn/no-null
+                    this.localMessageChanel.port1.onmessage = null;
+                    this.localMessageChanel.port1.close();
+                    this.localMessageChanel.port2.close();
                     this.localMessageChanel = undefined;
                 }
                 this.localWorkerRunnerResolver = undefined;
@@ -42,9 +50,11 @@ export abstract class NodeAndLocalRunnerResolverBase<R extends RunnerConstructor
         if (this.WorkerResolverConstructor) {
             this.localWorkerRunnerResolver = new this.WorkerResolverConstructor({runners: this.runners});
             this.localMessageChanel = new MessageChannel();
+            // eslint-disable-next-line unicorn/prefer-add-event-listener
             this.localMessageChanel.port1.onmessage = this.onWorkerMessage.bind(this);
             this.localWorkerRunnerResolver.sendAction
                 = this.localMessageChanel.port2.postMessage.bind(this.localMessageChanel.port2);
+            // eslint-disable-next-line unicorn/prefer-add-event-listener
             this.localMessageChanel.port2.onmessage
                 = this.localWorkerRunnerResolver.onMessage.bind(this.localWorkerRunnerResolver);
         } else {

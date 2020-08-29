@@ -62,6 +62,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             ...action,
             type: RunnerEnvironmentAction.EXECUTED,
             id: action.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             response: observable as any,
         });
     }

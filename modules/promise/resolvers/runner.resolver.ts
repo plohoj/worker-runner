@@ -2,6 +2,7 @@ import { INodeRunnerResolverConfigBase, RunnerConstructor } from '@worker-runner
 import { NodeRunnerResolver } from './node-runner.resolver';
 import { WorkerRunnerResolver } from './worker-runner.resolver';
 
+/** @deprecated use **NodeRunnerResolver** and **WorkerRunnerResolver** */
 export class RunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolver<R> {
     private workerRunnerResolver: WorkerRunnerResolver<R>;
 
