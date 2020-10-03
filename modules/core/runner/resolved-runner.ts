@@ -1,7 +1,7 @@
 import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 import { TransferRunnerData } from '../utils/transfer-runner-data';
-import { RunnerBridge } from './runner-bridge';
+import { RunnerBridge } from './runner-bridge/runner.bridge';
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
     ? T extends TransferableJsonObject

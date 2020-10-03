@@ -9,6 +9,7 @@ module.exports = {
         'plugin:unicorn/recommended',
         'plugin:promise/recommended',
         'plugin:import/warnings',
+        // TODO lint rxjs
     ],
     parserOptions: { project: './tsconfig.json' },
     rules: {
@@ -35,6 +36,7 @@ module.exports = {
                 }
             }
         ],
+        'unicorn/error-message': 'off', // TODO
 
         // Banned imports
         'no-restricted-imports': [

@@ -1,12 +1,12 @@
-import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
-import { ResolvedRunner } from './resolved-runner';
-import { RunnerController } from './runner.controller';
+import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
+import { RunnerController } from '../controller/runner.controller';
+import { ResolvedRunner } from '../resolved-runner';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
-export const EXECUTE_RUNNER_BRIDGE_METHOD = Symbol('Execute RunnerBridge method');
-export const RUNNER_BRIDGE_CONTROLLER = Symbol('Execute via NodeResolver method');
+export const EXECUTE_RUNNER_CONTROLLER_METHOD = Symbol('Execute RunnerController method');
+export const RUNNER_BRIDGE_CONTROLLER = Symbol('RunnerController');
 
 export class RunnerBridge {
 
@@ -50,7 +50,7 @@ export class RunnerBridge {
         return this;
     }
     
-    protected async [EXECUTE_RUNNER_BRIDGE_METHOD](
+    protected async [EXECUTE_RUNNER_CONTROLLER_METHOD](
         methodName: string,
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {

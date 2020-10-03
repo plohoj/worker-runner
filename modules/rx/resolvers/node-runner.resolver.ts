@@ -1,9 +1,9 @@
-import { NodeAndLocalRunnerResolverBase, RunnerConstructor } from '@worker-runner/core';
+import { IRunnerControllerConfig, NodeRunnerResolverBase, RunnerConstructor } from '@worker-runner/core';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
-import { RxRunnerController } from '../runners/runner.controller';
+import { RxRunnerController } from '../runners/controller/runner.controller';
 import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../types/resolved-runner';
 
-export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
+export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 
     declare public resolve: <RR extends R>(
         runner: RR,
@@ -16,6 +16,9 @@ export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLo
     ) => Promise<RxResolvedRunner<InstanceType<RR>>>;
 
     declare protected runnerControllers: Set<RxRunnerController<R>>;
-    protected readonly RunnerControllerConstructor = RxRunnerController;
     protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
+
+    protected runnerControllerFactory(config: IRunnerControllerConfig<R>): RxRunnerController<R> {
+        return new RxRunnerController(config);
+    }
 }

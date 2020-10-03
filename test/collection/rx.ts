@@ -1,13 +1,11 @@
 import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { from } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { isIE } from 'test/utils/is-internet-explorrer';
+import { isIE } from 'test/utils/is-internet-explorer';
 
 each({
     Rx: rxRunnerResolver,
@@ -42,8 +40,9 @@ each({
     it('subscribe and destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
+        await rxStubRunner.destroy();
         await expectAsync(
-            from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
+            observable.toPromise(),
         ).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
                 runnerName: RxStubRunner.name,

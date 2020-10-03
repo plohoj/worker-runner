@@ -1,8 +1,8 @@
 import { JsonObject } from './json-object';
 
 export enum RunnerArgumentType {
-    JSON,
-    RUNNER_INSTANCE,
+    JSON = 'JSON',
+    RUNNER_INSTANCE = 'RUNNER_INSTANCE',
 }
 
 export interface IRunnerJSONArgument {

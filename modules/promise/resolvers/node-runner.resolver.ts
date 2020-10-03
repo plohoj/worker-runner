@@ -1,6 +1,6 @@
-import { IRunnerSerializedParameter, NodeAndLocalRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor } from '@worker-runner/core';
+import { IRunnerSerializedParameter, NodeRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor } from '@worker-runner/core';
 
-export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
+export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
     declare public resolve: <RR extends R>(
         runner: RR,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

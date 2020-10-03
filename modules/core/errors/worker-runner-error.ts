@@ -22,7 +22,7 @@ export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase
 export const WORKER_RUNNER_ERROR_CODE = Symbol('Worker Runner error code');
 
 export abstract class WorkerRunnerError extends Error {
-    public abstract [WORKER_RUNNER_ERROR_CODE]: number;
+    public abstract [WORKER_RUNNER_ERROR_CODE]: string;
 
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(config.message);

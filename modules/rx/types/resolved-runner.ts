@@ -1,4 +1,4 @@
-import { JsonObject, ResolvedRunner, RunnerBridge, TransferableJsonObject, TransferRunnerData } from '@worker-runner/core';
+import { JsonObject, RunnerBridge, TransferableJsonObject, TransferRunnerData } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +48,7 @@ type RxResolvedRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? RxResolvedRunnerMethod<T[P]> : never;
 };
 
-export type RxResolvedRunner<T> = (RxResolvedRunnerMethods<T> & RunnerBridge) | ResolvedRunner<T>;
+export type RxResolvedRunner<T> = RxResolvedRunnerMethods<T> & RunnerBridge;
 
 /** @deprecated use ResolvedRunner */
 export type RxResolveRunner<T> = RxResolvedRunner<T>;

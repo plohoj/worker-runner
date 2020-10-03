@@ -43,30 +43,18 @@ each({
         'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
     },
     (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
-        it ('without force mode', async () => {
-            class ForceDestroy {
+        it ('simple', async () => {
+            class DestroyStub {
                 public destroy(): void {
                     // Stub
                 }
             }
-            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver ({ runners: [ForceDestroy] });
+            const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
+            const localResolver = new IterateLocalRunnerResolver ({ runners: [DestroyStub] });
             await localResolver.run();
-            await localResolver.resolve(ForceDestroy);
+            await localResolver.resolve(DestroyStub);
             await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();
-        });
-
-        it ('with force mode', async () => {
-            class ForceDestroy {
-                public destroy(): void {/* Stub */}
-            }
-            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners: [ForceDestroy] });
-            await localResolver.run();
-            await localResolver.resolve(ForceDestroy);
-            await localResolver.destroy(true);
-            expect(destroySpy).not.toHaveBeenCalled();
         });
     }),
 );

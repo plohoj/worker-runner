@@ -86,6 +86,9 @@ each(resolverList, (mode, resolver) =>
                     name: RunnerExecuteError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+            await errorStubRunner.destroy().catch(() => {
+                // Stub
+            });
         });
 
         it ('with stack trace exception', async () => {
@@ -97,6 +100,9 @@ each(resolverList, (mode, resolver) =>
                     name: Error.name,
                     stack: jasmine.stringMatching(/throwErrorTrace/),
                 }));
+            await errorStubRunner.destroy().catch(() => {
+                // Stub
+            });
         });
 
         it ('with delay exceptions', async () => {
@@ -108,6 +114,9 @@ each(resolverList, (mode, resolver) =>
                         name: RunnerExecuteError.name,
                         stack: jasmine.stringMatching(/.+/),
                     }));
+            await errorStubRunner.destroy().catch(() => {
+                // Stub
+            });
         });
 
         it ('with delay stack trace exceptions', async () => {
@@ -119,6 +128,9 @@ each(resolverList, (mode, resolver) =>
                     name: Error.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+            await errorStubRunner.destroy().catch(() => {
+                // Stub
+            });
         });
 
         it ('not exist runner', async () => {

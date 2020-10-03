@@ -3,7 +3,7 @@ import { CODE_TO_ERROR_MAP } from './error-code-map';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
-export interface ISerializedError<C extends number = number>
+export interface ISerializedError<C extends string = string>
     extends IRunnerErrorConfigBase {
 
     errorCode: C;
@@ -12,10 +12,9 @@ export interface ISerializedError<C extends number = number>
     message: string;
 }
 
-export interface ISerializedErrorAction<T, C extends number = number>
-    extends ISerializedError<C> {
-
-    id: number;
+export interface ISerializedErrorAction<
+    T, C extends string = string
+> extends ISerializedError<C> {
     type: T;
 }
 
@@ -28,10 +27,10 @@ export class WorkerRunnerErrorSerializer {
         alternativeError: Partial<ISerializedError> = {},
     ): ISerializedError {
         if (error instanceof Error) {
-            let errorCode: number | undefined = (error as WorkerRunnerError)[WORKER_RUNNER_ERROR_CODE];
-            if (typeof errorCode !== 'number') {
+            let errorCode: string | undefined = (error as WorkerRunnerError)[WORKER_RUNNER_ERROR_CODE];
+            if (typeof errorCode !== 'string') {
                 errorCode = alternativeError.errorCode;
-                if (typeof errorCode !== 'number') {
+                if (typeof errorCode !== 'string') {
                     errorCode = WorkerRunnerErrorCode.UNEXPECTED_ERROR;
                 }
             }
@@ -43,7 +42,7 @@ export class WorkerRunnerErrorSerializer {
             };
         }
         return {
-            errorCode: typeof alternativeError.errorCode === 'number'
+            errorCode: typeof alternativeError.errorCode === 'string'
                 ? alternativeError.errorCode
                 : WorkerRunnerErrorCode.UNEXPECTED_ERROR,
             name: alternativeError.name || WorkerRunnerUnexpectedError.name,
