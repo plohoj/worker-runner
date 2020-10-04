@@ -2,8 +2,8 @@ import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/con
 import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/environment/connect.environment';
 import { WorkerRunnerErrorCode } from '../../errors/error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
-import { RunnerExecuteError } from '../../errors/runner-errors';
+import { ISerializedError, WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
+import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-errors';
 import { BaseWorkerRunnerResolver } from '../../resolver/worker/worker-runner.resolver';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
@@ -38,7 +38,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.workerRunnerResolver = config.workerRunnerResolver;
         this.onDestroyed = config.onDestroyed;
         this.connectEnvironment = this.connectEnvironmentFactory({
-            errorSerializer: this.errorSerializer.serialize.bind(this.errorSerializer) as ConnectEnvironmentErrorSerializer,
+            destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
             actionsHandler: this.handleAction.bind(this),
             destroyHandler: this.handleDestroy.bind(this),
         });
@@ -144,6 +144,14 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     protected connectEnvironmentFactory(config: IConnectEnvironmentConfig): ConnectEnvironment {
         return new ConnectEnvironment(config);
+    }
+
+    private destroyErrorSerializer(error: unknown): ISerializedError {
+        return this.errorSerializer.serialize(error, new RunnerDestroyError({
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
+                runnerName: this.runnerName,
+            }),
+        }));
     }
 
     private async resolve(): Promise<IRunnerEnvironmentResolvedAction> {

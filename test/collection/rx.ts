@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
@@ -40,14 +40,14 @@ each({
     it('subscribe and destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
-        await rxStubRunner.destroy();
+        rxStubRunner.destroy();
         await expectAsync(
             observable.toPromise(),
-        ).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -56,11 +56,13 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+        await expectAsync(
+            observable.toPromise()
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -99,11 +101,13 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitError();
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+        await expectAsync(
+            observable.toPromise()
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });

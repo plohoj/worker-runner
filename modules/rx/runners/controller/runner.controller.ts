@@ -1,4 +1,4 @@
-import { IConnectControllerConfig, IRunnerParameter, RunnerConstructor, RunnerController, IRunnerSerializedMethodResult, IRunnerEnvironmentExecuteResultAction } from '@worker-runner/core';
+import { IConnectControllerConfig, IRunnerParameter, RunnerConstructor, RunnerController, IRunnerSerializedMethodResult, IRunnerEnvironmentExecuteResultAction, WorkerRunnerUnexpectedError, WorkerRunnerError } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectController } from '../../connect/controller/rx-connect.controller';
@@ -50,12 +50,17 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
                     port: action.port}
                 ).resolvedRunner;
             default:
-                throw new Error();
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected action type was emitted in Runner controller via Rx Observable',
+                });
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async mapRxError(error: any): Promise<never> {
+        if (error instanceof WorkerRunnerError) {
+            throw error;
+        }
         const serializedError = this.errorSerializer.deserialize(error);
         throw serializedError;
     }

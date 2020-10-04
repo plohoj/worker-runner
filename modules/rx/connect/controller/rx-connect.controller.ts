@@ -1,6 +1,7 @@
-import { ConnectController, IConnectEnvironmentAction, IConnectEnvironmentActions, PromisesResolver } from "@worker-runner/core";
+import { ConnectController, IConnectEnvironmentAction, IConnectEnvironmentActions, PromisesResolver, ConnectionWasClosedError, WorkerRunnerUnexpectedError } from "@worker-runner/core";
 import { Observable, Subscriber } from "rxjs";
 import { publish, refCount } from "rxjs/operators";
+import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectEnvironmentActionPropertiesRequirements, IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentForceUnsubscribedAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
 import { IRxConnectControllerActionPropertiesRequirements, IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";
 
@@ -20,9 +21,10 @@ export class RxConnectController extends ConnectController {
     private readonly canSubscribedList = new Set<number>();
 
     public stopListen(): void {
+        this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
         // TODO notify environment about unsubscribe all
         this.subscribersMap.forEach(subscriber => {
-            subscriber.error(new Error());
+            subscriber.error(this.disconnectStatus);
             subscriber.complete();
         });
         this.subscribersMap.clear();
@@ -63,7 +65,11 @@ export class RxConnectController extends ConnectController {
     private runnerObservableInit(action: IRxConnectEnvironmentInitAction): void {
         const observable = new Observable<IConnectEnvironmentAction>(subscriber => {
             if (!this.canSubscribedList.has(action.id)) {
-                subscriber.error(new Error())
+                if (this.disconnectStatus) {
+                    subscriber.error(this.disconnectStatus);
+                } else {
+                    subscriber.error(this.disconnectErrorFactory(new WorkerRunnerUnexpectedError()));
+                }
                 subscriber.complete();
                 return;
             }
@@ -126,7 +132,7 @@ export class RxConnectController extends ConnectController {
     private getSubscriber(actionId: number): Subscriber<IConnectEnvironmentAction> {
         const completedSubscriber$ = this.subscribersMap.get(actionId);
         if (!completedSubscriber$) {
-            throw new Error();
+            throw new RxSubscriptionNotFoundError();
         }
         return completedSubscriber$;
     }

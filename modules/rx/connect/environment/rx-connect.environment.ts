@@ -1,5 +1,6 @@
-import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, JsonObject, TransferableJsonObject } from "@worker-runner/core";
+import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError } from "@worker-runner/core";
 import { Observable, Subscription } from "rxjs";
+import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectControllerActions, RxConnectControllerAction } from "../controller/rx-connect-controller.actions";
 import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentForceUnsubscribedAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
 
@@ -64,7 +65,9 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         if (response instanceof Observable) {
             const portRxData = this.portRxDataMap.get(port);
             if (!portRxData) {
-                throw new Error();
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'The method result was received after the connection was closed',
+                });
             }
             portRxData.observablesMap.set(actionId, response);
             const initObservableAction: IRxConnectEnvironmentInitAction = {
@@ -80,6 +83,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
     private forceDestroyObservablesForPort(port: MessagePort): void {
         const protRxData = this.portRxDataMap.get(port);
         if (protRxData) {
+            // TODO stop subscription in controller
             for (const [id, subscription] of protRxData.subscriptionsMap) {
                 subscription.unsubscribe();
                 const forceUnsubscribedAction: IRxConnectEnvironmentForceUnsubscribedAction = {
@@ -174,7 +178,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         const portRxData = this.portRxDataMap.get(port)
         const subscription = portRxData?.subscriptionsMap.get(actionId);
         if (!subscription) {
-            throw new Error();
+            throw new RxSubscriptionNotFoundError();
         }
         subscription.unsubscribe();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

@@ -2,11 +2,10 @@ import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnv
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
-import { RxWorkerRunnerErrorCode } from '../../errors/error-code';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
-import { IRxRunnerSerializedMethodResult } from '../../types/resolved-runner';
+import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitRunnerResultAction, RxRunnerEnvironmentAction } from './runner-environment.actions';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
@@ -64,12 +63,9 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async mapRxError(error: any): Promise<never> {
-        const serializedError = this.errorSerializer.serialize(error, {
-            errorCode: RxWorkerRunnerErrorCode.ERROR_EMIT,
+        const serializedError = this.errorSerializer.serialize(error, new RxRunnerEmitError({
             message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
-            name: RxRunnerEmitError.name,
-            stack: error?.stack || new Error().stack,
-        });
+        }));
         throw serializedError;
     }
 }

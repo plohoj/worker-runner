@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { resolverList } from 'test/common/resolver-list';
 import { runners } from 'test/common/runner-list';
@@ -63,11 +63,11 @@ each(resolverList, (mode, resolver) =>
             await executableStubRunner.destroy();
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -133,15 +133,15 @@ each(resolverList, (mode, resolver) =>
             });
         });
 
-        it ('not exist runner', async () => {
+        it ('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.amount(53, 95))
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerExecuteError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });

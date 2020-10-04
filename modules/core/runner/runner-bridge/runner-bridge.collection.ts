@@ -1,3 +1,5 @@
+import { WORKER_RUNNER_ERROR_MESSAGES } from "../../errors/error-message";
+import { RunnerNotFound } from "../../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../../types/constructor";
 import { JsonObject } from "../../types/json-object";
 import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
@@ -18,7 +20,9 @@ export class RunnerBridgeCollection<R extends RunnerConstructor> {
     public getRunnerId(runner: R): number {
         const runnerId = this.runners.indexOf(runner);
         if (runnerId < 0) {
-            throw new Error();
+            throw new RunnerNotFound({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: runner.name})
+            });
         }
         return runnerId;
     }
@@ -30,7 +34,7 @@ export class RunnerBridgeCollection<R extends RunnerConstructor> {
     public getRunner(runnerId: number): R {
         const runner = this.runners[runnerId];
         if (!runner) {
-            throw new Error();
+            throw new RunnerNotFound();
         }
         return runner;
     }
@@ -38,7 +42,7 @@ export class RunnerBridgeCollection<R extends RunnerConstructor> {
     public getRunnerBridgeConstructor(runnerId: number): IRunnerBridgeConstructor<R> {
         const runnerBridgeConstructor = this.runnerBridgeConstructors[runnerId];
         if (!runnerBridgeConstructor) {
-            throw new Error();
+            throw new RunnerNotFound();
         }
         return runnerBridgeConstructor;
     }

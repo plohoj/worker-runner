@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerInitError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { resolverList } from 'test/common/resolver-list';
 import { runners } from 'test/common/runner-list';
@@ -65,11 +65,11 @@ each(resolverList, (mode, resolver) =>
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -92,9 +92,9 @@ each(resolverList, (mode, resolver) =>
         it ('not exist', async () => {
             class AnonymRunner {}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await expectAsync(resolver.resolve(AnonymRunner as any)).toBeRejectedWith(errorContaining(RunnerInitError, {
+            await expectAsync(resolver.resolve(AnonymRunner as any)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
-                name: RunnerInitError.name,
+                name: RunnerNotFound.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
         });

@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { resolverList } from 'test/common/resolver-list';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
@@ -37,11 +37,11 @@ each(resolverList, (mode, resolver) =>
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.disconnect();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -51,11 +51,11 @@ each(resolverList, (mode, resolver) =>
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });

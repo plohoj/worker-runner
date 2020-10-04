@@ -2,7 +2,7 @@ import { IConnectControllerErrorDeserializer } from '../../connect/controller/co
 import { ConnectController, IConnectControllerConfig } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerWasDisconnectedError } from '../../errors/runner-errors';
+import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { NodeRunnerResolverBase } from '../../resolver/node/node-runner.resolver';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
@@ -28,7 +28,7 @@ export class RunnerController<R extends RunnerConstructor> {
     public readonly runnerId: number;
     public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
-    protected readonly originalRunnerName: string;
+    public readonly originalRunnerName: string;
     // TODO use Factory
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly connectController: ConnectController;
@@ -47,9 +47,10 @@ export class RunnerController<R extends RunnerConstructor> {
         this.runnerControllerPartFactory = config.runnerControllerPartFactory;
         this.connectController = this.buildConnectController({
             port: config.port,
-            errorDeserializer: this.errorSerializer
+            destroyErrorDeserializer: this.errorSerializer
                 .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
             forceDestroyHandler: this.onConnectionClosed,
+            disconnectErrorFactory: this.disconnectErrorFactory.bind(this),
         });
     }
 
@@ -95,10 +96,8 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public markForTransfer(): void {
-        if (!this.connectController.isConnected) {
-            throw new RunnerWasDisconnectedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.originalRunnerName}),
-            });
+        if (this.connectController.disconnectStatus) {
+            throw this.connectController.disconnectStatus;
         }
         this.isMarkedForTransfer = true;
     }
@@ -118,10 +117,8 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public stopListen(isClosePort = true): void {
-        if (!this.connectController.isConnected) {
-            throw new RunnerWasDisconnectedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({runnerName: this.originalRunnerName}),
-            });
+        if (this.connectController.disconnectStatus) {
+            throw this.connectController.disconnectStatus;
         }
         this.connectController.stopListen(isClosePort);
         this.onConnectionClosed?.();
@@ -150,5 +147,14 @@ export class RunnerController<R extends RunnerConstructor> {
     private transferControl(): MessagePort {
         this.stopListen(false);
         return this.connectController.port;
+    }
+
+    private disconnectErrorFactory(error: ConnectionWasClosedError): ConnectionWasClosedError {
+        return new ConnectionWasClosedError({
+            ...error,
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                runnerName: this.originalRunnerName,
+            })
+        });
     }
 }

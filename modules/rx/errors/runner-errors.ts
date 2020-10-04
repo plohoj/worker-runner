@@ -2,14 +2,14 @@ import { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErr
 import { RxWorkerRunnerErrorCode } from './error-code';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from './error-messages';
 
-export class RxRunnerSubscriptionNotFoundError extends WorkerRunnerError {
+export class RxSubscriptionNotFoundError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = RxWorkerRunnerErrorCode.SUBSCRIPTION_NOT_FOUND;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             message: config.message || RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIPTION_NOT_FOUND(),
-            name: config.name || RxRunnerSubscriptionNotFoundError.name,
+            name: config.name || RxSubscriptionNotFoundError.name,
             stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RxRunnerSubscriptionNotFoundError,
+            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RxSubscriptionNotFoundError,
         });
     }
 }
@@ -19,7 +19,7 @@ export class RxRunnerEmitError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || RxRunnerEmitError.name,
-            message: config.message ||  RX_WORKER_RUNNER_ERROR_MESSAGES.SUBSCRIBER_NOT_FOUND(),
+            message: config.message ||  RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RxRunnerEmitError,
         });

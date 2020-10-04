@@ -1,4 +1,4 @@
-import { WorkerNotInitError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { resolverList } from 'test/common/resolver-list';
@@ -19,18 +19,18 @@ each(resolverList, (mode, resolver) =>
         });
 
         it ('when it was already destroyed', async () => {
-            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(WorkerNotInitError, {
+            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
-                name: WorkerNotInitError.name,
+                name: ConnectionWasClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
         });
 
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
-                .toBeRejectedWith(errorContaining(WorkerNotInitError, {
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
-                    name: WorkerNotInitError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });

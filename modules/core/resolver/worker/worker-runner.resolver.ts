@@ -1,9 +1,10 @@
+import { WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
 import { WorkerRunnerErrorCode } from '../../errors/error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerInitError } from '../../errors/runner-errors';
+import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
+import { RunnerDestroyError, RunnerInitError, RunnerNotFound, WorkerDestroyError } from '../../errors/runner-errors';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { ResolvedRunner } from '../../runner/resolved-runner';
@@ -30,7 +31,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     protected readonly errorSerializer = this.buildWorkerErrorSerializer();
     protected readonly newConnectionHandler = this.handleNewConnection.bind(this);
     protected readonly connectEnvironment = new ConnectEnvironment({
-        errorSerializer: this.errorSerializer.serialize.bind(this.errorSerializer) as ConnectEnvironmentErrorSerializer,
+        destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
         actionsHandler: this.handleAction.bind(this),
         destroyHandler: this.handleDestroy.bind(this),
     })
@@ -51,19 +52,23 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
                 try {
                     return await this.initRunnerInstance(action);
                 } catch (error) {
-                    const action: IWorkerResolverRunnerInitErrorAction = {
+                    const errorAction: IWorkerResolverRunnerInitErrorAction = {
                         type: WorkerResolverAction.RUNNER_INIT_ERROR,
                         ... this.errorSerializer.serialize(error, {
-                            errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
-                            name: RunnerInitError.name,
-                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
+                            errorCode: WorkerRunnerErrorCode.RUNNER_NOT_FOUND,
+                            name: RunnerNotFound.name,
+                            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                                runnerName: this.runnerBridgeCollection.getRunner(action.runnerId).name
+                            }),
                             stack: error?.stack || new Error().stack,
                         }),
                     };
-                    return action;
+                    return errorAction;
                 }
             default:
-                throw new Error() // TODO;
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected Action type for Worker Runner Resolver',
+                });
         }
     }
 
@@ -100,16 +105,20 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
         for (const runnerEnvironment of this.runnerEnvironments) {
             destroying$.push(
                 runnerEnvironment.handleDestroy().catch(error => {
-                    destroyErrors.push(this.errorSerializer.serialize(error));
+                    destroyErrors.push(this.errorSerializer.serialize(error, new RunnerDestroyError({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
+                            runnerName: runnerEnvironment.runnerInstance.constructor.name,
+                        }),
+                    })));
                 }),
             );
         }
         await Promise.all(destroying$);
         this.runnerEnvironments.clear();
         if (destroyErrors.length > 0) {
-            throw {
+            throw new WorkerDestroyError({ // TODO need test
                 originalErrors: destroyErrors,
-            };
+            });
         }
     }
 
@@ -157,52 +166,52 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     private handleNewConnection(port: MessagePort): void {
         this.connectEnvironment.addPorts(port);
     }
+
+    private destroyErrorSerializer(error: unknown): ISerializedError {
+        return this.errorSerializer.serialize(error, new WorkerDestroyError());
+    }
     
     private async initRunnerInstance(
         action: INodeResolverInitRunnerAction,
     ): Promise<IWorkerResolverRunnerInitErrorAction | IWorkerResolverRunnerInitedAction> {
         const runnerConstructor = this.runnerBridgeCollection.getRunner(action.runnerId);
-        if (runnerConstructor) {
-            const messageChanel = new MessageChannel();
-            const deserializeArgumentsData = this.deserializeArguments(action.args);
-            let runner: InstanceType<R>;
-            try {
-                runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
-            } catch (error) {
-                const errorAction: IWorkerResolverRunnerInitErrorAction = { // TODO throw
-                    type: WorkerResolverAction.RUNNER_INIT_ERROR,
-                    ... this.errorSerializer.serialize(error, {
-                        errorCode: WorkerRunnerErrorCode.RUNNER_INIT_ERROR,
-                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                            runnerName: runnerConstructor.name,
-                        }),
-                        name: RunnerInitError.name,
-                        stack: error?.stack || new Error().stack,
-                    }),
-                };
-                await Promise.all(deserializeArgumentsData.controllers
-                    .map(controller => controller.disconnect()));
-                return errorAction;
-            }
-
-            const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
-                port: messageChanel.port1,
-                runner,
-                workerRunnerResolver: this,
-                errorSerializer: this.errorSerializer,
-                onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
-            });
-
-            this.runnerEnvironments.add(runnerEnvironment);
-            runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
-            const responseAction: IWorkerResolverRunnerInitedAction = {
-                type: WorkerResolverAction.RUNNER_INITED,
-                port: messageChanel.port2,
-                transfer: [messageChanel.port2],
-            };
-            return responseAction;
-        } else {
-            throw new RunnerInitError();
+        if (!runnerConstructor) {
+            throw new RunnerNotFound();
         }
+        const messageChanel = new MessageChannel();
+        const deserializeArgumentsData = this.deserializeArguments(action.args);
+        let runner: InstanceType<R>;
+        try {
+            runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
+        } catch (error) {
+            const errorAction: IWorkerResolverRunnerInitErrorAction = { // TODO throw
+                type: WorkerResolverAction.RUNNER_INIT_ERROR,
+                ... this.errorSerializer.serialize(error, new RunnerInitError ({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                        runnerName: runnerConstructor.name,
+                    }),
+                })),
+            };
+            await Promise.all(deserializeArgumentsData.controllers
+                .map(controller => controller.disconnect()));
+            return errorAction;
+        }
+
+        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+            port: messageChanel.port1,
+            runner,
+            workerRunnerResolver: this,
+            errorSerializer: this.errorSerializer,
+            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+        });
+
+        this.runnerEnvironments.add(runnerEnvironment);
+        runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
+        const responseAction: IWorkerResolverRunnerInitedAction = {
+            type: WorkerResolverAction.RUNNER_INITED,
+            port: messageChanel.port2,
+            transfer: [messageChanel.port2],
+        };
+        return responseAction;
     }
 }

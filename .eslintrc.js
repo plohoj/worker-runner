@@ -36,7 +36,6 @@ module.exports = {
                 }
             }
         ],
-        'unicorn/error-message': 'off', // TODO
 
         // Banned imports
         'no-restricted-imports': [

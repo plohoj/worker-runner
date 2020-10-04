@@ -2,8 +2,8 @@ import { IConnectControllerErrorDeserializer } from '../../connect/controller/co
 import { ConnectController } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerInitError, WorkerNotInitError } from '../../errors/runner-errors';
-import { WorkerRunnerError } from '../../errors/worker-runner-error';
+import { ConnectionWasClosedError } from '../../errors/runner-errors';
+import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { RunnerBridgeCollection } from '../../runner/runner-bridge/runner-bridge.collection';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../../runner/runner-bridge/runner.bridge';
@@ -15,7 +15,7 @@ import { IRunnerResolverConfigBase } from '../base-runner.resolver';
 import { IBaseResolverBridge } from '../resolver-bridge/node/base-resolver.bridge';
 import { LocalResolverBridge } from '../resolver-bridge/node/local-resolver.bridge';
 import { ResolverBridge } from '../resolver-bridge/node/resolver.bridge';
-import { IWorkerResolverRunnerInitedAction } from '../worker/worker-resolver.actions';
+import { IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction, WorkerResolverAction } from '../worker/worker-resolver.actions';
 import { INodeResolverInitRunnerAction, NodeResolverAction } from './node-resolver.actions';
 
 export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
@@ -72,6 +72,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             }
             if (RunnerBridge.isRunnerBridge(argument)) {
                 const controller = (argument as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
+                // TODO close all connection after throw error 
                 const transferPort = await controller.resolveOrTransferControl();
                 argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
@@ -99,7 +100,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         const port = await this.resolverBridge!.connect();
         this.connectController = new ConnectController({
             port,
-            errorDeserializer: this.errorSerializer
+            destroyErrorDeserializer: this.errorSerializer
                 .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
             forceDestroyHandler: this.destroyByForce.bind(this),
         });
@@ -128,7 +129,9 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             this.connectController = undefined;
             this.resolverBridge = undefined;
         } else {
-            throw new WorkerNotInitError();
+            throw new ConnectionWasClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+            });
         }
     }
 
@@ -161,7 +164,9 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         args: IRunnerParameter[],
     ): Promise<IWorkerResolverRunnerInitedAction> {
         if (!this.connectController) {
-            throw new WorkerNotInitError();
+            throw new ConnectionWasClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+            });
         }
         try {
             const serializedArguments = await NodeRunnerResolverBase.serializeArguments(args);
@@ -171,12 +176,17 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 args: serializedArguments.args,
                 transfer: serializedArguments.transfer,
             };
-            return this.connectController.sendAction(action) as Promise<IWorkerResolverRunnerInitedAction>
-        } catch (error) {
+            const responseAction: IWorkerResolverRunnerInitedAction | IWorkerResolverRunnerInitErrorAction
+                = await this.connectController.sendAction(action);
+            if (responseAction.type === WorkerResolverAction.RUNNER_INIT_ERROR) {
+                throw this.errorSerializer.deserialize(responseAction);
+            }
+            return responseAction;
+        } catch (error) { // TODO Needed?
             if (error instanceof WorkerRunnerError) {
                 throw error;
             }
-            throw new RunnerInitError(this.errorSerializer.serialize(error, {
+            throw new WorkerRunnerUnexpectedError(this.errorSerializer.serialize(error, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                     runnerName: this.runnerBridgeCollection.getRunner(runnerId).name,
                 }),
@@ -192,7 +202,9 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     protected destroyByForce(): void {
-        throw new Error() // TODO
+        throw new WorkerRunnerUnexpectedError({
+            message: 'Runner Resolver cannot be destroyed by force',
+        });
     }
 
     /**
@@ -201,7 +213,9 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
      */
     protected wrapRunner(runnerInstance: InstanceType<R>): RunnerBridge {
         if (!this.resolverBridge) {
-            throw new WorkerNotInitError();
+            throw new ConnectionWasClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+            });
         }
         const runnerId = this.runnerBridgeCollection.getRunnerIdByInstance(runnerInstance);
         const port = (this.resolverBridge as LocalResolverBridge<R>).workerRunnerResolver.wrapRunner(runnerInstance);

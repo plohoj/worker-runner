@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerDestroyError, RunnerExecuteError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, RunnerDestroyError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { resolverList } from 'test/common/resolver-list';
@@ -42,9 +42,9 @@ each(resolverList, (mode, resolver) =>
                     WithOtherInstanceStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                    name: RunnerExecuteError.name,
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    name: ConnectionWasClosedError.name,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
                     stack: jasmine.stringMatching(/.+/),
@@ -55,9 +55,9 @@ each(resolverList, (mode, resolver) =>
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.destroy())
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    name: RunnerWasDisconnectedError.name,
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    name: ConnectionWasClosedError.name,
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         runnerName: ExecutableStubRunner.name,
                     }),
                     stack: jasmine.stringMatching(/.+/),

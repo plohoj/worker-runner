@@ -1,7 +1,7 @@
 import { IRunnerControllerConfig, NodeRunnerResolverBase, RunnerConstructor } from '@worker-runner/core';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerController } from '../runners/controller/runner.controller';
-import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../types/resolved-runner';
+import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
 
 export class RxNodeRunnerResolver<R extends RunnerConstructor> extends NodeRunnerResolverBase<R> {
 

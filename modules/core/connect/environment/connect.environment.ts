@@ -1,3 +1,4 @@
+import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { TransferableJsonObject } from "../../types/json-object";
 import { ConnectControllerAction, IConnectControllerActions } from "../controller/connect-controller.actions";
 import { ConnectEnvironmentErrorSerializer } from "./connect-environment-error-serializer";
@@ -8,13 +9,13 @@ type ConnectEnvironmentActionsHandler = (action: any) => any;
 
 export interface IConnectEnvironmentConfig{
     actionsHandler: ConnectEnvironmentActionsHandler;
-    errorSerializer: ConnectEnvironmentErrorSerializer;
+    destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
     destroyHandler: () => Promise<void> | void;
 }
 
 export class ConnectEnvironment {
     public readonly connectedPorts = new Map<MessagePort, ConnectEnvironmentActionsHandler>();
-    protected readonly errorSerializer: ConnectEnvironmentErrorSerializer;
+    protected readonly destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
     private isDestroyed = false;
     private actionsHandler: ConnectEnvironmentActionsHandler;
     private destroyHandler: () => void;
@@ -22,7 +23,7 @@ export class ConnectEnvironment {
     constructor(config: IConnectEnvironmentConfig) {
         this.actionsHandler = config.actionsHandler;
         this.destroyHandler = config.destroyHandler;
-        this.errorSerializer = config.errorSerializer;
+        this.destroyErrorSerializer = config.destroyErrorSerializer;
     }
 
     public addPorts(...ports: MessagePort[]): void {
@@ -68,7 +69,7 @@ export class ConnectEnvironment {
             const errorAction: IConnectEnvironmentDestroyedWithErrorAction = {
                 id: actionId,
                 type: ConnectEnvironmentAction.DESTROYED_WITH_ERROR,
-                error: this.errorSerializer(error),
+                error: this.destroyErrorSerializer(error),
             }
             this.sendAction(port, errorAction);
         }
@@ -108,7 +109,7 @@ export class ConnectEnvironment {
         action: IConnectEnvironmentActions
     ): void {
         if (this.isDestroyed) {
-            throw new Error();
+            throw new ConnectionWasClosedError();
         }
         const {transfer, ...actionWithoutTransfer} = action as Record<string, TransferableJsonObject>; 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

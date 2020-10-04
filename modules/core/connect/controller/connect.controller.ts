@@ -1,27 +1,34 @@
+import { ConnectionWasClosedError } from "@worker-runner/core";
 import { PromisesResolver } from "../../utils/runner-promises";
 import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActionPropertiesRequirements, IConnectEnvironmentActions, IConnectEnvironmentDestroyedWithErrorAction } from "../environment/connect-environment.actions";
 import { IConnectControllerErrorDeserializer } from "./connect-controller-error-deserializer";
 import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActionPropertiesRequirements, IConnectControllerDestroyAction, IConnectControllerDisconnectAction,  } from "./connect-controller.actions";
 
+type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
+
 export interface IConnectControllerConfig {
     port: MessagePort,
     forceDestroyHandler?: () => void;
-    errorDeserializer: IConnectControllerErrorDeserializer;
+    destroyErrorDeserializer: IConnectControllerErrorDeserializer;
+    disconnectErrorFactory?: DisconnectErrorFactory;
 }
 
 export class ConnectController {
     public readonly port: MessagePort;
+    public disconnectStatus?: ConnectionWasClosedError;
+
     protected readonly promiseResolver = new PromisesResolver<IConnectEnvironmentAction>();
+    protected readonly disconnectErrorFactory: DisconnectErrorFactory;
 
     private readonly messageHandler = this.onMessage.bind(this);
     private readonly forceDestroyHandler?: () => void;
-    private readonly errorDeserializer: IConnectControllerErrorDeserializer;
+    private readonly destroyErrorDeserializer: IConnectControllerErrorDeserializer;
     private lastActionId = 0; // TODO store in port, because after transfer controller, actionId may match
-    private disconnectStatus?: Error; // TODO
 
     constructor(config: IConnectControllerConfig) {
         this.forceDestroyHandler = config.forceDestroyHandler;
-        this.errorDeserializer = config.errorDeserializer;
+        this.destroyErrorDeserializer = config.destroyErrorDeserializer;
+        this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
         this.port = config.port;
         this.port.addEventListener('message', this.messageHandler);
         this.port.start();
@@ -68,15 +75,11 @@ export class ConnectController {
         return response$ as unknown as Promise<I>;
     }
 
-    public get isConnected(): boolean {
-        return !this.disconnectStatus;
-    }
-
     /** Stop listening on the port without notifying *ConnectEnvironment* */
     public stopListen(isClosePort = true): void {
         // TODO notify all promises about disconnect / destroy
         // TODO notify environment about stop listen action result
-        this.disconnectStatus ||= new Error(); // TODO
+        this.disconnectStatus ||= this.disconnectErrorFactory(new  ConnectionWasClosedError());
         this.port.removeEventListener('message', this.messageHandler);
         if (isClosePort) {
             this.port.close();
@@ -90,7 +93,7 @@ export class ConnectController {
                 this.forceDestroyHandler?.();
                 break;
             case ConnectEnvironmentAction.DESTROYED_WITH_ERROR: {
-                const error = this.errorDeserializer(
+                const error = this.destroyErrorDeserializer(
                     (actionWithId as IConnectEnvironmentDestroyedWithErrorAction).error
                 );
                 this.promiseResolver.reject((actionWithId as IConnectEnvironmentAction).id, error);
@@ -111,5 +114,9 @@ export class ConnectController {
 
     private resolveActionId(): number {
         return this.lastActionId++;
+    }
+
+    private defaultDisconnectErrorFactory(this: never, error: ConnectionWasClosedError): ConnectionWasClosedError {
+        return error;
     }
 }

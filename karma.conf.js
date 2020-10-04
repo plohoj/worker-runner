@@ -57,20 +57,17 @@ const karmaConfig = {
           exclude: /node_modules/,
           use: [
             ...isCoverage ? ["coverage-istanbul-loader"]: [],
-            ...isDebugMode
-              ? []
-              : {
-                loader: 'babel-loader',
-                options: {
-                  presets: [
-                    '@babel/preset-env',
-                    {
+            ...isDebugMode ? [] : [{
+              loader: 'babel-loader',
+              options: {
+                presets: [
+                  ['@babel/preset-env', {
                       useBuiltIns: 'usage',
                       corejs: 3,
-                    }
-                  ],
-                },
+                  }],
+                ],
               },
+            }],
             {
               loader: 'ts-loader',
               options: {

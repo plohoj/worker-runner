@@ -1,3 +1,4 @@
+import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
 import { IPromiseMethods } from "../../../utils/runner-promises";
 import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "../worker/worker-resolver-bridge.actions";
 import { IBaseResolverBridge } from './base-resolver.bridge'
@@ -28,7 +29,9 @@ export class ResolverBridge implements IBaseResolverBridge {
 
     public async connect(): Promise<MessagePort> {
         if (this.connectInfo) {
-            throw new Error();
+            throw new WorkerRunnerUnexpectedError({
+                message: 'Connection already established',
+            });
         }
         return new Promise((resolve, reject) => {
             const actionId = this.resolveActionId();
@@ -49,13 +52,17 @@ export class ResolverBridge implements IBaseResolverBridge {
                 this.onConnected(action);
                 break;
             default:
-                throw new Error();
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected action type in Node resolver Bridge from Worker resolver Bridge',
+                });
         }
     }
 
     private onConnected(action: IWorkerResolverBridgeConnectedAction): void {
         if (!this.connectInfo) {
-            throw new Error();
+            throw new WorkerRunnerUnexpectedError({
+                message: 'Connection was established before initiation',
+            });
         }
         if (this.connectInfo.actionId === action.id) {
             this.connectInfo.resolve(action.port);
