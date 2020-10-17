@@ -1,8 +1,8 @@
 import { ConnectionWasClosedError } from "@worker-runner/core";
-import { PromisesResolver } from "../../utils/runner-promises";
+import { PromiseListResolver } from "../../utils/promise-list.resolver";
 import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActionPropertiesRequirements, IConnectEnvironmentActions, IConnectEnvironmentDestroyedWithErrorAction } from "../environment/connect-environment.actions";
 import { IConnectControllerErrorDeserializer } from "./connect-controller-error-deserializer";
-import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActionPropertiesRequirements, IConnectControllerDestroyAction, IConnectControllerDisconnectAction,  } from "./connect-controller.actions";
+import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActionPropertiesRequirements, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction,  } from "./connect-controller.actions";
 
 type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
 
@@ -17,13 +17,13 @@ export class ConnectController {
     public readonly port: MessagePort;
     public disconnectStatus?: ConnectionWasClosedError;
 
-    protected readonly promiseResolver = new PromisesResolver<IConnectEnvironmentAction>();
+    protected readonly promiseListResolver = new PromiseListResolver<IConnectEnvironmentAction>();
     protected readonly disconnectErrorFactory: DisconnectErrorFactory;
 
     private readonly messageHandler = this.onMessage.bind(this);
     private readonly forceDestroyHandler?: () => void;
     private readonly destroyErrorDeserializer: IConnectControllerErrorDeserializer;
-    private lastActionId = 0; // TODO store in port, because after transfer controller, actionId may match
+    private lastActionId = 0;
 
     constructor(config: IConnectControllerConfig) {
         this.forceDestroyHandler = config.forceDestroyHandler;
@@ -69,7 +69,7 @@ export class ConnectController {
             ...actionWithoutTransfer as O,
             id: actionId,
         };
-        const response$ = this.promiseResolver.promise(actionId);
+        const response$ = this.promiseListResolver.promise(actionId);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.port.postMessage(actionWidthId, transfer!);
         return response$ as unknown as Promise<I>;
@@ -77,13 +77,22 @@ export class ConnectController {
 
     /** Stop listening on the port without notifying *ConnectEnvironment* */
     public stopListen(isClosePort = true): void {
-        // TODO notify all promises about disconnect / destroy
-        // TODO notify environment about stop listen action result
         this.disconnectStatus ||= this.disconnectErrorFactory(new  ConnectionWasClosedError());
         this.port.removeEventListener('message', this.messageHandler);
         if (isClosePort) {
             this.port.close();
+        } else {
+            const interruptListeningAction: IConnectControllerInterruptListeningAction = {
+                id: this.resolveActionId(),
+                type: ConnectControllerAction.INTERRUPT_LISTENING,
+            }
+            this.port.postMessage(interruptListeningAction);
         }
+        const promises$ = this.promiseListResolver.promises.values();
+        for (const promise of promises$) {
+            promise.reject(this.disconnectStatus);
+        }
+        this.promiseListResolver.promises.clear();
     }
 
     protected handleAction(actionWithId: IConnectEnvironmentAction | IConnectEnvironmentActions): void {
@@ -96,13 +105,13 @@ export class ConnectController {
                 const error = this.destroyErrorDeserializer(
                     (actionWithId as IConnectEnvironmentDestroyedWithErrorAction).error
                 );
-                this.promiseResolver.reject((actionWithId as IConnectEnvironmentAction).id, error);
+                this.promiseListResolver.reject((actionWithId as IConnectEnvironmentAction).id, error);
                 break;
             }
             default: {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const {id, ...action} = actionWithId as any;
-                this.promiseResolver.resolve(id, action);
+                this.promiseListResolver.resolve(id, action);
                 break;
             }
         }

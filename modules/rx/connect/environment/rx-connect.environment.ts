@@ -1,15 +1,21 @@
-import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError } from "@worker-runner/core";
-import { Observable, Subscription } from "rxjs";
+import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError, IListeningInterrupter, LISTENING_INTERRUPT, ConnectionWasClosedError } from "@worker-runner/core";
+import { from, Observable, Subscription } from "rxjs";
+import { takeUntil, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectControllerActions, RxConnectControllerAction } from "../controller/rx-connect-controller.actions";
-import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentForceUnsubscribedAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
+import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
 
-interface IPortRxData {
-    subscriptionsMap: Map<number, Subscription>;
-    observablesMap: Map<number, Observable<Record<string, TransferableJsonObject>>>
+interface IRxListeningInterrupter extends IListeningInterrupter {
+    observable: Observable<typeof LISTENING_INTERRUPT>;
 }
 
-/** **WARNING**: Errors emits as is, need use pipe */
+interface IMessagePortRxConnectEnvironmentData extends IMessagePortConnectEnvironmentData{
+    subscriptionsMap: Map<number, Subscription>;
+    observablesMap: Map<number, Observable<Record<string, TransferableJsonObject>>>
+    listeningInterrupter: IRxListeningInterrupter;
+}
+
+/** **WARNING**: Errors emits as is, need use pipe for serialize*/
 export class RxConnectEnvironment extends ConnectEnvironment {
         
     declare protected sendAction: (
@@ -17,29 +23,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         action: IConnectEnvironmentActions | IRxConnectEnvironmentActions,
     ) => void;
 
-    private readonly portRxDataMap = new Map<MessagePort, IPortRxData>();
-
-    public addPorts(...ports: MessagePort[]): void {
-        for (const port of ports) {
-            this.portRxDataMap.set(port, {
-                observablesMap: new Map(),
-                subscriptionsMap: new Map(),
-            });
-        }
-        super.addPorts(...ports);
-    }
-
-    protected async onDestroy(port: MessagePort, actionId: number): Promise<void> {
-        for (const [key] of this.portRxDataMap) {
-            this.forceDestroyObservablesForPort(key);
-        }
-        super.onDestroy(port, actionId);
-    }
-
-    protected onDisconnect(port: MessagePort, actionId: number): void {
-        this.forceDestroyObservablesForPort(port);
-        super.onDisconnect(port, actionId);
-    }
+    declare protected getMessagePortData: (port: MessagePort) => IMessagePortRxConnectEnvironmentData | undefined;
 
     protected async handleAction(
         port: MessagePort,
@@ -63,7 +47,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         actionId: number,
     ): Promise<void> {
         if (response instanceof Observable) {
-            const portRxData = this.portRxDataMap.get(port);
+            const portRxData = this.getMessagePortData(port);
             if (!portRxData) {
                 throw new WorkerRunnerUnexpectedError({
                     message: 'The method result was received after the connection was closed',
@@ -79,32 +63,26 @@ export class RxConnectEnvironment extends ConnectEnvironment {
             super.handleCustomActionResponse(port, response, actionId);
         }
     }
-    
-    private forceDestroyObservablesForPort(port: MessagePort): void {
-        const protRxData = this.portRxDataMap.get(port);
-        if (protRxData) {
-            // TODO stop subscription in controller
-            for (const [id, subscription] of protRxData.subscriptionsMap) {
-                subscription.unsubscribe();
-                const forceUnsubscribedAction: IRxConnectEnvironmentForceUnsubscribedAction = {
-                    id,
-                    type: RxConnectEnvironmentAction.RX_FORCE_UNSUBSCRIBED,
-                };
-                this.sendAction(port, forceUnsubscribedAction)
-            }
-            for (const [id] of protRxData.observablesMap) {
-                const forceUnsubscribedAction: IRxConnectEnvironmentForceUnsubscribedAction = {
-                    id,
-                    type: RxConnectEnvironmentAction.RX_FORCE_UNSUBSCRIBED,
-                };
-                this.sendAction(port, forceUnsubscribedAction)
-            }
-        }
-        this.portRxDataMap.delete(port);
+
+    protected createMessagePortData(port: MessagePort, data: IMessagePortRxConnectEnvironmentData): void {
+        const portData: IMessagePortRxConnectEnvironmentData = {
+            ...data,
+            observablesMap: new Map(),
+            subscriptionsMap: new Map(),
+        };
+        super.createMessagePortData(port, portData);
+    }
+
+    protected listeningInterrupterFactory(): IRxListeningInterrupter {
+        const parentListeningInterrupter = super.listeningInterrupterFactory()
+        return {
+            ...parentListeningInterrupter,
+            observable: from(parentListeningInterrupter.promise),
+        };
     }
 
     private pipeObservable(port: MessagePort, actionId: number): Observable<Record<string, TransferableJsonObject>> | undefined {
-        const portRxData = this.portRxDataMap.get(port);
+        const portRxData = this.getMessagePortData(port);
         if (!portRxData) {
             return;
         }
@@ -129,13 +107,27 @@ export class RxConnectEnvironment extends ConnectEnvironment {
             this.sendAction(port, notFoundAction);
             return;
         }
-        const subscription = observable.subscribe({
-            next: this.onObservableEmit.bind(this, port, actionId),
-            error: this.onObservableError.bind(this, port, actionId),
-            complete: this.onObservableComplete.bind(this, port, actionId),
-        });
+        const portRxData = this.getMessagePortData(port);
+        if (!portRxData) {
+            throw new ConnectionWasClosedError();
+        }
+        let isListeningInterrupted = false;
+        const subscription = observable
+            .pipe(
+                takeUntil(portRxData.listeningInterrupter.observable.pipe(
+                    tap(() => isListeningInterrupted = true)
+                ))
+            ).subscribe({
+                next: this.onObservableEmit.bind(this, port, actionId),
+                error: this.onObservableError.bind(this, port, actionId),
+                complete: () => {
+                    if (!isListeningInterrupted) {
+                        this.onObservableComplete(port, actionId);
+                    }
+                },
+            });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.portRxDataMap.get(port)!.subscriptionsMap.set(actionId, subscription);
+        this.getMessagePortData(port)!.subscriptionsMap.set(actionId, subscription);
     }
 
     private onObservableEmit(
@@ -175,7 +167,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
     }
 
     private onUnsubscribeAction(port: MessagePort, actionId: number): void {
-        const portRxData = this.portRxDataMap.get(port)
+        const portRxData = this.getMessagePortData(port)
         const subscription = portRxData?.subscriptionsMap.get(actionId);
         if (!subscription) {
             throw new RxSubscriptionNotFoundError();

@@ -1,6 +1,5 @@
 import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/environment/connect.environment';
-import { WorkerRunnerErrorCode } from '../../errors/error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-errors';
@@ -42,7 +41,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             actionsHandler: this.handleAction.bind(this),
             destroyHandler: this.handleDestroy.bind(this),
         });
-        this.connectEnvironment.addPorts(config.port);
+        this.connectEnvironment.addPort(config.port);
     }
 
     public async execute(
@@ -57,15 +56,13 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 .map(controller => controller.disconnect()));
             return {
                 type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                ... this.errorSerializer.serialize(error, {
-                    errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
+                ... this.errorSerializer.serialize(error, new RunnerExecuteError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
                         runnerName: this.runnerName,
                         methodName: action.method,
                     }),
-                    name: RunnerExecuteError.name,
-                    stack: error?.stack || new Error().stack,
-                }),
+                    stack: error?.stack
+                })),
             };
         }
         this.addConnectedControllers(deserializeArgumentsData.controllers);
@@ -100,12 +97,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 } catch (error) {
                     return {
                         type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                        ... this.errorSerializer.serialize(error, {
-                            errorCode: WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR,
-                            name: RunnerExecuteError.name,
+                        ... this.errorSerializer.serialize(error, new RunnerExecuteError({
                             message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
-                            stack: error?.stack || new Error().stack,
-                        }),
+                            stack: error?.stack,
+                        })),
                     };
                 }
             case RunnerControllerAction.RESOLVE:
@@ -146,17 +141,19 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         return new ConnectEnvironment(config);
     }
 
-    private destroyErrorSerializer(error: unknown): ISerializedError {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private destroyErrorSerializer(error: any): ISerializedError {
         return this.errorSerializer.serialize(error, new RunnerDestroyError({
             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
                 runnerName: this.runnerName,
             }),
+            stack: error?.stack,
         }));
     }
 
     private async resolve(): Promise<IRunnerEnvironmentResolvedAction> {
         const messageChanel = new MessageChannel();
-        this.connectEnvironment.addPorts(messageChanel.port1);
+        this.connectEnvironment.addPort(messageChanel.port1);
         return {
             type: RunnerEnvironmentAction.RESOLVED,
             port: messageChanel.port2,

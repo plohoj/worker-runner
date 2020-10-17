@@ -1,7 +1,7 @@
 export { IConnectControllerActions, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IPossibleConnectControllerActionProperties } from './connect/controller/connect-controller.actions';
 export { ConnectController, IConnectControllerConfig } from './connect/controller/connect.controller';
 export { IConnectEnvironmentAction, IConnectEnvironmentActions, IPossibleConnectEnvironmentActionProperties } from './connect/environment/connect-environment.actions';
-export { ConnectEnvironment, IConnectEnvironmentConfig } from './connect/environment/connect.environment';
+export { ConnectEnvironment, IConnectEnvironmentConfig, IListeningInterrupter, IMessagePortConnectEnvironmentData, LISTENING_INTERRUPT } from './connect/environment/connect.environment';
 export { WorkerRunnerErrorCode } from './errors/error-code';
 export { CODE_TO_ERROR_MAP } from './errors/error-code-map';
 export { IRunnerExecuteErrorMessageConfig, IRunnerInitErrorMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';
@@ -22,5 +22,5 @@ export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner-bridge/r
 export { BanProperties } from './types/ban-properties';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { JsonObject, TransferableJsonObject } from './types/json-object';
-export { PromisesResolver } from './utils/runner-promises';
+export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

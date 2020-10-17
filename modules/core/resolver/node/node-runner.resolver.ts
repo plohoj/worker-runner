@@ -190,6 +190,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                     runnerName: this.runnerBridgeCollection.getRunner(runnerId).name,
                 }),
+                stack: error?.stack,
             }));
         }
     }

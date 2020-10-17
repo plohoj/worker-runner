@@ -2,6 +2,7 @@ import { BanProperties } from "../../types/ban-properties";
 import { TransferableJsonObject } from "../../types/json-object";
 
 export enum ConnectControllerAction {
+    INTERRUPT_LISTENING = 'INTERRUPT_LISTENING',
     DISCONNECT = 'DISCONNECT',
     DESTROY = 'DESTROY',
 }
@@ -10,9 +11,9 @@ export type IConnectControllerAction = {
     id: number;
 } & Partial<Record<string, TransferableJsonObject>>
 
-export interface IConnectControllerDestroyAction {
+export interface IConnectControllerInterruptListeningAction {
     id: number;
-    type: ConnectControllerAction.DESTROY;
+    type: ConnectControllerAction.INTERRUPT_LISTENING;
 }
 
 export interface IConnectControllerDisconnectAction {
@@ -20,7 +21,15 @@ export interface IConnectControllerDisconnectAction {
     type: ConnectControllerAction.DISCONNECT;
 }
 
-export type IConnectControllerActions = IConnectControllerDestroyAction | IConnectControllerDisconnectAction;
+export interface IConnectControllerDestroyAction {
+    id: number;
+    type: ConnectControllerAction.DESTROY;
+}
+
+export type IConnectControllerActions =
+    | IConnectControllerInterruptListeningAction
+    | IConnectControllerDisconnectAction
+    | IConnectControllerDestroyAction;
 
 type IBannedConnectControllerActionProperties = IConnectControllerActions & {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,11 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface IPromiseMethods<T = any, E = any> {
+export interface IPromiseMethods<T = unknown, E = unknown> {
     resolve: (data: T) => void;
     reject: (error: E) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class PromisesResolver<T, E = any> {
+export class PromiseListResolver<T, E = unknown> {
     public readonly promises = new Map<number, IPromiseMethods<T,  E>>();
 
     public promise<R extends T = T>(id: number): Promise<R> {

@@ -1,7 +1,6 @@
 import { WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
-import { WorkerRunnerErrorCode } from '../../errors/error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerDestroyError, RunnerInitError, RunnerNotFound, WorkerDestroyError } from '../../errors/runner-errors';
@@ -54,14 +53,12 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
                 } catch (error) {
                     const errorAction: IWorkerResolverRunnerInitErrorAction = {
                         type: WorkerResolverAction.RUNNER_INIT_ERROR,
-                        ... this.errorSerializer.serialize(error, {
-                            errorCode: WorkerRunnerErrorCode.RUNNER_NOT_FOUND,
-                            name: RunnerNotFound.name,
+                        ... this.errorSerializer.serialize(error, new RunnerNotFound({
                             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                                runnerName: this.runnerBridgeCollection.getRunner(action.runnerId).name
+                                runnerName: this.runnerBridgeCollection.getRunner(action.runnerId).name,
                             }),
-                            stack: error?.stack || new Error().stack,
-                        }),
+                            stack: error?.stack,
+                        })),
                     };
                     return errorAction;
                 }
@@ -109,6 +106,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
                         message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
                             runnerName: runnerEnvironment.runnerInstance.constructor.name,
                         }),
+                        stack: error?.stack,
                     })));
                 }),
             );
@@ -164,11 +162,14 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     }
 
     private handleNewConnection(port: MessagePort): void {
-        this.connectEnvironment.addPorts(port);
+        this.connectEnvironment.addPort(port);
     }
 
-    private destroyErrorSerializer(error: unknown): ISerializedError {
-        return this.errorSerializer.serialize(error, new WorkerDestroyError());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private destroyErrorSerializer(error: any): ISerializedError {
+        return this.errorSerializer.serialize(error, new WorkerDestroyError({
+            stack: error?.stack,
+        }));
     }
     
     private async initRunnerInstance(
@@ -190,6 +191,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                         runnerName: runnerConstructor.name,
                     }),
+                    stack: error?.stack,
                 })),
             };
             await Promise.all(deserializeArgumentsData.controllers

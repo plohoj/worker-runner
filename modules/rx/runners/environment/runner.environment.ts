@@ -65,6 +65,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
     private async mapRxError(error: any): Promise<never> {
         const serializedError = this.errorSerializer.serialize(error, new RxRunnerEmitError({
             message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
+            stack: error?.stack,
         }));
         throw serializedError;
     }

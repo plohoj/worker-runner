@@ -1,11 +1,11 @@
-import { ConnectController, IConnectEnvironmentAction, IConnectEnvironmentActions, PromisesResolver, ConnectionWasClosedError, WorkerRunnerUnexpectedError } from "@worker-runner/core";
+import { ConnectController, IConnectEnvironmentAction, IConnectEnvironmentActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, PromiseListResolver } from "@worker-runner/core";
 import { Observable, Subscriber } from "rxjs";
 import { publish, refCount } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
-import { IRxConnectEnvironmentActionPropertiesRequirements, IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentForceUnsubscribedAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
+import { IRxConnectEnvironmentActionPropertiesRequirements, IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
 import { IRxConnectControllerActionPropertiesRequirements, IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";
 
-/** **WARNING**: Errors emits as is, need use pipe */
+/** **WARNING**: Errors emits as is, need use pipe for deserialize */
 export class RxConnectController extends ConnectController {
     /** {actionId: Subscriber} */
     public readonly subscribersMap = new Map<number, Subscriber<IConnectEnvironmentAction>>();
@@ -16,19 +16,19 @@ export class RxConnectController extends ConnectController {
             | Observable<IRxConnectEnvironmentActionPropertiesRequirements<I>>,
     >(action: O) => Promise<I>;
 
-    declare protected readonly promiseResolver: PromisesResolver<IConnectEnvironmentAction | Observable<IConnectEnvironmentAction>>;
+    declare protected readonly promiseListResolver: PromiseListResolver<IConnectEnvironmentAction | Observable<IConnectEnvironmentAction>>;
     /** List of action ids that can subscribe to */
     private readonly canSubscribedList = new Set<number>();
 
-    public stopListen(): void {
+    public stopListen(isClosePort?: boolean): void {
         this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
-        // TODO notify environment about unsubscribe all
         this.subscribersMap.forEach(subscriber => {
             subscriber.error(this.disconnectStatus);
             subscriber.complete();
         });
         this.subscribersMap.clear();
-        super.stopListen();
+        this.canSubscribedList.clear();
+        super.stopListen(isClosePort);
     }
 
     protected handleAction(
@@ -49,9 +49,6 @@ export class RxConnectController extends ConnectController {
                 break;
             case RxConnectEnvironmentAction.RX_COMPLETED:
                 this.runnerObservableCompleted(actionWithId as IRxConnectEnvironmentCompletedAction);
-                break;
-            case RxConnectEnvironmentAction.RX_FORCE_UNSUBSCRIBED:
-                this.runnerObservableForceUnsubscribed(actionWithId as IRxConnectEnvironmentForceUnsubscribedAction);
                 break;
             case RxConnectEnvironmentAction.RX_NOT_FOUND:
                 this.runnerObservableNotFound(actionWithId as IRxConnectEnvironmentNotFoundAction);
@@ -74,10 +71,11 @@ export class RxConnectController extends ConnectController {
                 return;
             }
             this.subscribersMap.set(action.id, subscriber);
+            this.canSubscribedList.delete(action.id)
             this.port.postMessage({
                 type: RxConnectControllerAction.RX_SUBSCRIBE,
                 id: action.id,
-            })
+            });
             return () => { // TODO check that the method is called after observable unsubscribe
                 // TODO place permanent error message about subscribe listener has been disconnected
                 const unsubscribeAction: IRxConnectControllerUnsubscribeAction = { // TODO check work
@@ -91,7 +89,7 @@ export class RxConnectController extends ConnectController {
             refCount(),
         );
         this.canSubscribedList.add(action.id);
-        this.promiseResolver.resolve(
+        this.promiseListResolver.resolve(
             action.id,
             observable,
         );
@@ -111,20 +109,9 @@ export class RxConnectController extends ConnectController {
         this.subscribersMap.delete(action.id);
     }
 
-    private runnerObservableForceUnsubscribed(action: IRxConnectEnvironmentForceUnsubscribedAction): void {
-        if (this.canSubscribedList.has(action.id)) {
-            this.canSubscribedList.delete(action.id);
-            return;
-        }
-        const subscriber =  this.getSubscriber(action.id);
-        subscriber.error(new Error()) // TODO
-        subscriber.complete();
-        this.subscribersMap.delete(action.id);
-    }
-
     private runnerObservableNotFound(action: IRxConnectEnvironmentNotFoundAction): void {
         const subscriber =  this.getSubscriber(action.id);
-        subscriber.error(new Error()) // TODO
+        subscriber.error(new RxSubscriptionNotFoundError()); // TODO need test
         subscriber.complete();
         this.subscribersMap.delete(action.id);
     }

@@ -1,11 +1,28 @@
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { TransferableJsonObject } from "../../types/json-object";
-import { ConnectControllerAction, IConnectControllerActions } from "../controller/connect-controller.actions";
+import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActions } from "../controller/connect-controller.actions";
 import { ConnectEnvironmentErrorSerializer } from "./connect-environment-error-serializer";
 import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentDestroyedByForceAction, IConnectEnvironmentDestroyedByRequestAction, IConnectEnvironmentDestroyedWithErrorAction, IConnectEnvironmentDisconnectedAction } from "./connect-environment.actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ConnectEnvironmentActionsHandler = (action: any) => any;
+
+const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = Symbol('MessagePort data for ConnectEnvironment');
+export const LISTENING_INTERRUPT = Symbol('Listening Interrupt');
+
+export interface IListeningInterrupter {
+    promise: Promise<typeof LISTENING_INTERRUPT>;
+    resolve: (listeningInterrupt: typeof LISTENING_INTERRUPT) => void;
+}
+
+export interface IMessagePortConnectEnvironmentData {
+    handler: ConnectEnvironmentActionsHandler;
+    listeningInterrupter: IListeningInterrupter;
+} 
+
+interface IMessagePortWithConnectEnvironmentData {
+    [MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA]?: IMessagePortConnectEnvironmentData;
+}
 
 export interface IConnectEnvironmentConfig{
     actionsHandler: ConnectEnvironmentActionsHandler;
@@ -14,7 +31,7 @@ export interface IConnectEnvironmentConfig{
 }
 
 export class ConnectEnvironment {
-    public readonly connectedPorts = new Map<MessagePort, ConnectEnvironmentActionsHandler>();
+    public readonly connectedPorts = new Set<MessagePort>();
     protected readonly destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
     private isDestroyed = false;
     private actionsHandler: ConnectEnvironmentActionsHandler;
@@ -26,22 +43,45 @@ export class ConnectEnvironment {
         this.destroyErrorSerializer = config.destroyErrorSerializer;
     }
 
-    public addPorts(...ports: MessagePort[]): void {
-        for (const port of ports) {
-            const handler = this.onMessage.bind(this, port);
-            port.addEventListener('message', handler);
-            port.start();
-            this.connectedPorts.set(port, handler);
-        }
+    public addPort(port: MessagePort): void {
+        const handler = this.onMessage.bind(this, port);
+        port.addEventListener('message', handler);
+        port.start();
+        this.createMessagePortData(port, {
+            handler,
+            listeningInterrupter: this.listeningInterrupterFactory(),
+        });
+        this.connectedPorts.add(port);
     }
 
     public closeConnection(port: MessagePort): void {
-        const handler = this.connectedPorts.get(port);
+        const handler = this.getMessagePortData(port)?.handler;
         if (handler) {
             port.removeEventListener('message', handler);
         }
         port.close();
         this.connectedPorts.delete(port);
+        this.deleteMessagePortData(port);
+    }
+
+    protected async handleAction(
+        port: MessagePort,
+        actionWithId: IConnectControllerAction | IConnectControllerActions
+    ): Promise<void> {
+        switch ((actionWithId as IConnectControllerActions).type) {
+            case ConnectControllerAction.INTERRUPT_LISTENING:
+                this.onInterruptListening(port);
+                break;
+            case ConnectControllerAction.DISCONNECT:
+                this.onDisconnect(port, actionWithId.id);
+                break;
+            case ConnectControllerAction.DESTROY:
+                await this.onDestroy(port, actionWithId.id);
+                break;
+            default: 
+                await this.onCustomAction(port, actionWithId as IConnectControllerAction);
+                break;
+        }
     }
 
     protected async forceDestroy(): Promise<void> {
@@ -51,15 +91,37 @@ export class ConnectEnvironment {
             const destroyAction: IConnectEnvironmentDestroyedByForceAction = {
                 type: ConnectEnvironmentAction.DESTROYED_BY_FORCE,
             };
-            for (const [port] of this.connectedPorts) {
+            for (const port of this.connectedPorts) {
                 this.sendAction(port, destroyAction);
                 this.closeConnection(port);
             }
         }
     }
 
+    protected onInterruptListening(port: MessagePort): void {
+        const portData = this.getMessagePortData(port);
+        if (!portData) {
+            throw new ConnectionWasClosedError();
+        }
+        portData.listeningInterrupter.resolve(LISTENING_INTERRUPT);
+        const listeningInterrupter = this.listeningInterrupterFactory();
+        portData.listeningInterrupter = listeningInterrupter;
+    }
+    
+    protected onDisconnect(port: MessagePort, actionId: number): void {
+        if (this.connectedPorts.size <= 1) {
+            this.onDestroy(port, actionId)
+        }
+        const disconnectAction: IConnectEnvironmentDisconnectedAction = {
+            id: actionId,
+            type: ConnectEnvironmentAction.DISCONNECTED,
+        };
+        this.sendAction(port, disconnectAction);
+        this.closeConnection(port);
+    }
+
     protected async onDestroy(port: MessagePort, actionId: number): Promise<void> {
-        const handler = this.connectedPorts.get(port);
+        const handler = this.getMessagePortData(port)?.handler;
         this.connectedPorts.delete(port);
         let hasError = false;
         try {
@@ -87,21 +149,21 @@ export class ConnectEnvironment {
         port.close();
     }
 
-    protected onDisconnect(port: MessagePort, actionId: number): void {
-        if (this.connectedPorts.size <= 1) {
-            this.onDestroy(port, actionId)
+    protected async onCustomAction(port: MessagePort, actionWithId: IConnectControllerAction): Promise<void> {
+        const {id, ...action} = actionWithId;
+        const portData = this.getMessagePortData(port);
+        if (!portData) {
+            throw new ConnectionWasClosedError();
         }
-        const disconnectAction: IConnectEnvironmentDisconnectedAction = {
-            id: actionId,
-            type: ConnectEnvironmentAction.DISCONNECTED,
-        };
-        this.sendAction(port, disconnectAction);
-        const handler = this.connectedPorts.get(port);
-        this.connectedPorts.delete(port);
-        if (handler) {
-            port.removeEventListener('message', handler);
+        const result = await Promise.race([
+            portData.listeningInterrupter.promise,
+            this.actionsHandler(action) as Record<string, TransferableJsonObject>
+        ])
+        if (result === LISTENING_INTERRUPT) {
+            // Aborting the action because the connection was closed
+            return;
         }
-        port.close();
+        this.handleCustomActionResponse(port, result, id);
     }
 
     protected sendAction(
@@ -111,37 +173,8 @@ export class ConnectEnvironment {
         if (this.isDestroyed) {
             throw new ConnectionWasClosedError();
         }
-        const {transfer, ...actionWithoutTransfer} = action as Record<string, TransferableJsonObject>; 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const {transfer, ...actionWithoutTransfer} = action as Record<string, TransferableJsonObject>;
         port.postMessage(actionWithoutTransfer, transfer as Transferable[]);
-    }
-
-    protected async handleAction(
-        port: MessagePort,
-        actionWithId: IConnectEnvironmentAction | IConnectControllerActions
-    ): Promise<void> {
-        switch ((actionWithId as IConnectControllerActions).type) {
-            case ConnectControllerAction.DISCONNECT:
-                this.onDisconnect(port, actionWithId.id);
-                break;
-            case ConnectControllerAction.DESTROY:
-                this.onDestroy(port, actionWithId.id);
-                break;
-            default: {
-                let responseAction: TransferableJsonObject;
-                const {id, ...action} = actionWithId;
-                try {
-                    // TODO stop wait after destroy
-                    responseAction = await this.actionsHandler(action) as Record<string, TransferableJsonObject>;
-                // eslint-disable-next-line unicorn/prefer-optional-catch-binding
-                } catch (error) {
-                    // TODO
-                    return;
-                }
-                this.handleCustomActionResponse(port, responseAction, id);
-                break;
-            }
-        }
     }
 
     protected async handleCustomActionResponse (
@@ -160,6 +193,27 @@ export class ConnectEnvironment {
         response: Record<string, TransferableJsonObject>
     ): Record<string, TransferableJsonObject> | IConnectEnvironmentAction {
         return response;
+    }
+
+    protected listeningInterrupterFactory(): IListeningInterrupter {
+        let resolver: IListeningInterrupter['resolve'];
+        const promise = new Promise<typeof LISTENING_INTERRUPT>(resolve => {
+            resolver = resolve;
+        });
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return {promise, resolve: resolver!};
+    }
+
+    protected createMessagePortData(port: MessagePort, data: IMessagePortConnectEnvironmentData): void {
+        (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA] = data;
+    }
+
+    protected getMessagePortData(port: MessagePort): IMessagePortConnectEnvironmentData | undefined {
+        return (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA];
+    }
+
+    protected deleteMessagePortData(port: MessagePort): void {
+        (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA] = undefined;
     }
     
     private async onMessage(

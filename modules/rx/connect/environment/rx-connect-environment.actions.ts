@@ -5,8 +5,6 @@ export enum RxConnectEnvironmentAction {
     RX_EMIT = 'RX_EMIT',
     RX_ERROR = 'RX_ERROR',
     RX_COMPLETED = 'RX_COMPLETED',
-    /** Unsubscribed because connection was closed */
-    RX_FORCE_UNSUBSCRIBED = 'RX_FORCE_UNSUBSCRIBED',
     RX_NOT_FOUND = 'RX_NOT_FOUND',
 }
 
@@ -35,11 +33,6 @@ export interface IRxConnectEnvironmentCompletedAction {
     type: RxConnectEnvironmentAction.RX_COMPLETED;
 }
 
-export interface IRxConnectEnvironmentForceUnsubscribedAction {
-    id: number;
-    type: RxConnectEnvironmentAction.RX_FORCE_UNSUBSCRIBED;
-}
-
 export interface IRxConnectEnvironmentNotFoundAction {
     id: number;
     type: RxConnectEnvironmentAction.RX_NOT_FOUND;
@@ -50,7 +43,6 @@ export type IRxConnectEnvironmentActions =
     | IRxConnectEnvironmentEmitAction
     | IRxConnectEnvironmentErrorAction
     | IRxConnectEnvironmentCompletedAction
-    | IRxConnectEnvironmentForceUnsubscribedAction
     | IRxConnectEnvironmentNotFoundAction;
 
 type IRxBannedConnectEnvironmentActionProperties

@@ -1,5 +1,5 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
-import { IPromiseMethods } from "../../../utils/runner-promises";
+import { IPromiseMethods } from "../../../utils/promise-list.resolver";
 import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "../worker/worker-resolver-bridge.actions";
 import { IBaseResolverBridge } from './base-resolver.bridge'
 import { IResolverBridgeConnectAction, ResolverBridgeAction } from "./resolver-bridge.actions";
