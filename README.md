@@ -208,6 +208,6 @@ const libraryRunner = await resolver.resolve(LibraryRunner);
 
 ## <a name="warning"></a> Warning
 
-Internet Explorer requires **polyfill** for `Symbol` and `Promise`
+Internet Explorer requires **polyfill** for `Promise`
 
 ## [Webpack configuration example](https://github.com/plohoj/worker-runner-webpack-example)

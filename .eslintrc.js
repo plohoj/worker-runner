@@ -11,11 +11,18 @@ module.exports = {
         'plugin:import/warnings',
         // TODO lint rxjs
     ],
+    plugins: ['es'],
     parserOptions: { project: './tsconfig.json' },
     rules: {
         'eol-last': 'warn',
 
+        // plugin:typescript-eslint
         '@typescript-eslint/member-ordering': 'error',
+        "@typescript-eslint/ban-types": ["error", {
+            types: {
+                Symbol: "Don't use Symbol because it causes bugs in IE11",
+            }
+        }],
 
         // plugin:import
         'import/order': [
@@ -28,6 +35,7 @@ module.exports = {
             },
         ],
 
+        // plugin:unicorn
         "unicorn/prevent-abbreviations": [
             "error",
             {
@@ -36,6 +44,9 @@ module.exports = {
                 }
             }
         ],
+
+        // plugin:es
+        'es/no-symbol': 'error',
 
         // Banned imports
         'no-restricted-imports': [

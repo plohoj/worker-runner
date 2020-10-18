@@ -1,8 +1,8 @@
 import { readdirSync } from 'fs';
-import { resolve } from "path";
+import path from "path";
 import typescript from 'rollup-plugin-typescript2';
 
-const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 const moduleFormats = ["umd", "esm"];
 
@@ -25,7 +25,7 @@ function generateBuildConfig(moduleName, moduleFormat) {
         },
         external: ['rxjs', 'rxjs/operators', '@worker-runner/core'],
         plugins: [
-            typescript({}),
+            typescript(),
         ]
     };
     return config;

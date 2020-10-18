@@ -14,7 +14,7 @@ export interface IResolverBridgeConfig {
 }
 
 export class ResolverBridge implements IBaseResolverBridge {
-    private static readonly LAST_WORKER_ACTION_ID = Symbol('Last Worker actionID');
+    private static readonly LAST_WORKER_ACTION_ID = '__workerRunner_lastActionId';
     
     public messagePort?: MessagePort;
 
@@ -41,7 +41,7 @@ export class ResolverBridge implements IBaseResolverBridge {
                 id: actionId,
                 type: ResolverBridgeAction.CONNECT,
             };
-            this.worker.postMessage(initAction)
+            this.worker.postMessage(initAction);
         });
     }
 

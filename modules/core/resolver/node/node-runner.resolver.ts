@@ -87,8 +87,8 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 });
             }
         }));
-        for (let i = 0; i < args.length; i++) {
-            serializedArguments.args.push(argsMap.get(i) as IRunnerArgument);
+        for (let argumentIndex = 0; argumentIndex < args.length; argumentIndex++) {
+            serializedArguments.args.push(argsMap.get(argumentIndex) as IRunnerArgument);
         }
         return serializedArguments;
     }

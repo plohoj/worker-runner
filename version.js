@@ -1,6 +1,6 @@
 const { exec } = require('child_process');
 const { readdirSync, readFile, writeFile } = require('fs');
-const { resolve: resolvePath } = require("path");
+const path = require("path");
 const semver = require('semver');
 const mainPackage = require('./package.json');
 
@@ -13,7 +13,7 @@ if (versionTypeArgument) {
 const newVersion = semver.inc(mainPackage.version, versionType);
 const dependencyVersion = newVersion.replace(new RegExp(`\\.${semver.parse(newVersion).patch}$`), '.0');
 
-const moduleNames = readdirSync(resolvePath('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 /**
@@ -56,16 +56,16 @@ function errorLog(directory) {
 
 (async function main() {
     await Promise.all([
-        updateVersion(resolvePath(`./package.json`), versionType)
+        updateVersion(path.resolve(`./package.json`), versionType)
             .then(version => successLog(`/package.json`, version)),
-        updateVersion(resolvePath(`./package-lock.json`), versionType)
+        updateVersion(path.resolve(`./package-lock.json`), versionType)
             .then(version => successLog(`./package-lock.json`, version)),
         ... moduleNames.map(moduleName => 
-            updateVersion(resolvePath(`modules/${moduleName}/package.json`))
+            updateVersion(path.resolve(`modules/${moduleName}/package.json`))
                 .then(() => successLog(`modules/${moduleName}/package.json`)),
         ),
         ... moduleNames.map(moduleName => 
-            updateVersion(resolvePath(`dist/${moduleName}/package.json`))
+            updateVersion(path.resolve(`dist/${moduleName}/package.json`))
                 .then(() => successLog(`dist/${moduleName}/package.json`))
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),

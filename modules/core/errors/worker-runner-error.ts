@@ -19,7 +19,7 @@ export interface IRunnerErrorConfigCaptureOpt {
 export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase
     & (IRunnerErrorConfigStack | IRunnerErrorConfigCaptureOpt);
 
-export const WORKER_RUNNER_ERROR_CODE = Symbol('Worker Runner error code');
+export const WORKER_RUNNER_ERROR_CODE = '__workerRunner_errorCode';
 
 export abstract class WorkerRunnerError extends Error {
     public abstract [WORKER_RUNNER_ERROR_CODE]: string;

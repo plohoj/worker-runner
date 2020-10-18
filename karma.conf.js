@@ -1,10 +1,10 @@
 // eslint-disable-next-line unicorn/prevent-abbreviations
 const { readdirSync } = require('fs');
-const { resolve } = require("path");
+const path = require("path");
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
-    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
+  .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 // Debug mode
 const isDebugMode = process.argv.some(argument => /--debug/.test(argument));
@@ -13,15 +13,14 @@ if (isDebugMode) {
 }
 
 // Coverage mode
-const coverageArgument = process.argv.find(argument => /--coverage[ =].+/.test(argument));
-let isCoverage = false;
-if (coverageArgument) {
-    isCoverage = coverageArgument.replace(/--type[ =]/, '').includes('true');
-}
+const isCoverage = process.argv.some(argument => /--coverage/.test(argument));
 
 // Modules entry files
+/** @type {Record<string, string} */
 const modulesEntry = {};
-moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
+for (const moduleName of moduleNames) {
+  modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`;
+}
 
 /** @type {import('karma').ConfigOptions} */
 const karmaConfig = {
@@ -38,7 +37,7 @@ const karmaConfig = {
   },
   webpack: {
     mode: 'development',
-    devtool: 'eval-source-map',
+    devtool: 'inline-source-map',
     context: __dirname,
     entry: {
       ...modulesEntry,
@@ -76,20 +75,20 @@ const karmaConfig = {
                 }
               }
             },
-            {
+            ...!isDebugMode ? [] : [{
               loader: 'eslint-loader',
               options: {
                 emitError: true,
                 emitWarning: true,
-              },
-            }
+              }
+            }],            
           ]
         },
       ],
     },
     resolve: {
       extensions: ['.js', '.ts'],
-      plugins: [new TsconfigPathsPlugin()]
+      plugins: [new TsconfigPathsPlugin()],
     },
   },
   reporters: isCoverage ? ['coverage-istanbul']: ['progress'],

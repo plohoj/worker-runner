@@ -1,14 +1,14 @@
 const { exec } = require('child_process');
 const { readdirSync } = require('fs');
-const { resolve: resolvePath } = require("path");
+const path = require("path");
 
-const moduleNames = readdirSync(resolvePath('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 async function publish(moduleName) {
     await new Promise((resolve, reject) =>
         exec(`npm publish`,
-            {cwd: resolvePath(`dist/${moduleName}`)},
+            {cwd: path.resolve(`dist/${moduleName}`)},
             (error) => error ? reject(error) : resolve()
         ));
 }

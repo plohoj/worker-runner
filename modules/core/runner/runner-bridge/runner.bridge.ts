@@ -5,8 +5,8 @@ import { ResolvedRunner } from '../resolved-runner';
 export type IRunnerBridgeConstructor<T extends RunnerConstructor>
     = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
-export const EXECUTE_RUNNER_CONTROLLER_METHOD = Symbol('Execute RunnerController method');
-export const RUNNER_BRIDGE_CONTROLLER = Symbol('RunnerController');
+export const EXECUTE_RUNNER_CONTROLLER_METHOD = '__workerRunner_executeControllerMethod';
+export const RUNNER_BRIDGE_CONTROLLER = '__workerRunner_bridgeController';
 
 export class RunnerBridge {
 

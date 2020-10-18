@@ -7,8 +7,8 @@ import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmen
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ConnectEnvironmentActionsHandler = (action: any) => any;
 
-const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = Symbol('MessagePort data for ConnectEnvironment');
-export const LISTENING_INTERRUPT = Symbol('Listening Interrupt');
+const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = '__workerRunner_connectEnvironmentData';
+export const LISTENING_INTERRUPT = {description: 'Unique object to interrupt listening'};
 
 export interface IListeningInterrupter {
     promise: Promise<typeof LISTENING_INTERRUPT>;
