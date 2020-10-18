@@ -30,7 +30,7 @@ each({
         expect(destroySpy).not.toHaveBeenCalled();
         await resolvedExecutableStubRunner.disconnect();
         expect(destroySpy).toHaveBeenCalled();
-        localResolver.destroy();
+        await localResolver.destroy();
     });
 
     it ('after destroy', async () => {
@@ -52,7 +52,7 @@ each({
         expect(destroySpy).not.toHaveBeenCalled();
         await resolvedExecutableStubRunner.destroy();
         expect(destroySpy).toHaveBeenCalled();
-        localResolver.destroy();
+        await localResolver.destroy();
     });
 }),
 );
