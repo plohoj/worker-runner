@@ -13,7 +13,7 @@ export class WithOtherInstanceStubRunner<T extends JsonObject = JsonObject> {
         executableStubRunner: ResolvedRunner<ExecutableStubRunner<T>>,
     ): Promise<T | undefined> {
         const stage = await executableStubRunner.getStage();
-        executableStubRunner.disconnect();
+        await executableStubRunner.disconnect();
         return stage as T | undefined;
     }
 }

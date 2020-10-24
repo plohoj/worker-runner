@@ -1,22 +1,16 @@
-import { ResolvedRunner, RunnerInitError, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { runners } from 'test/common/runner-list';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { resolverList } from 'test/common/resolver-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN, runners } from 'test/common/runner-list';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { localRunnerResolver, runnerResolver } from '../common/promise';
 
-each({
-        Common: runnerResolver,
-        Local: localRunnerResolver,
-        Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
-    },
-    (mode, resolver) => describe(`${mode} constructor`, () => {
+each(resolverList, (mode, resolver) =>
+    describe(`${mode} constructor`, () => {
         beforeAll(async () => {
             await resolver.run();
         });
@@ -32,6 +26,17 @@ each({
             };
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
+                    ExecutableStubRunner<typeof storageData>>;
+            await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
+        });
+
+        it ('with arguments by token', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const executableStubRunner = await resolver
+                .resolve(EXECUTABLE_STUB_RUNNER_TOKEN, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
@@ -71,11 +76,12 @@ each({
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -97,10 +103,20 @@ each({
 
         it ('not exist', async () => {
             class AnonymRunner {}
-            // @ts-ignore
-            await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerInitError, {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
-                name: RunnerInitError.name,
+                name: RunnerNotFound.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
+        });
+
+        it ('not exist by token', async () => {
+            const token = 'NotExistRunnerToken';
+            await expectAsync(resolver.resolve(token)).toBeRejectedWith(errorContaining(RunnerNotFound, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token }),
+                name: RunnerNotFound.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
         });

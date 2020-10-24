@@ -1,6 +1,6 @@
 
 export class ErrorStubRunner {
-    constructor(errorMessage?: string, anyData?: any) {
+    constructor(errorMessage?: string) {
         if (errorMessage) {
             throw errorMessage;
         }
@@ -14,14 +14,14 @@ export class ErrorStubRunner {
         throw new Error(errorMessage);
     }
 
-    public throwErrorInPromise(errorMessage: string, delay?: number): Promise<any> {
+    public throwErrorInPromise(errorMessage: string, delay?: number): Promise<void> {
         if (delay) {
             return new Promise((resolve, reject) => setTimeout(() => reject(errorMessage), delay));
         }
         return Promise.reject(errorMessage);
     }
 
-    public throwErrorTraceInPromise(errorMessage: string, delay?: number): Promise<any> {
+    public throwErrorTraceInPromise(errorMessage: string, delay?: number): Promise<void> {
         if (delay) {
             return new Promise((resolve, reject) => setTimeout(() => reject(new Error(errorMessage)), delay));
         }

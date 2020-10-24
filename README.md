@@ -1,6 +1,5 @@
 # Worker Runner
 
-[![Build](https://github.com/plohoj/worker-runner/workflows/Build%20CI/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Build+CI%22+branch%3Amaster)
 [![Test in Chrome](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Chrome/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Chrome%22+branch%3Amaster)
 [![Test in Firefox](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Firefox/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Firefox%22+branch%3Amaster)
 [![Test in IE11](https://github.com/plohoj/worker-runner/workflows/Test%20in%20IE11/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test%20in%20IE11%22+branch%3Amaster)
@@ -26,9 +25,9 @@ Worker Runner is a tool to assist use Web Worker.
 ## <a name="initialization"></a> Initialization
 Declare your classes with the methods you need.
 ``` ts
-export class LibraryRunner {
+export class LibraryRunner { // Example Runner
     public books: string[]
-    constructor (books: string[]) {
+    constructor (books: string[]) { // Constructor can take arguments
         this.books = books;
     }
 
@@ -36,36 +35,41 @@ export class LibraryRunner {
         this.books.push(book);
     }
 
+    // The method can return a result
     public checkBook(book: string): boolean {
         return this.books.indexOf(book) !== -1;
     }
 
+    // The method can return result asynchronously
     public reserveBook(book: string, time: number): Promise<string> {
-        return new Promise(resolve => setTimeout(() => resolve(book), time))
+        return new Promise(resolve => setTimeout(() => resolve(book), time));
     }
 }
 ```
-Declare your control instance of `RunnerResolver` in a common module. The control instance must be declared with Runner classes that will be executed in the workspace.
-``` ts
-import { RunnerResolver } from '@worker-runner/promise';
-
-export const resolver = new RunnerResolver({runners: [LibraryRunner]});
-```
-Import your `RunnerResolver` instance anywhere in the code, as well as in the Worker area. Call the `run()` and `runInWorker()` method.
+Declare your control instance of `NodeRunnerResolver` in a **main area**.
+* The control instance must be declared with a list of Runner classes that will be executed in the workspace.
+* You must wait until the **asynchronous** call to the `run()` method completes.
 ``` ts
 // Main area
-import { resolver } from "./common";
-// ...
-resolver.run();
+import { NodeRunnerResolver } from '@worker-runner/promise';
 
-// Worker area
-import { resolver } from "./common";
-// ...
-resolver.runInWorker();
+const resolver = new NodeRunnerResolver({
+    runners: [LibraryRunner],
+    workerPath: './worker.js',
+});
+resolver.run(); // await asynchronous
 ```
-You can use different `RunnerResolver` instances in the main area and in the WebWorker area, the main thing is that the **Runner list is the same**
+And also declare your control instance of `WorkerRunnerResolver` in a **worker area**.
+* The control instance must also have a list of Runner classes. This list **may differ** from the list used in `NodeRunnerResolver`.
+* Call the `run()` method.
+``` ts
+// Worker area
+import { WorkerRunnerResolver } from '@worker-runner/promise';
+
+new WorkerRunnerResolver({ runners: [LibraryRunner] }).run();
+```
 ## <a name="usage"></a> Usage
-After you initialized `RunnerResolver`, you can use the control instance to resolve instances of the Runner class that will be used in the main area and executed in the worker area.
+After you initialized `NodeRunnerResolver` *(in main area)* and `WorkerRunnerResolver` *(in worker area)*, you can use the control instance to resolve instances of the Runner class that will be used in the main area and executed in the worker area.
 ``` ts
 async function main() {
     await resolver.run();
@@ -88,16 +92,16 @@ Runner that was resolved by `RunnerResolver` has the same methods as the origina
 All called methods will be executed asynchronously and the result of the calculation will be obtained using Promise.  
 Resolved Runner also has a set of methods:
 
-*   ### <a name="destroy"></a> **`destroy()`**  
+*   <a name="destroy"></a> **`destroy()`**  
     Destroying and remove Runner instance from resolved Runners list in `RunnerResolver` instance.
 
-*   ### <a name="disconnect"></a> **`disconnect()`**  
+*   <a name="disconnect"></a> **`disconnect()`**  
     Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed.
 
-*   ### <a name="clone-control"></a> **`cloneControl()`**  
+*   <a name="clone-control"></a> **`cloneControl()`**  
     Returns a new control object for the same Runner instance.
 
-*   ### <a name="mark-for-transfer"></a> **`markForTransfer()`**  
+*   <a name="mark-for-transfer"></a> **`markForTransfer()`**  
     When a Runner is flagged for transfer, if it is used 
     [as argument](#resolved-runner-as-argument) or as [method result](#resolved-runner-as-method-result),
     the original control will be transferred. The original Resolved Runner will lose control.
@@ -129,7 +133,7 @@ await libraryPoolRunner.addLibrary(libraryRunners[1]);
 ```
 ## <a name="localrunnerresolver"></a> LocalRunnerResolver
 The original Runner instance will run in the same area in which it was resolved / wrapped.
-`LocalRunnerResolver` can be used to replace `RunnerResolver` to simplify debugging in development mode and for testing.  
+`LocalRunnerResolver` can be used to replace `NodeRunnerResolver` to simplify debugging in development mode and for testing.  
 That allows to use a local Runner as [method result](#resolved-runner-as-method-result) or pass it [as argument](#resolved-runner-as-argument).
 ``` ts
 // ...
@@ -208,6 +212,7 @@ const libraryRunner = await resolver.resolve(LibraryRunner);
 
 ## <a name="warning"></a> Warning
 
-Internet Explorer requires **polyfill** for `Symbol` and `Promise`
+* Internet Explorer requires **polyfill** for `Promise`.
+* Unfortunately the generic type cannot handle the `interface` correctly, **but** it does work correctly with `type alias` and `class`. Therefore, it is recommended to use `type alias` instead of `interface` to describe the type of your method arguments.
 
 ## [Webpack configuration example](https://github.com/plohoj/worker-runner-webpack-example)

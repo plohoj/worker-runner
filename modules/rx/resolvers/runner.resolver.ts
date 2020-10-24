@@ -1,11 +1,13 @@
-import { INodeRunnerResolverConfigBase, RunnerConstructor } from '@worker-runner/core';
+import { INodeRunnerResolverConfigBase, RunnersList } from '@worker-runner/core';
 import { RxNodeRunnerResolver } from './node-runner.resolver';
 import { RxWorkerRunnerResolver } from './worker-runner.resolver';
 
-export class RxRunnerResolver<R extends RunnerConstructor> extends RxNodeRunnerResolver<R> {
-    private workerRunnerResolver: RxWorkerRunnerResolver<R>;
+/** @deprecated use **RxNodeRunnerResolver** and **RxWorkerRunnerResolver** */
+export class RxRunnerResolver<L extends RunnersList> extends RxNodeRunnerResolver<L> {
+    private workerRunnerResolver: RxWorkerRunnerResolver<L>;
 
-    constructor(config: INodeRunnerResolverConfigBase<R>) {
+    /** @deprecated use **NodeRunnerResolver** and **WorkerRunnerResolver** */
+    constructor(config: INodeRunnerResolverConfigBase<L>) {
         super(config);
         this.workerRunnerResolver = new RxWorkerRunnerResolver(config);
     }

@@ -1,9 +1,17 @@
-import { IRunnerSerializedParameter, NodeAndLocalRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor } from '@worker-runner/core';
+import { IRunnerSerializedParameter, NodeRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, RunnersList } from '@worker-runner/core';
 
-export class NodeRunnerResolver<R extends RunnerConstructor> extends NodeAndLocalRunnerResolverBase<R> {
-    declare public resolve: <RR extends R>(
-        runner: RR,
-        ...args: RR extends new (...args: infer A) => any ?
-            A extends Array<IRunnerSerializedParameter> ? ResolvedRunnerArguments<A> : never : never
-    ) => Promise<ResolvedRunner<InstanceType<RR>>>;
+type RunnerArguments<R extends RunnerConstructor>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    = R extends RunnerConstructor<any, infer A>
+        ? A extends ArrayLike<IRunnerSerializedParameter>
+            ? ResolvedRunnerArguments<A>
+            : never
+        : never;
+
+export class NodeRunnerResolver<L extends RunnersList> extends NodeRunnerResolverBase<L> {
+
+    declare public resolve: <I extends RunnerIdentifier<L>>(
+        identifier: I,
+        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceType<RunnerByIdentifier<L, I>>>>;
 }

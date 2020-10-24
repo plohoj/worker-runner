@@ -1,19 +1,13 @@
-import { WorkerNotInitError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { localRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { resolverList } from 'test/common/resolver-list';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
 
-each({
-        Common: runnerResolver,
-        Local: localRunnerResolver,
-        Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
-    },
-    (mode, resolver) => describe(`${mode} destroy resolver`, () => {
+each(resolverList, (mode, resolver) =>
+    describe(`${mode} destroy resolver`, () => {
         it ('for restart', async () => {
             await resolver.run();
             await resolver.destroy();
@@ -25,18 +19,18 @@ each({
         });
 
         it ('when it was already destroyed', async () => {
-            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(WorkerNotInitError, {
+            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
-                name: WorkerNotInitError.name,
+                name: ConnectionWasClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
         });
 
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
-                .toBeRejectedWith(errorContaining(WorkerNotInitError, {
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
-                    name: WorkerNotInitError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -45,35 +39,21 @@ each({
 
 each({
         Local: LocalRunnerResolver,
-        'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
     },
     (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
-        it ('without force mode', async () => {
-            class ForceDestroy {
+        it ('simple', async () => {
+            class DestroyStub {
                 public destroy(): void {
                     // Stub
                 }
             }
-            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver ({ runners: [ForceDestroy] });
+            const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
+            const localResolver = new IterateLocalRunnerResolver({ runners: [DestroyStub] });
             await localResolver.run();
-            await localResolver.resolve(ForceDestroy);
+            await localResolver.resolve(DestroyStub);
             await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();
-        });
-
-        it ('with force mode', async () => {
-            class ForceDestroy {
-                public destroy(): void {
-                    // Stub
-                }
-            }
-            const destroySpy = spyOn(ForceDestroy.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners: [ForceDestroy] });
-            await localResolver.run();
-            await localResolver.resolve(ForceDestroy);
-            await localResolver.destroy(true);
-            expect(destroySpy).not.toHaveBeenCalled();
         });
     }),
 );

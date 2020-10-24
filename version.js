@@ -1,19 +1,19 @@
 const { exec } = require('child_process');
 const { readdirSync, readFile, writeFile } = require('fs');
-const { resolve } = require("path");
-const mainPackage = require('./package.json');
+const path = require("path");
 const semver = require('semver');
+const mainPackage = require('./package.json');
 
-const versionTypeArg = process.argv.find(arg => /--type[ =].+/.test(arg));
+const versionTypeArgument = process.argv.find(argument => /--type[ =].+/.test(argument));
 let versionType = 'patch';
-if (versionTypeArg) {
-    versionType = versionTypeArg.replace(/--type[ =]/, '');
+if (versionTypeArgument) {
+    versionType = versionTypeArgument.replace(/--type[ =]/, '');
 }
 
 const newVersion = semver.inc(mainPackage.version, versionType);
-const dependencyVersion = newVersion.replace(new RegExp(`\.${semver.parse(newVersion).patch}$`), '.0');
+const dependencyVersion = newVersion.replace(new RegExp(`\\.${semver.parse(newVersion).patch}$`), '.0');
 
-const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 /**
@@ -22,7 +22,7 @@ const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
  * @returns {Promise<string>}
  */
 async function updateVersion(path) {
-    return new Promise((resolver, reject) =>  readFile(path, 'utf8', (error, data) => {
+    return new Promise((resolve, reject) =>  readFile(path, 'utf8', (error, data) => {
         if (error) {
             reject(error);
             return;
@@ -36,12 +36,12 @@ async function updateVersion(path) {
                 }
             }
         }
-        writeFile(path, JSON.stringify(package, null, '  ') + '\n', 'utf8' ,(error) => {
+        writeFile(path, JSON.stringify(package, undefined, '  ') + '\n', 'utf8' ,(error) => {
             if (error) {
                 reject(error);
                 return;
             }
-            resolver();
+            resolve();
         })
     }));
 }
@@ -56,24 +56,24 @@ function errorLog(directory) {
 
 (async function main() {
     await Promise.all([
-        updateVersion(resolve(`./package.json`), versionType)
+        updateVersion(path.resolve(`./package.json`), versionType)
             .then(version => successLog(`/package.json`, version)),
-        updateVersion(resolve(`./package-lock.json`), versionType)
+        updateVersion(path.resolve(`./package-lock.json`), versionType)
             .then(version => successLog(`./package-lock.json`, version)),
         ... moduleNames.map(moduleName => 
-            updateVersion(resolve(`modules/${moduleName}/package.json`))
+            updateVersion(path.resolve(`modules/${moduleName}/package.json`))
                 .then(() => successLog(`modules/${moduleName}/package.json`)),
         ),
         ... moduleNames.map(moduleName => 
-            updateVersion(resolve(`dist/${moduleName}/package.json`))
+            updateVersion(path.resolve(`dist/${moduleName}/package.json`))
                 .then(() => successLog(`dist/${moduleName}/package.json`))
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
-    ]).then(() => new Promise((resolver, reject) => {
+    ]).then(() => new Promise((resolve, reject) => {
         exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
-            (error, stdout) => error ? reject(error) : resolver(stdout))
+            (error, stdout) => error ? reject(error) : resolve(stdout))
     })).catch(error => {
         console.error(error);
-        process.exit(1);
+        process.on('SIGINT', () => process.exit(1));
     });
 })();

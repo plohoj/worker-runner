@@ -7,7 +7,7 @@ import { each } from 'test/utils/each';
 
 each({
     Local: LocalRunnerResolver,
-    'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+    'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
 },
 (mode, IterateLocalRunnerResolver) => describe(`${mode} wrap runner`, () => {
     it ('after disconnect', async () => {
@@ -29,7 +29,7 @@ each({
         expect(destroySpy).not.toHaveBeenCalled();
         await resolvedExecutableStubRunner.disconnect();
         expect(destroySpy).toHaveBeenCalled();
-        localResolver.destroy();
+        await localResolver.destroy();
     });
 
     it ('after destroy', async () => {
@@ -51,7 +51,7 @@ each({
         expect(destroySpy).not.toHaveBeenCalled();
         await resolvedExecutableStubRunner.destroy();
         expect(destroySpy).toHaveBeenCalled();
-        localResolver.destroy();
+        await localResolver.destroy();
     });
 }),
 );

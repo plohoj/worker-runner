@@ -7,7 +7,7 @@ import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class RxStubRunner {
-    private localResolver?: LocalRunnerResolver<typeof runners[0]>;
+    private localResolver?: LocalRunnerResolver<typeof runners>;
 
     public async run(): Promise<void> {
         this.localResolver = new LocalRunnerResolver({runners});
@@ -38,7 +38,7 @@ export class RxStubRunner {
         return from(runner.emitMessages(messages)).pipe(concatAll());
     }
 
-    public emitError<T extends JsonObject>(error: T): Observable<never> {
+    public emitError<T extends JsonObject>(error?: T): Observable<never> {
         return throwError(error);
     }
 

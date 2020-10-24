@@ -1,13 +1,11 @@
-import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { from } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
-import { isIE } from 'test/utils/is-internet-explorrer';
+import { isIE } from 'test/utils/is-internet-explorer';
 
 each({
     Rx: rxRunnerResolver,
@@ -42,13 +40,15 @@ each({
     it('subscribe and destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
+        rxStubRunner.destroy();
         await expectAsync(
-            from(rxStubRunner.destroy()).pipe(switchMap(() => observable)).toPromise(),
-        ).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+            observable.toPromise(),
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -57,11 +57,14 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+        await expectAsync(
+            observable.toPromise()
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
@@ -84,7 +87,7 @@ each({
             type: 'ERROR',
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const expectedProperty: Record<any, any> = {
+        const expectedProperty: Record<string, unknown> = {
             message: errorData.toString(),
             name: RxRunnerEmitError.name,
         };
@@ -97,20 +100,23 @@ each({
 
     it('emit error after destroy runner', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const observable = await rxStubRunner.emitError(undefined);
+        const observable = await rxStubRunner.emitError();
         await rxStubRunner.destroy();
-        await expectAsync(observable.toPromise()).toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+        await expectAsync(
+            observable.toPromise()
+        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
-            name: RunnerWasDisconnectedError.name,
+            name: ConnectionWasClosedError.name,
             stack: jasmine.stringMatching(/.+/),
         }));
     });
 
     it('emit error after unsubscribe', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const observable = await rxStubRunner.emitError(undefined);
+        const observable = await rxStubRunner.emitError();
         observable.subscribe().unsubscribe();
     });
 

@@ -4,7 +4,7 @@ import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class WithLocalResolverStub<T extends JsonObject> {
-    private localResolver?: LocalRunnerResolver<typeof runners[0]>;
+    private localResolver?: LocalRunnerResolver<typeof runners>;
     private localExecutableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>;
 
     public async run(data: T): Promise<void> {

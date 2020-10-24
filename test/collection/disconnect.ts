@@ -1,18 +1,13 @@
-import { ResolvedRunner, RunnerWasDisconnectedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { localRunnerResolver, runnerResolver } from 'test/common/promise';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { resolverList } from 'test/common/resolver-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN } from 'test/common/runner-list';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
 import { each } from 'test/utils/each';
 import { errorContaining } from 'test/utils/error-containing';
 
-each({
-        Common: runnerResolver,
-        Local: localRunnerResolver,
-        Rx: rxRunnerResolver as any as typeof runnerResolver,
-        'Rx Local': rxLocalRunnerResolver as any as typeof localRunnerResolver,
-    },
-    (mode, resolver) => describe(`${mode} disconnect runner`, () => {
+each(resolverList, (mode, resolver) =>
+    describe(`${mode} disconnect runner`, () => {
 
         beforeAll(async () => {
             await resolver.run();
@@ -43,11 +38,12 @@ each({
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.disconnect();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -57,11 +53,12 @@ each({
                 .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(RunnerWasDisconnectedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_WAS_DISCONNECTED({
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerWasDisconnectedError.name,
+                    name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });

@@ -1,21 +1,29 @@
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+// eslint-disable-next-line unicorn/prevent-abbreviations
 const { readdirSync } = require('fs');
-const { resolve } = require("path");
+const path = require("path");
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-const moduleNames = readdirSync(resolve('modules'), {withFileTypes: true})
-    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
+  .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
-const isCoverageArg = process.argv.find(arg => /--coverage[ =].+/.test(arg));
-let isCoverage = false;
-if (isCoverageArg) {
-    isCoverage = isCoverageArg.replace(/--type[ =]/, '').includes('true');
+// Debug mode
+const isDebugMode = process.argv.some(argument => /--debug/.test(argument));
+if (isDebugMode) {
+  console.log('Running in debug mode. Typescript compiler option target is set to: ES2019.');
 }
 
-const modulesEntry = {};
-moduleNames.forEach(moduleName => modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`);
+// Coverage mode
+const isCoverage = process.argv.some(argument => /--coverage/.test(argument));
 
-/** @param {import('karma').Config} config*/
-module.exports = (config) => config.set({
+// Modules entry files
+/** @type {Record<string, string} */
+const modulesEntry = {};
+for (const moduleName of moduleNames) {
+  modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`;
+}
+
+/** @type {import('karma').ConfigOptions} */
+const karmaConfig = {
   files: [
     { pattern: './test/main.ts', watched: false },
     { pattern: './test/worker.ts', watched: false, included: false },
@@ -29,7 +37,7 @@ module.exports = (config) => config.set({
   },
   webpack: {
     mode: 'development',
-    devtool: 'eval-source-map',
+    devtool: 'inline-source-map',
     context: __dirname,
     entry: {
       ...modulesEntry,
@@ -39,7 +47,7 @@ module.exports = (config) => config.set({
     optimization: {
       splitChunks: {
         chunks: "all"
-      }
+      },
     },
     module: {
       rules: [
@@ -48,7 +56,7 @@ module.exports = (config) => config.set({
           exclude: /node_modules/,
           use: [
             ...isCoverage ? ["coverage-istanbul-loader"]: [],
-            {
+            ...isDebugMode ? [] : [{
               loader: 'babel-loader',
               options: {
                 presets: [
@@ -58,23 +66,38 @@ module.exports = (config) => config.set({
                   }],
                 ],
               },
+            }],
+            {
+              loader: 'ts-loader',
+              options: {
+                compilerOptions: {
+                  ...isDebugMode ? { target: 'ES2019' } : undefined,
+                }
+              }
             },
-            'ts-loader',
+            ...!isDebugMode ? [] : [{
+              loader: 'eslint-loader',
+              options: {
+                emitError: true,
+                emitWarning: true,
+              }
+            }],            
           ]
         },
       ],
     },
     resolve: {
       extensions: ['.js', '.ts'],
-      plugins: [new TsconfigPathsPlugin()]
+      plugins: [new TsconfigPathsPlugin()],
     },
   },
-  reporters: isCoverage ? ['coverage-istanbul']: ['progress']
-  ,
+  reporters: isCoverage ? ['coverage-istanbul']: ['progress'],
   coverageIstanbulReporter: {
     reports: ['html'],
   },
   webpackMiddleware: {
     stats: 'errors-only',
   },
-});
+};
+
+module.exports = (config) => config.set(karmaConfig);

@@ -1,48 +1,70 @@
-export interface IRunnerInitErrorMessageConfig {
+import { RunnerToken } from "../runner/runner-bridge/runners-list.controller";
+
+export interface IRunnerMessageConfig {
+    token?: RunnerToken;
     runnerName?: string;
 }
 
-export interface IRunnerExecuteErrorMessageConfig extends IRunnerInitErrorMessageConfig {
+export interface IRunnerExecuteMessageConfig extends IRunnerMessageConfig {
     methodName?: string;
 }
 
 export const WORKER_RUNNER_ERROR_MESSAGES = {
-    CONSTRUCTOR_NOT_FOUND(config: Readonly<IRunnerInitErrorMessageConfig> = {}) {
-        const runnerName = config.runnerName ? `<${config.runnerName}> ` : '';
-        return `Runner constructor ${runnerName}not found`;
-    },
-    RUNNER_WAS_DISCONNECTED(config: Readonly<IRunnerInitErrorMessageConfig> = {}) {
-        const runnerName = config.runnerName ? `<${config.runnerName}> ` : '';
-        return `The Runner ${runnerName}was destroyed or disconnected`;
-    },
-    RUNNER_INIT_ERROR(config: Readonly<IRunnerInitErrorMessageConfig> = {}) {
-        const runnerName = config.runnerName ? ` <${config.runnerName}>` : '';
-        return `An error occurred while initializing Runner${runnerName}`;
-    },
-    EXECUTE_ERROR(config: Readonly<IRunnerExecuteErrorMessageConfig> = {}) {
-        const methodInfo = new Array<string>();
+    /**
+     * @example 
+     * <"MyRunnerToken": MyRunner.methodName(...)>
+     * <"MyRunnerToken".methodName(...)>
+     * <MyRunner.methodName(...)>
+     * <methodName(...)>
+     * <"MyRunnerToken">
+     * <MyRunner>
+     */
+    formatRunnerInfo(config: Readonly<IRunnerExecuteMessageConfig> = {}, prefix?: string): string {
+        let info = '';
+        if (config.token) {
+            info += `"${config.token}"`;
+        }
         if (config.runnerName) {
-            methodInfo.push(config.runnerName);
+            info += info ? `: ${config.runnerName}` : config.runnerName;
         }
         if (config.methodName) {
-            methodInfo.push(config.methodName + '(...)');
+            info += info ? `.${config.runnerName}` : `${config.runnerName}`;
+            info += '(...)';
         }
-        let methodInfoString = methodInfo.join('.');
-        if (methodInfoString) {
-            methodInfoString = ` <${methodInfoString}>`;
+        if (!info) {
+            return '';
         }
-        return `Runtime Error ${methodInfoString}`;
-    },
-    WORKER_NOT_INIT() {
-        return 'Worker not init';
-    },
-    UNEXPECTED_ERROR(config: Readonly<IRunnerInitErrorMessageConfig> = {}) {
-        const runnerName = config.runnerName ? ` with <${config.runnerName}>` : '';
-        return `Unexpected Error${runnerName}`;
+        info = `<${info}>`;
+        if (prefix) {
+            info = prefix + ' ' + info;
+        }
+        return ' ' + info;
     },
 
-    WORKER_DESTROYED_WITHOUT_CALL() {
-        return 'An action was received about the successful destroy,'
-        + ' but the destroy method was not previously called';
+    CONSTRUCTOR_NOT_FOUND(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `Runner constructor${this.formatRunnerInfo(config, 'for')} not found`;
+    },
+    CONNECTION_WAS_CLOSED(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `Connection${this.formatRunnerInfo(config, 'with')} was closed`;
+    },
+
+    RUNNER_INIT_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `An error occurred while initializing Runner${this.formatRunnerInfo(config)}`;
+    },
+    RUNNER_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `An error occurred while destroying Runner${this.formatRunnerInfo(config)}`;
+    },
+    EXECUTE_ERROR(config: Readonly<IRunnerExecuteMessageConfig> = {}): string {
+        return `Runtime Error${this.formatRunnerInfo(config, 'for')}`;
+    },
+    WORKER_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `An error occurred while destroying Runner${this.formatRunnerInfo(config)}`;
+    },
+    WORKER_NOT_INIT(): string {
+        return 'Worker not init';
+    },
+
+    UNEXPECTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `Unexpected Error${this.formatRunnerInfo(config, 'for')}`;
     },
 };

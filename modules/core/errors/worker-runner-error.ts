@@ -12,16 +12,17 @@ export interface IRunnerErrorConfigStack {
 }
 
 export interface IRunnerErrorConfigCaptureOpt {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     captureOpt?: ((...args: any[]) => any) | Constructor;
 }
 
 export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase
     & (IRunnerErrorConfigStack | IRunnerErrorConfigCaptureOpt);
 
-export const WORKER_RUNNER_ERROR_CODE = Symbol('Worker Runner error code');
+export const WORKER_RUNNER_ERROR_CODE = '__workerRunner_errorCode';
 
 export abstract class WorkerRunnerError extends Error {
-    public abstract [WORKER_RUNNER_ERROR_CODE]: number;
+    public abstract [WORKER_RUNNER_ERROR_CODE]: string;
 
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(config.message);
