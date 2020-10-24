@@ -154,6 +154,7 @@ export class RunnerController<R extends RunnerConstructor> {
         return new ConnectionWasClosedError({
             ...error,
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: this.token,
                 runnerName: this.originalRunnerName,
             })
         });

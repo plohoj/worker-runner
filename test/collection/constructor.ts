@@ -1,7 +1,7 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { resolverList } from 'test/common/resolver-list';
-import { runners } from 'test/common/runner-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN, runners } from 'test/common/runner-list';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { ExtendedStubRunner } from 'test/common/stubs/extended-stub.runner';
@@ -26,6 +26,17 @@ each(resolverList, (mode, resolver) =>
             };
             const executableStubRunner = await resolver
                 .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
+                    ExecutableStubRunner<typeof storageData>>;
+            await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
+        });
+
+        it ('with arguments by token', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const executableStubRunner = await resolver
+                .resolve(EXECUTABLE_STUB_RUNNER_TOKEN, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
@@ -67,6 +78,7 @@ each(resolverList, (mode, resolver) =>
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
                     name: ConnectionWasClosedError.name,
@@ -95,6 +107,15 @@ each(resolverList, (mode, resolver) =>
             // @ts-expect-error
             await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
+                name: RunnerNotFound.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
+        });
+
+        it ('not exist by token', async () => {
+            const token = 'NotExistRunnerToken';
+            await expectAsync(resolver.resolve(token)).toBeRejectedWith(errorContaining(RunnerNotFound, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token }),
                 name: RunnerNotFound.name,
                 stack: jasmine.stringMatching(/.+/),
             }));

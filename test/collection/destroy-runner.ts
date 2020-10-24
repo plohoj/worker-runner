@@ -2,6 +2,7 @@ import { ResolvedRunner, RunnerDestroyError, ConnectionWasClosedError, WORKER_RU
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
 import { resolverList } from 'test/common/resolver-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN } from 'test/common/runner-list';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
@@ -45,6 +46,7 @@ each(resolverList, (mode, resolver) =>
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     name: ConnectionWasClosedError.name,
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
                     stack: jasmine.stringMatching(/.+/),
@@ -58,6 +60,7 @@ each(resolverList, (mode, resolver) =>
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     name: ConnectionWasClosedError.name,
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
                     stack: jasmine.stringMatching(/.+/),

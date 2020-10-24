@@ -1,7 +1,7 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { resolverList } from 'test/common/resolver-list';
-import { runners } from 'test/common/runner-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN, runners } from 'test/common/runner-list';
 import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
 import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
@@ -65,6 +65,7 @@ each(resolverList, (mode, resolver) =>
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
                     name: ConnectionWasClosedError.name,
@@ -139,6 +140,7 @@ each(resolverList, (mode, resolver) =>
             await expectAsync(executableStubRunner.amount(53, 95))
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
                     name: ConnectionWasClosedError.name,

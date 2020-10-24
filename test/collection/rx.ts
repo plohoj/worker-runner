@@ -45,6 +45,7 @@ each({
             observable.toPromise(),
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
             name: ConnectionWasClosedError.name,
@@ -60,6 +61,7 @@ each({
             observable.toPromise()
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
             name: ConnectionWasClosedError.name,
@@ -104,6 +106,7 @@ each({
             observable.toPromise()
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                token: RxStubRunner.name,
                 runnerName: RxStubRunner.name,
             }),
             name: ConnectionWasClosedError.name,

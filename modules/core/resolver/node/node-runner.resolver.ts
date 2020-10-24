@@ -2,7 +2,7 @@ import { IConnectControllerErrorDeserializer } from '../../connect/controller/co
 import { ConnectController } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { ConnectionWasClosedError } from '../../errors/runner-errors';
+import { ConnectionWasClosedError, RunnerNotFound } from '../../errors/runner-errors';
 import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../../runner/runner-bridge/runner.bridge';
@@ -108,9 +108,17 @@ export class NodeRunnerResolverBase<L extends RunnersList>  {
 
     /** Returns a runner control object that will call the methods of the source instance */
     public async resolve(identifier: RunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
-        const token: RunnerToken = typeof identifier === 'string'
-            ? identifier
-            : this.runnersListController.getRunnerToken(identifier);
+        let token: RunnerToken;
+        if (typeof identifier === 'string') {
+            token = identifier;
+            if (!this.runnersListController.checkToken(token)) {
+                throw new RunnerNotFound({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
+                });
+            }
+        } else {
+            token = this.runnersListController.getRunnerToken(identifier);
+        }
         const action = await this.sendInitAction(token, args);
         const runnerController = this.runnerControllerPartFactory({
             token: token,
@@ -192,6 +200,7 @@ export class NodeRunnerResolverBase<L extends RunnersList>  {
             }
             throw new WorkerRunnerUnexpectedError(this.errorSerializer.serialize(error, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                    token,
                     runnerName: this.runnersListController.getRunner(token).name,
                 }),
                 stack: error?.stack,

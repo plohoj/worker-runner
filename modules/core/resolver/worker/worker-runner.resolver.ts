@@ -51,11 +51,16 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
                 try {
                     return await this.initRunnerInstance(action);
                 } catch (error) {
+                    let runnerName: string | undefined;
+                    try {
+                        runnerName = this.runnersListController.getRunner(action.token).name;
+                    } catch { /** Only try get name */ }
                     const errorAction: IWorkerResolverRunnerInitErrorAction = {
                         type: WorkerResolverAction.RUNNER_INIT_ERROR,
                         ... this.errorSerializer.serialize(error, new RunnerNotFound({
                             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                                runnerName: this.runnersListController.getRunner(action.token).name,
+                                token: action.token,
+                                runnerName,
                             }),
                             stack: error?.stack,
                         })),
@@ -103,7 +108,8 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
                 runnerEnvironment.handleDestroy().catch(error => {
                     destroyErrors.push(this.errorSerializer.serialize(error, new RunnerDestroyError({
                         message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
-                            runnerName: runnerEnvironment.runnerInstance.constructor.name,
+                            token: runnerEnvironment.token,
+                            runnerName: runnerEnvironment.runnerName,
                         }),
                         stack: error?.stack,
                     })));
@@ -123,8 +129,9 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
         const messageChanel = new MessageChannel();
 
         const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
-            port: messageChanel.port1,
+            token: this.runnersListController.getRunnerTokenByInstance(runner),
             runner,
+            port: messageChanel.port1,
             workerRunnerResolver: this,
             errorSerializer: this.errorSerializer,
             onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
@@ -177,9 +184,6 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
         action: INodeResolverInitRunnerAction,
     ): Promise<IWorkerResolverRunnerInitErrorAction | IWorkerResolverRunnerInitedAction> {
         const runnerConstructor = this.runnersListController.getRunner(action.token);
-        if (!runnerConstructor) {
-            throw new RunnerNotFound();
-        }
         const messageChanel = new MessageChannel();
         const deserializeArgumentsData = this.deserializeArguments(action.args);
         let runner: InstanceType<AnyRunnerFromList<L>>;
@@ -190,6 +194,7 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
                 type: WorkerResolverAction.RUNNER_INIT_ERROR,
                 ... this.errorSerializer.serialize(error, new RunnerInitError ({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                        token: action.token,
                         runnerName: runnerConstructor.name,
                     }),
                     stack: error?.stack,
@@ -201,8 +206,9 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
         }
 
         const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
-            port: messageChanel.port1,
+            token: action.token,
             runner,
+            port: messageChanel.port1,
             workerRunnerResolver: this,
             errorSerializer: this.errorSerializer,
             onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),

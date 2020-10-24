@@ -68,7 +68,7 @@ export class WorkerDestroyError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig & {originalErrors?: Error[]} = {}) {
         super({
             name: config.name || WorkerDestroyError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.WORKER_DESTROY_ERROR(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || WorkerDestroyError,
         });

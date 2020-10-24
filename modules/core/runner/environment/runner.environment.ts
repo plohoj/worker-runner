@@ -10,9 +10,11 @@ import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
 import { RunnerController } from '../controller/runner.controller';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner-bridge/runner.bridge';
+import { RunnerToken } from '../runner-bridge/runners-list.controller';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from './runner-environment.actions';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
+    token: RunnerToken;
     runner: InstanceType<R>;
     workerRunnerResolver: BaseWorkerRunnerResolver<never>;
     errorSerializer: WorkerRunnerErrorSerializer;
@@ -21,6 +23,8 @@ export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
 }
 
 export class RunnerEnvironment<R extends RunnerConstructor> {
+
+    public readonly token: RunnerToken;
 
     public runnerInstance: InstanceType<R>;
 
@@ -32,6 +36,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>(); // TODO Need disconnect?
 
     constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
+        this.token = config.token;
         this.errorSerializer = config.errorSerializer
         this.runnerInstance = config.runner;
         this.workerRunnerResolver = config.workerRunnerResolver;
@@ -58,6 +63,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 type: RunnerEnvironmentAction.EXECUTE_ERROR,
                 ... this.errorSerializer.serialize(error, new RunnerExecuteError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                        token: this.token,
                         runnerName: this.runnerName,
                         methodName: action.method,
                     }),
@@ -83,7 +89,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         }
     }
 
-    protected get runnerName(): string {
+    public get runnerName(): string {
         return this.runnerInstance.constructor.name;
     }
 
@@ -98,7 +104,11 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     return {
                         type: RunnerEnvironmentAction.EXECUTE_ERROR,
                         ... this.errorSerializer.serialize(error, new RunnerExecuteError({
-                            message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR({runnerName: this.runnerName}),
+                            message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                                token: this.token,
+                                methodName: action.method,
+                                runnerName: this.runnerName,
+                            }),
                             stack: error?.stack,
                         })),
                     };
@@ -145,6 +155,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     private destroyErrorSerializer(error: any): ISerializedError {
         return this.errorSerializer.serialize(error, new RunnerDestroyError({
             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
+                token: this.token,
                 runnerName: this.runnerName,
             }),
             stack: error?.stack,

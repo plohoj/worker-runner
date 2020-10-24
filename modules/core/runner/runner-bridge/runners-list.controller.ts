@@ -98,7 +98,9 @@ export class RunnersListController<L extends RunnersList> {
         const runnerToken = this.runnerTokenMap.get(runner);
         if (!runnerToken) {
             throw new RunnerNotFound({
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: runner.name})
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({
+                    runnerName: runner.name,
+                })
             });
         }
         return runnerToken;
@@ -111,9 +113,15 @@ export class RunnersListController<L extends RunnersList> {
     public getRunner<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> {
         const runnerData = this.runnerByTokenDataRecord[token];
         if (!runnerData) {
-            throw new RunnerNotFound();
+            throw new RunnerNotFound({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
+            });
         }
         return runnerData.runnerConstructor as RunnerByIdentifier<L, T>;
+    }
+
+    public checkToken<T extends RunnerToken = RunnerToken>(token: T): boolean {
+        return token in this.runnerByTokenDataRecord;
     }
 
     public getRunnerBridgeConstructor<T extends RunnerToken = RunnerToken>(
@@ -121,7 +129,9 @@ export class RunnersListController<L extends RunnersList> {
     ): IRunnerBridgeConstructor<RunnerByIdentifier<L, T>> {
         const runnerData = this.runnerByTokenDataRecord[token];
         if (!runnerData) {
-            throw new RunnerNotFound();
+            throw new RunnerNotFound({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
+            });
         }
         return runnerData.bridgeConstructor as IRunnerBridgeConstructor<RunnerByIdentifier<L, T>>;
     }

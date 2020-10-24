@@ -1,16 +1,15 @@
-import { IRunnerInitErrorMessageConfig } from '@worker-runner/core';
+import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 
 export const RX_WORKER_RUNNER_ERROR_MESSAGES = {
-    SUBSCRIPTION_NOT_FOUND(config: Readonly<IRunnerInitErrorMessageConfig> = {}): string {
-        const runnerName = config.runnerName ? `<${config.runnerName}> ` : '';
-        return `Subscription of a completed method ${runnerName}not found`;
+    
+    SUBSCRIPTION_NOT_FOUND(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `Subscription of a completed method${WORKER_RUNNER_ERROR_MESSAGES.formatRunnerInfo(config)} not found`;
     },
-    SUBSCRIBER_NOT_FOUND(config: Readonly<IRunnerInitErrorMessageConfig> = {}): string {
-        const runnerName = config.runnerName ? `<${config.runnerName}> ` : '';
-        return `The subscriber ${runnerName}was not found after the event was emitted`;
+    SUBSCRIBER_NOT_FOUND(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `The subscriber${WORKER_RUNNER_ERROR_MESSAGES.formatRunnerInfo(config)}`
+            + ` was not found after the event was emitted`;
     },
-    EMITTED_ERROR(config: Readonly<IRunnerInitErrorMessageConfig> = {}): string {
-        const runnerName = config.runnerName ? `<${config.runnerName}> ` : '';
-        return `Subscription ${runnerName}rejected error`;
+    EMITTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+        return `Subscription${WORKER_RUNNER_ERROR_MESSAGES.formatRunnerInfo(config)} rejected error`;
     },
 };

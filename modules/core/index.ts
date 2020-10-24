@@ -4,7 +4,7 @@ export { IConnectEnvironmentAction, IConnectEnvironmentActions, IPossibleConnect
 export { ConnectEnvironment, IConnectEnvironmentConfig, IListeningInterrupter, IMessagePortConnectEnvironmentData } from './connect/environment/connect.environment';
 export { WorkerRunnerErrorCode } from './errors/error-code';
 export { CODE_TO_ERROR_MAP } from './errors/error-code-map';
-export { IRunnerExecuteErrorMessageConfig, IRunnerInitErrorMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';
+export { IRunnerExecuteMessageConfig, IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';
 export { ISerializedErrorAction, WorkerRunnerErrorSerializer } from './errors/error.serializer';
 export { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound, WorkerDestroyError } from './errors/runner-errors';
 export { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
