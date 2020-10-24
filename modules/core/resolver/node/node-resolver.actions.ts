@@ -1,3 +1,4 @@
+import { RunnerToken } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerArgument } from '../../types/runner-argument';
 
 export enum NodeResolverAction {
@@ -6,7 +7,7 @@ export enum NodeResolverAction {
 
 export interface INodeResolverInitRunnerAction {
     type: NodeResolverAction.INIT_RUNNER;
-    runnerId: number;
+    token: RunnerToken;
     args: IRunnerArgument[];
     transfer: Transferable[]
 }

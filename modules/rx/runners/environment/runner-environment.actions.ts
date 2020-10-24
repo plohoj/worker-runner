@@ -1,4 +1,4 @@
-import { TransferableJsonObject } from '@worker-runner/core';
+import { TransferableJsonObject, RunnerToken } from '@worker-runner/core';
 
 export enum RxRunnerEnvironmentAction {
     RX_EMIT = 'RX_EMIT',
@@ -13,7 +13,7 @@ export interface IRxRunnerEnvironmentEmitAction {
 
 export interface IRxRunnerEnvironmentEmitRunnerResultAction {
     type: RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT;
-    runnerId: number,
+    token: RunnerToken,
     port: MessagePort;
     transfer: [MessagePort]
 }

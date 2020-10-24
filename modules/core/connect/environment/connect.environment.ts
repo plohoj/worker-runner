@@ -8,11 +8,10 @@ import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmen
 type ConnectEnvironmentActionsHandler = (action: any) => any;
 
 const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = '__workerRunner_connectEnvironmentData';
-export const LISTENING_INTERRUPT = {description: 'Unique object to interrupt listening'};
 
 export interface IListeningInterrupter {
-    promise: Promise<typeof LISTENING_INTERRUPT>;
-    resolve: (listeningInterrupt: typeof LISTENING_INTERRUPT) => void;
+    promise: Promise<void>;
+    resolve: () => void;
 }
 
 export interface IMessagePortConnectEnvironmentData {
@@ -103,7 +102,7 @@ export class ConnectEnvironment {
         if (!portData) {
             throw new ConnectionWasClosedError();
         }
-        portData.listeningInterrupter.resolve(LISTENING_INTERRUPT);
+        portData.listeningInterrupter.resolve();
         const listeningInterrupter = this.listeningInterrupterFactory();
         portData.listeningInterrupter = listeningInterrupter;
     }
@@ -155,15 +154,16 @@ export class ConnectEnvironment {
         if (!portData) {
             throw new ConnectionWasClosedError();
         }
+        let isListeningInterrupt = false;
         const result = await Promise.race([
-            portData.listeningInterrupter.promise,
+            portData.listeningInterrupter.promise.then(() => isListeningInterrupt = true),
             this.actionsHandler(action) as Record<string, TransferableJsonObject>
         ])
-        if (result === LISTENING_INTERRUPT) {
+        if (isListeningInterrupt) {
             // Aborting the action because the connection was closed
             return;
         }
-        this.handleCustomActionResponse(port, result, id);
+        this.handleCustomActionResponse(port, result as Record<string, TransferableJsonObject>, id);
     }
 
     protected sendAction(
@@ -197,7 +197,7 @@ export class ConnectEnvironment {
 
     protected listeningInterrupterFactory(): IListeningInterrupter {
         let resolver: IListeningInterrupter['resolve'];
-        const promise = new Promise<typeof LISTENING_INTERRUPT>(resolve => {
+        const promise = new Promise<void>(resolve => {
             resolver = resolve;
         });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

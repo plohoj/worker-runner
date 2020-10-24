@@ -11,7 +11,7 @@ type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
         :T
     : never;
 
-export type ResolvedRunnerArguments<T extends IRunnerSerializedParameter[]>
+export type ResolvedRunnerArguments<T extends ArrayLike<IRunnerSerializedParameter>>
     = { [P in keyof T]: ResolvedRunnerArgument<T[P]> };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

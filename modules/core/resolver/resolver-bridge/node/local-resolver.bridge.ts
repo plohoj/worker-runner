@@ -1,20 +1,20 @@
-import { RunnerConstructor } from "../../../types/constructor";
+import { RunnersList } from "../../../runner/runner-bridge/runners-list.controller";
 import { BaseWorkerRunnerResolver } from "../../worker/worker-runner.resolver";
 import { BaseWorkerResolverBridgeFactory, IBaseWorkerResolverBridgeConfig } from "../worker/base-worker-resolver.bridge";
 import { LocalWorkerResolverBridge } from "../worker/local-resolver.bridge";
 import { IBaseResolverBridge } from './base-resolver.bridge'
 
-export interface ILocalResolverBridgeConfig<R extends RunnerConstructor> {
+export interface ILocalResolverBridgeConfig<L extends RunnersList> {
     workerRunnerResolverFactory: (
         config: {bridgeFactory: BaseWorkerResolverBridgeFactory;}
-    ) => BaseWorkerRunnerResolver<R>;
+    ) => BaseWorkerRunnerResolver<L>;
 }
 
-export class LocalResolverBridge<R extends RunnerConstructor> implements IBaseResolverBridge {
-    public readonly workerRunnerResolver: BaseWorkerRunnerResolver<R>;
+export class LocalResolverBridge<L extends RunnersList> implements IBaseResolverBridge {
+    public readonly workerRunnerResolver: BaseWorkerRunnerResolver<L>;
     private messageChanel = new MessageChannel();
 
-    constructor (config: ILocalResolverBridgeConfig<R>) {
+    constructor (config: ILocalResolverBridgeConfig<L>) {
         this.workerRunnerResolver = config.workerRunnerResolverFactory({
             bridgeFactory: (config: IBaseWorkerResolverBridgeConfig) => {
                 return new LocalWorkerResolverBridge({

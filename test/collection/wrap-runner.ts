@@ -7,8 +7,7 @@ import { each } from 'test/utils/each';
 
 each({
     Local: LocalRunnerResolver,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+    'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
 },
 (mode, IterateLocalRunnerResolver) => describe(`${mode} wrap runner`, () => {
     it ('after disconnect', async () => {

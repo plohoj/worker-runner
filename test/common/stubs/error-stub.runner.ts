@@ -14,16 +14,14 @@ export class ErrorStubRunner {
         throw new Error(errorMessage);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public throwErrorInPromise(errorMessage: string, delay?: number): Promise<any> {
+    public throwErrorInPromise(errorMessage: string, delay?: number): Promise<void> {
         if (delay) {
             return new Promise((resolve, reject) => setTimeout(() => reject(errorMessage), delay));
         }
         return Promise.reject(errorMessage);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public throwErrorTraceInPromise(errorMessage: string, delay?: number): Promise<any> {
+    public throwErrorTraceInPromise(errorMessage: string, delay?: number): Promise<void> {
         if (delay) {
             return new Promise((resolve, reject) => setTimeout(() => reject(new Error(errorMessage)), delay));
         }

@@ -1,3 +1,4 @@
-import { rxRunnerResolver } from './common/rx';
+import { RxWorkerRunnerResolver } from '@worker-runner/rx';
+import { runners } from './common/runner-list';
 
-rxRunnerResolver.runInWorker();
+new RxWorkerRunnerResolver({runners}).run();

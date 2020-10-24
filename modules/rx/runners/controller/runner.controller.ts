@@ -46,7 +46,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
                 return action.response;
             case RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT:
                 return this.runnerControllerPartFactory({
-                    runnerId: action.runnerId,
+                    token: action.token,
                     port: action.port}
                 ).resolvedRunner;
             default:

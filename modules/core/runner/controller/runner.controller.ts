@@ -8,15 +8,16 @@ import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } fr
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner-bridge/runner.bridge';
+import { RunnerToken } from '../runner-bridge/runners-list.controller';
 import { IRunnerControllerExecuteAction, RunnerControllerAction } from './runner-controller.actions';
 
 type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
-    runnerId: number,
+    token: RunnerToken,
     port: MessagePort,
 }) => RunnerController<R>;
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
-    runnerId: number;
+    token: RunnerToken;
     originalRunnerName: string;
     port: MessagePort;
     runnerBridgeConstructor: IRunnerBridgeConstructor<R>;
@@ -25,7 +26,7 @@ export interface IRunnerControllerConfig<R extends RunnerConstructor> {
 }
 
 export class RunnerController<R extends RunnerConstructor> {
-    public readonly runnerId: number;
+    public readonly token: RunnerToken;
     public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
     public readonly originalRunnerName: string;
@@ -42,7 +43,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.originalRunnerName = config.originalRunnerName;
         this.runnerBridgeConstructor = config.runnerBridgeConstructor;
         this.resolvedRunner = new this.runnerBridgeConstructor(this);
-        this.runnerId = config.runnerId;
+        this.token = config.token;
         this.onConnectionClosed = config.onConnectionClosed;
         this.runnerControllerPartFactory = config.runnerControllerPartFactory;
         this.connectController = this.buildConnectController({
@@ -87,7 +88,7 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public async cloneControl(): Promise<this> {
         return new (this.constructor as typeof RunnerController)({
-            runnerId: this.runnerId,
+            token: this.token,
             runnerBridgeConstructor: this.runnerBridgeConstructor,
             port: await this.resolveControl(),
             originalRunnerName: this.originalRunnerName,
@@ -130,7 +131,7 @@ export class RunnerController<R extends RunnerConstructor> {
                 throw this.errorSerializer.deserialize(actionResult);
             case RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT:
                 return this.runnerControllerPartFactory({
-                    runnerId: actionResult.runnerId,
+                    token: actionResult.token,
                     port: actionResult.port,
                 }).resolvedRunner;
             default:

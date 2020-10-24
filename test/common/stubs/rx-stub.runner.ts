@@ -7,7 +7,7 @@ import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class RxStubRunner {
-    private localResolver?: LocalRunnerResolver<typeof runners[0]>;
+    private localResolver?: LocalRunnerResolver<typeof runners>;
 
     public async run(): Promise<void> {
         this.localResolver = new LocalRunnerResolver({runners});

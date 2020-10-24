@@ -7,8 +7,8 @@ import { RunnerDestroyError, RunnerInitError, RunnerNotFound, WorkerDestroyError
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { ResolvedRunner } from '../../runner/resolved-runner';
-import { RunnerBridgeCollection } from '../../runner/runner-bridge/runner-bridge.collection';
-import { IRunnerSerializedParameter, RunnerConstructor } from '../../types/constructor';
+import { AnyRunnerFromList, RunnersList, RunnersListController, RunnerToken } from '../../runner/runner-bridge/runners-list.controller';
+import { IRunnerSerializedParameter } from '../../types/constructor';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
 import { IRunnerResolverConfigBase } from '../base-runner.resolver';
 import { INodeResolverInitRunnerAction, NodeResolverAction } from '../node/node-resolver.actions';
@@ -16,16 +16,16 @@ import { BaseWorkerResolverBridgeFactory, IBaseWorkerResolverBridge, IBaseWorker
 import { WorkerResolverBridge } from '../resolver-bridge/worker/worker-resolver.bridge';
 import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction, WorkerResolverAction } from './worker-resolver.actions';
 
-export interface IBaseWorkerRunnerResolver<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
+export interface IBaseWorkerRunnerResolver<L extends RunnersList> extends IRunnerResolverConfigBase<L> {
     bridgeFactory?: BaseWorkerResolverBridgeFactory;
 }
 
-export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
+export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
     
-    protected runnerEnvironments = new Set<RunnerEnvironment<R>>();
+    protected runnerEnvironments = new Set<RunnerEnvironment<AnyRunnerFromList<L>>>();
     protected resolverBridge?: IBaseWorkerResolverBridge;
     
-    protected readonly runnerBridgeCollection: RunnerBridgeCollection<R>;
+    protected readonly runnersListController: RunnersListController<L>;
     protected readonly RunnerEnvironmentConstructor = RunnerEnvironment; // TODO replace to factory
     protected readonly errorSerializer = this.buildWorkerErrorSerializer();
     protected readonly newConnectionHandler = this.handleNewConnection.bind(this);
@@ -36,8 +36,8 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     })
     protected readonly bridgeFactory: BaseWorkerResolverBridgeFactory;
 
-    constructor(config: IBaseWorkerRunnerResolver<R>) {
-        this.runnerBridgeCollection = new RunnerBridgeCollection(config);
+    constructor(config: IBaseWorkerRunnerResolver<L>) {
+        this.runnersListController = new RunnersListController(config);
         this.bridgeFactory = config.bridgeFactory || this.defaultBridgeFactory;
     }
 
@@ -55,7 +55,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
                         type: WorkerResolverAction.RUNNER_INIT_ERROR,
                         ... this.errorSerializer.serialize(error, new RunnerNotFound({
                             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                                runnerName: this.runnerBridgeCollection.getRunner(action.runnerId).name,
+                                runnerName: this.runnersListController.getRunner(action.token).name,
                             }),
                             stack: error?.stack,
                         })),
@@ -71,21 +71,21 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
 
     public deserializeArguments(args: IRunnerArgument[]): {
         args: Array<IRunnerSerializedParameter>,
-        controllers: Array<RunnerController<R>>,
+        controllers: Array<RunnerController<AnyRunnerFromList<L>>>,
     } {
         const result = {
             args: new Array<IRunnerSerializedParameter>(),
-            controllers: new Array<RunnerController<R>>(),
+            controllers: new Array<RunnerController<AnyRunnerFromList<L>>>(),
         };
         for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE: {
                     const controller = this.runnerControllerPartFactory({
                         port: argument.port,
-                        runnerId: argument.runnerId,
+                        token: argument.token,
                     });
                     result.controllers.push(controller);
-                    result.args.push(controller.resolvedRunner as ResolvedRunner<R>);
+                    result.args.push(controller.resolvedRunner as ResolvedRunner<AnyRunnerFromList<L>>);
                     break;
                 }
                 default:
@@ -96,8 +96,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     }
 
     public async handleDestroy(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const destroyErrors = new Array<any>();
+        const destroyErrors = new Array<ISerializedError>();
         const destroying$ = new Array<Promise<void>>();
         for (const runnerEnvironment of this.runnerEnvironments) {
             destroying$.push(
@@ -120,10 +119,10 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
         }
     }
 
-    public wrapRunner(runner: InstanceType<R>): MessagePort {
+    public wrapRunner(runner: InstanceType<AnyRunnerFromList<L>>): MessagePort {
         const messageChanel = new MessageChannel();
 
-        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
             port: messageChanel.port1,
             runner,
             workerRunnerResolver: this,
@@ -140,11 +139,11 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     }
 
     protected runnerControllerPartFactory(config: {
-        runnerId: number,
+        token: RunnerToken,
         port: MessagePort,
-    }): RunnerController<R> {
-        const runnerBridgeConstructor = this.runnerBridgeCollection.getRunnerBridgeConstructor(config.runnerId);
-        const originalRunnerName = this.runnerBridgeCollection.getRunner(config.runnerId).name;
+    }): RunnerController<AnyRunnerFromList<L>> {
+        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
+        const originalRunnerName = this.runnersListController.getRunner(config.token).name;
         return this.runnerControllerFactory({
             ...config,
             runnerBridgeConstructor,
@@ -153,7 +152,9 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
         });
     }
 
-    protected runnerControllerFactory(config: IRunnerControllerConfig<R>): RunnerController<R> {
+    protected runnerControllerFactory(
+        config: IRunnerControllerConfig<AnyRunnerFromList<L>>
+    ): RunnerController<AnyRunnerFromList<L>> {
         return new RunnerController(config);
     }
 
@@ -175,15 +176,15 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
     private async initRunnerInstance(
         action: INodeResolverInitRunnerAction,
     ): Promise<IWorkerResolverRunnerInitErrorAction | IWorkerResolverRunnerInitedAction> {
-        const runnerConstructor = this.runnerBridgeCollection.getRunner(action.runnerId);
+        const runnerConstructor = this.runnersListController.getRunner(action.token);
         if (!runnerConstructor) {
             throw new RunnerNotFound();
         }
         const messageChanel = new MessageChannel();
         const deserializeArgumentsData = this.deserializeArguments(action.args);
-        let runner: InstanceType<R>;
+        let runner: InstanceType<AnyRunnerFromList<L>>;
         try {
-            runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<R>;
+            runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AnyRunnerFromList<L>>;
         } catch (error) {
             const errorAction: IWorkerResolverRunnerInitErrorAction = { // TODO throw
                 type: WorkerResolverAction.RUNNER_INIT_ERROR,
@@ -199,7 +200,7 @@ export abstract class BaseWorkerRunnerResolver<R extends RunnerConstructor> {
             return errorAction;
         }
 
-        const runnerEnvironment: RunnerEnvironment<R> = new this.RunnerEnvironmentConstructor({
+        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
             port: messageChanel.port1,
             runner,
             workerRunnerResolver: this,

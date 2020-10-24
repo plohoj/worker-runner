@@ -2,7 +2,7 @@ import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerCon
 import { RunnerController } from '../controller/runner.controller';
 import { ResolvedRunner } from '../resolved-runner';
 
-export type IRunnerBridgeConstructor<T extends RunnerConstructor>
+export type IRunnerBridgeConstructor<T extends RunnerConstructor = RunnerConstructor>
     = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
 export const EXECUTE_RUNNER_CONTROLLER_METHOD = '__workerRunner_executeControllerMethod';

@@ -46,7 +46,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             const transferPort: MessagePort =  await runnerController.resolveOrTransferControl();
             const runnerResultAction: IRxRunnerEnvironmentEmitRunnerResultAction = {
                 type: RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT,
-                runnerId: runnerController.runnerId,
+                token: runnerController.token,
                 port: transferPort,
                 transfer: [transferPort],
             }

@@ -39,8 +39,7 @@ each(resolverList, (mode, resolver) =>
 
 each({
         Local: LocalRunnerResolver,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        'Rx Local': RxLocalRunnerResolver as any as typeof LocalRunnerResolver,
+        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
     },
     (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
         it ('simple', async () => {
@@ -50,7 +49,7 @@ each({
                 }
             }
             const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver ({ runners: [DestroyStub] });
+            const localResolver = new IterateLocalRunnerResolver({ runners: [DestroyStub] });
             await localResolver.run();
             await localResolver.resolve(DestroyStub);
             await localResolver.destroy();

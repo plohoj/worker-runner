@@ -14,7 +14,7 @@ import { IRunnerEnvironmentAction, IRunnerEnvironmentExecuteResultAction, IRunne
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     runner: InstanceType<R>;
-    workerRunnerResolver: BaseWorkerRunnerResolver<R>;
+    workerRunnerResolver: BaseWorkerRunnerResolver<never>;
     errorSerializer: WorkerRunnerErrorSerializer;
     port: MessagePort;
     onDestroyed: () => void;
@@ -27,7 +27,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
     protected readonly connectEnvironment: ConnectEnvironment;
 
-    private workerRunnerResolver: BaseWorkerRunnerResolver<R>;
+    private workerRunnerResolver: BaseWorkerRunnerResolver<never>;
     private onDestroyed: () => void;
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>(); // TODO Need disconnect?
 
@@ -117,7 +117,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             return {
                 type: RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT,
                 port: transferPort,
-                runnerId: runnerController.runnerId,
+                token: runnerController.token,
                 transfer: [transferPort],
             };
         } else {

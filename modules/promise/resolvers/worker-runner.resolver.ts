@@ -1,3 +1,3 @@
-import { RunnerConstructor, BaseWorkerRunnerResolver } from '@worker-runner/core';
+import { BaseWorkerRunnerResolver, RunnersList } from '@worker-runner/core';
 
-export class WorkerRunnerResolver<R extends RunnerConstructor> extends BaseWorkerRunnerResolver<R> {}
+export class WorkerRunnerResolver<L extends RunnersList> extends BaseWorkerRunnerResolver<L> {}

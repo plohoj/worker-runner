@@ -1,4 +1,4 @@
-import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError, IListeningInterrupter, LISTENING_INTERRUPT, ConnectionWasClosedError } from "@worker-runner/core";
+import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError, IListeningInterrupter, ConnectionWasClosedError } from "@worker-runner/core";
 import { from, Observable, Subscription } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
@@ -6,7 +6,7 @@ import { IRxConnectControllerActions, RxConnectControllerAction } from "../contr
 import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
 
 interface IRxListeningInterrupter extends IListeningInterrupter {
-    observable: Observable<typeof LISTENING_INTERRUPT>;
+    observable: Observable<void>;
 }
 
 interface IMessagePortRxConnectEnvironmentData extends IMessagePortConnectEnvironmentData{

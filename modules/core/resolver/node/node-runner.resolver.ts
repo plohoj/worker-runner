@@ -5,9 +5,9 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
-import { RunnerBridgeCollection } from '../../runner/runner-bridge/runner-bridge.collection';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../../runner/runner-bridge/runner.bridge';
-import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from '../../types/constructor';
+import { AnyRunnerFromList, RunnersListController, RunnersList, RunnerToken, RunnerIdentifier } from '../../runner/runner-bridge/runners-list.controller';
+import { IRunnerParameter, IRunnerSerializedParameter } from '../../types/constructor';
 import { JsonObject } from '../../types/json-object';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
@@ -18,32 +18,32 @@ import { ResolverBridge } from '../resolver-bridge/node/resolver.bridge';
 import { IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction, WorkerResolverAction } from '../worker/worker-resolver.actions';
 import { INodeResolverInitRunnerAction, NodeResolverAction } from './node-resolver.actions';
 
-export interface INodeRunnerResolverConfigBase<R extends RunnerConstructor> extends IRunnerResolverConfigBase<R> {
+export interface INodeRunnerResolverConfigBase<L extends RunnersList> extends IRunnerResolverConfigBase<L> {
     workerName?: string;
     workerPath?: string;
 }
 
-const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never>> = {
+const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never[]>> = {
     workerName: 'Worker Runner',
     runners: [],
     workerPath: 'worker.js',
 };
 
-export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
+export class NodeRunnerResolverBase<L extends RunnersList>  {
 
-    protected runnerControllers = new Set<RunnerController<R>>();
-    protected resolverBridge?: IBaseResolverBridge | LocalResolverBridge<R>;
+    protected runnerControllers = new Set<RunnerController<AnyRunnerFromList<L>>>();
+    protected resolverBridge?: IBaseResolverBridge | LocalResolverBridge<L>;
     protected connectController?: ConnectController;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly workerName: string;
     protected readonly workerPath: string;
-    protected readonly runnerBridgeCollection: RunnerBridgeCollection<R>;
+    protected readonly runnersListController: RunnersListController<L>;
 
     private worker?: Worker;
 
-    constructor(config: Readonly<INodeRunnerResolverConfigBase<R>>) {
-        this.runnerBridgeCollection = new RunnerBridgeCollection({
+    constructor(config: Readonly<INodeRunnerResolverConfigBase<L>>) {
+        this.runnersListController = new RunnersListController({
             runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,
         });
         this.workerName = config.workerName || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName;
@@ -77,7 +77,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
                 argsMap.set(index, {
                     type: RunnerArgumentType.RUNNER_INSTANCE,
                     port: transferPort,
-                    runnerId: controller.runnerId,
+                    token: controller.token,
                 });
                 serializedArguments.transfer.push(transferPort);
             } else {
@@ -107,11 +107,13 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     /** Returns a runner control object that will call the methods of the source instance */
-    public async resolve<RR extends R>(runner: RR, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
-        const runnerId = this.runnerBridgeCollection.getRunnerId(runner);
-        const action = await this.sendInitAction(runnerId, args);
+    public async resolve(identifier: RunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
+        const token: RunnerToken = typeof identifier === 'string'
+            ? identifier
+            : this.runnersListController.getRunnerToken(identifier);
+        const action = await this.sendInitAction(token, args);
         const runnerController = this.runnerControllerPartFactory({
-            runnerId,
+            token: token,
             port: action.port,
             onConnectionClosed: () => this.runnerControllers.delete(runnerController),
         })
@@ -141,12 +143,12 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
     }
 
     protected runnerControllerPartFactory(config: {
-        runnerId: number,
+        token: RunnerToken,
         port: MessagePort,
         onConnectionClosed?: () => void;
-    }): RunnerController<R> {
-        const runnerBridgeConstructor = this.runnerBridgeCollection.getRunnerBridgeConstructor(config.runnerId);
-        const originalRunnerName = this.runnerBridgeCollection.getRunner(config.runnerId).name;
+    }): RunnerController<AnyRunnerFromList<L>> {
+        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
+        const originalRunnerName = this.runnersListController.getRunner(config.token).name;
         return this.runnerControllerFactory({
             ...config,
             runnerBridgeConstructor,
@@ -155,12 +157,14 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
         });
     }
 
-    protected runnerControllerFactory(config: IRunnerControllerConfig<R>): RunnerController<R> {
+    protected runnerControllerFactory(
+        config: IRunnerControllerConfig<AnyRunnerFromList<L>>
+    ): RunnerController<AnyRunnerFromList<L>> {
         return new RunnerController(config);
     }
 
     protected async sendInitAction(
-        runnerId: number,
+        token: RunnerToken,
         args: IRunnerParameter[],
     ): Promise<IWorkerResolverRunnerInitedAction> {
         if (!this.connectController) {
@@ -172,7 +176,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             const serializedArguments = await NodeRunnerResolverBase.serializeArguments(args);
             const action: INodeResolverInitRunnerAction = {
                 type: NodeResolverAction.INIT_RUNNER,
-                runnerId,
+                token: token,
                 args: serializedArguments.args,
                 transfer: serializedArguments.transfer,
             };
@@ -188,7 +192,7 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
             }
             throw new WorkerRunnerUnexpectedError(this.errorSerializer.serialize(error, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                    runnerName: this.runnerBridgeCollection.getRunner(runnerId).name,
+                    runnerName: this.runnersListController.getRunner(token).name,
                 }),
                 stack: error?.stack,
             }));
@@ -212,16 +216,16 @@ export class NodeRunnerResolverBase<R extends RunnerConstructor>  {
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
-    protected wrapRunner(runnerInstance: InstanceType<R>): RunnerBridge {
+    protected wrapRunner(runnerInstance: InstanceType<AnyRunnerFromList<L>>): RunnerBridge {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
             });
         }
-        const runnerId = this.runnerBridgeCollection.getRunnerIdByInstance(runnerInstance);
-        const port = (this.resolverBridge as LocalResolverBridge<R>).workerRunnerResolver.wrapRunner(runnerInstance);
+        const token = this.runnersListController.getRunnerTokenByInstance(runnerInstance);
+        const port = (this.resolverBridge as LocalResolverBridge<L>).workerRunnerResolver.wrapRunner(runnerInstance);
         const runnerController = this.runnerControllerPartFactory({
-            runnerId,
+            token,
             port,
             onConnectionClosed: () => this.runnerControllers.delete(runnerController),
         })

@@ -1,3 +1,4 @@
+import { RunnerToken } from '../runner/runner-bridge/runners-list.controller';
 import { JsonObject } from './json-object';
 
 export enum RunnerArgumentType {
@@ -13,7 +14,7 @@ export interface IRunnerJSONArgument {
 export interface IRunnerEnvironmentArgument {
     type: RunnerArgumentType.RUNNER_INSTANCE;
     port: MessagePort;
-    runnerId: number;
+    token: RunnerToken;
 }
 
 export type IRunnerArgument = IRunnerJSONArgument | IRunnerEnvironmentArgument;

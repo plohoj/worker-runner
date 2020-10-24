@@ -5,7 +5,6 @@ import { WorkerDestroyError } from './runner-errors';
 import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export interface ISerializedError extends IRunnerErrorConfigBase {
-
     errorCode: string;
     name: string;
     stack?: string;

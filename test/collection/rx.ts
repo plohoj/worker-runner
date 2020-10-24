@@ -85,8 +85,7 @@ each({
             type: 'ERROR',
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const expectedProperty: Record<any, any> = {
+        const expectedProperty: Record<string, unknown> = {
             message: errorData.toString(),
             name: RxRunnerEmitError.name,
         };
