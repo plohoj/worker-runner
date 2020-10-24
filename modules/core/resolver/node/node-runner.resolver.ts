@@ -19,7 +19,13 @@ import { IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction
 import { INodeResolverInitRunnerAction, NodeResolverAction } from './node-resolver.actions';
 
 export interface INodeRunnerResolverConfigBase<L extends RunnersList> extends IRunnerResolverConfigBase<L> {
+    /**
+     * @default 'Worker Runner'
+     */
     workerName?: string;
+    /**
+     * @default 'worker.js'
+     */
     workerPath?: string;
 }
 
