@@ -1,6 +1,6 @@
 {
   "name": "@worker-runner/promise",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "repository": {
     "type": "git",
     "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
@@ -23,6 +23,6 @@
     "runner"
   ],
   "dependencies": {
-    "@worker-runner/core": "^0.7.0"
+    "@worker-runner/core": "^0.8.0"
   }
 }
