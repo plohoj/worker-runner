@@ -51,17 +51,19 @@ async function copyModulesReadme() {
 }
 
 (async function main() {
-    console.log('Build modules ...');
-    await buildLibs();
-    console.log('Build declarations ...');
-    await buildDeclarations();
-    console.log('Move declarations ...');
-    await moveDeclarations();
-    console.log('Copy modules "package.json" ...');
-    await copyModulesPackage()
-    console.log('Copy modules "README.md" ...');
-    await copyModulesReadme();
-})().catch(error => {
-    console.error(error);
-    process.on('SIGINT', () => process.exit(1));
-});
+    try {
+        console.log('Build modules ...');
+        await buildLibs();
+        console.log('Build declarations ...');
+        await buildDeclarations();
+        console.log('Move declarations ...');
+        await moveDeclarations();
+        console.log('Copy modules "package.json" ...');
+        await copyModulesPackage()
+        console.log('Copy modules "README.md" ...');
+        await copyModulesReadme();
+    } catch (error) {
+        console.error(error);
+        process.on('SIGINT', () => process.exit(1));
+    }
+})();
