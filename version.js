@@ -69,11 +69,14 @@ function errorLog(directory) {
                 .then(() => successLog(`dist/${moduleName}/package.json`))
                 .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
-    ]).then(() => new Promise((resolve, reject) => {
-        exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
-            (error, stdout) => error ? reject(error) : resolve(stdout))
-    })).catch(error => {
+    ]);
+    try {
+        await new Promise((resolve, reject) => {
+            exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
+                (error, stdout) => error ? reject(error) : resolve(stdout))
+        });
+    } catch(error)  {
         console.error(error);
         process.on('SIGINT', () => process.exit(1));
-    });
+    }
 })();

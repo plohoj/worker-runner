@@ -15,10 +15,13 @@ async function publish(moduleName) {
 
 (async function main() {
     console.log('Publication on npm repositories ...');
-    await Promise.all(moduleNames.map(moduleName => publish(moduleName)
-        .then(() => console.log(`${moduleName}\t-->\tDone`))))
-        .catch(error => {
-            console.error(error);
-            process.on('SIGINT', () => process.exit(1));
-        });
+    try {
+        await Promise.all(
+            moduleNames.map(moduleName => publish(moduleName)
+                .then(() => console.log(`${moduleName}\t-->\tDone`)))
+        );
+    } catch(error) {
+        console.error(error);
+        process.on('SIGINT', () => process.exit(1));
+    }
 })();
