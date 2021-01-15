@@ -1,4 +1,5 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
+import { IWorkerRunnerPossibleConnectionConfig, WorkerRunnerPossibleConnection } from "../../../types/possible-connection";
 import { IPromiseMethods } from "../../../utils/promise-list.resolver";
 import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "../worker/worker-resolver-bridge.actions";
 import { IBaseResolverBridge } from './base-resolver.bridge'
@@ -9,10 +10,6 @@ interface IBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
     messagePort?: MessagePort,
 }
 
-export interface IResolverBridgeConfig {
-    worker: Worker;
-}
-
 export class ResolverBridge implements IBaseResolverBridge {
     private static readonly LAST_WORKER_ACTION_ID = '__workerRunner_lastActionId';
     
@@ -20,11 +17,15 @@ export class ResolverBridge implements IBaseResolverBridge {
 
     /** The bridge has a connection if the property exist */
     private connectInfo?: IBridgeConnectInfo;
-    private readonly worker: Worker;
+    private readonly connection: Exclude<WorkerRunnerPossibleConnection, SharedWorker>;
     private readonly workerMessageHandler = this.onWorkerMessage.bind(this);
 
-    constructor(config: IResolverBridgeConfig) {
-        this.worker = config.worker;
+    constructor(config: IWorkerRunnerPossibleConnectionConfig) {
+        if (config.connection instanceof SharedWorker) {
+            this.connection = config.connection.port;
+        } else {
+            this.connection = config.connection;
+        }
     }
 
     public async connect(): Promise<MessagePort> {
@@ -36,12 +37,13 @@ export class ResolverBridge implements IBaseResolverBridge {
         return new Promise((resolve, reject) => {
             const actionId = this.resolveActionId();
             this.connectInfo = { actionId, resolve, reject };
-            this.worker.addEventListener('message', this.workerMessageHandler);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.connection.addEventListener('message', this.workerMessageHandler as any);
             const initAction: IResolverBridgeConnectAction = {
                 id: actionId,
                 type: ResolverBridgeAction.CONNECT,
             };
-            this.worker.postMessage(initAction);
+            this.connection.postMessage(initAction);
         });
     }
 
@@ -71,14 +73,14 @@ export class ResolverBridge implements IBaseResolverBridge {
 
     private resolveActionId(): number {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lastId = (this.worker as any)[ResolverBridge.LAST_WORKER_ACTION_ID];
+        let lastId = (this.connection as any)[ResolverBridge.LAST_WORKER_ACTION_ID];
         if (typeof lastId !== 'number') {
             lastId = 0;
         } else {
             lastId++;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.worker as any)[ResolverBridge.LAST_WORKER_ACTION_ID] = lastId;
+        (this.connection as any)[ResolverBridge.LAST_WORKER_ACTION_ID] = lastId;
         return lastId;
     }
 }

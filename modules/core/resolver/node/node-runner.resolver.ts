@@ -9,6 +9,7 @@ import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../../runner/runner-brid
 import { AnyRunnerFromList, RunnersListController, RunnersList, RunnerToken, RunnerIdentifier } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerParameter, IRunnerSerializedParameter } from '../../types/constructor';
 import { JsonObject } from '../../types/json-object';
+import { IWorkerRunnerPossibleConnectionConfig, WorkerRunnerPossibleConnection } from '../../types/possible-connection';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerResolverConfigBase } from '../base-runner.resolver';
@@ -18,7 +19,7 @@ import { ResolverBridge } from '../resolver-bridge/node/resolver.bridge';
 import { IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction, WorkerResolverAction } from '../worker/worker-resolver.actions';
 import { INodeResolverInitRunnerAction, NodeResolverAction } from './node-resolver.actions';
 
-export interface INodeRunnerResolverConfigBase<L extends RunnersList> extends IRunnerResolverConfigBase<L> {
+export interface INodeRunnerResolverWorkerConfigBase {
     /**
      * @default 'Worker Runner'
      */
@@ -29,7 +30,15 @@ export interface INodeRunnerResolverConfigBase<L extends RunnersList> extends IR
     workerPath?: string;
 }
 
-const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<INodeRunnerResolverConfigBase<never[]>> = {
+export type INodeRunnerResolverConnectionConfigBase
+    = INodeRunnerResolverWorkerConfigBase | IWorkerRunnerPossibleConnectionConfig;
+
+export type INodeRunnerResolverConfigBase<L extends RunnersList>
+    = IRunnerResolverConfigBase<L> & INodeRunnerResolverConnectionConfigBase
+
+const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<
+    INodeRunnerResolverConfigBase<never[]> & INodeRunnerResolverWorkerConfigBase
+> = {
     workerName: 'Worker Runner',
     runners: [],
     workerPath: 'worker.js',
@@ -42,18 +51,26 @@ export class NodeRunnerResolverBase<L extends RunnersList>  {
     protected connectController?: ConnectController;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
-    protected readonly workerName: string;
-    protected readonly workerPath: string;
     protected readonly runnersListController: RunnersListController<L>;
 
+    private readonly connectionConfig: INodeRunnerResolverConnectionConfigBase;
+    /** Exist only if connection config not have worker / port */
     private worker?: Worker;
 
     constructor(config: Readonly<INodeRunnerResolverConfigBase<L>>) {
         this.runnersListController = new RunnersListController({
             runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,
         });
-        this.workerName = config.workerName || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName;
-        this.workerPath = config.workerPath || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerPath;
+        if ('connection' in config) {
+            this.connectionConfig = {
+                connection: config.connection
+            };
+        } else {
+            this.connectionConfig = {
+                workerName: config.workerName,
+                workerPath: config.workerPath,
+            };
+        }
     }
 
     /** TODO extract serialize / deserialize arguments to component */
@@ -152,8 +169,17 @@ export class NodeRunnerResolverBase<L extends RunnersList>  {
     }
 
     protected buildResolverBridge(): void {
-        this.worker = new Worker(this.workerPath, { name: this.workerName });
-        this.resolverBridge = new ResolverBridge({worker: this.worker});
+        let connection: WorkerRunnerPossibleConnection;
+        if ('connection' in this.connectionConfig) {
+            connection = this.connectionConfig.connection;
+        } else {
+            connection = new Worker(
+                this.connectionConfig.workerPath || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName,
+                { name: this.connectionConfig.workerName || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerPath },
+            );
+            this.worker = connection;
+        }
+        this.resolverBridge = new ResolverBridge({ connection });
     }
 
     protected runnerControllerPartFactory(config: {

@@ -32,7 +32,6 @@ export interface IConnectEnvironmentConfig{
 export class ConnectEnvironment {
     public readonly connectedPorts = new Set<MessagePort>();
     protected readonly destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
-    private isDestroyed = false;
     private actionsHandler: ConnectEnvironmentActionsHandler;
     private destroyHandler: () => void;
 
@@ -83,7 +82,7 @@ export class ConnectEnvironment {
         }
     }
 
-    protected async forceDestroy(): Promise<void> {
+    protected async forceDestroy(exceptPort?: MessagePort): Promise<void> {
         try {
             await this.destroyHandler();
         } finally {
@@ -91,8 +90,10 @@ export class ConnectEnvironment {
                 type: ConnectEnvironmentAction.DESTROYED_BY_FORCE,
             };
             for (const port of this.connectedPorts) {
-                this.sendAction(port, destroyAction);
-                this.closeConnection(port);
+                if (port !== exceptPort) {
+                    this.sendAction(port, destroyAction);
+                    this.closeConnection(port);
+                }
             }
         }
     }
@@ -109,7 +110,8 @@ export class ConnectEnvironment {
     
     protected onDisconnect(port: MessagePort, actionId: number): void {
         if (this.connectedPorts.size <= 1) {
-            this.onDestroy(port, actionId)
+            this.onDestroy(port, actionId);
+            return;
         }
         const disconnectAction: IConnectEnvironmentDisconnectedAction = {
             id: actionId,
@@ -120,11 +122,9 @@ export class ConnectEnvironment {
     }
 
     protected async onDestroy(port: MessagePort, actionId: number): Promise<void> {
-        const handler = this.getMessagePortData(port)?.handler;
-        this.connectedPorts.delete(port);
         let hasError = false;
         try {
-            await this.forceDestroy();
+            await this.forceDestroy(port);
         } catch(error) {
             hasError = true;
             const errorAction: IConnectEnvironmentDestroyedWithErrorAction = {
@@ -141,11 +141,7 @@ export class ConnectEnvironment {
             };
             this.sendAction(port, destroyAction);
         }
-        if (handler) { 
-            port.removeEventListener('message', handler);
-        }
-        this.isDestroyed = true;
-        port.close();
+        this.closeConnection(port);
     }
 
     protected async onCustomAction(port: MessagePort, actionWithId: IConnectControllerAction): Promise<void> {
@@ -170,7 +166,7 @@ export class ConnectEnvironment {
         port: MessagePort,
         action: IConnectEnvironmentActions
     ): void {
-        if (this.isDestroyed) {
+        if (!this.connectedPorts.has(port)) {
             throw new ConnectionWasClosedError();
         }
         const {transfer, ...actionWithoutTransfer} = action as Record<string, TransferableJsonObject>;

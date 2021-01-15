@@ -35,8 +35,7 @@ export class ConnectController {
     }
 
     public async destroy(): Promise<void> {
-        const destroyAction: IConnectControllerDestroyAction = {
-            id: this.resolveActionId(),
+        const destroyAction: Omit<IConnectControllerDestroyAction, 'id'> = {
             type: ConnectControllerAction.DESTROY,
         };
         try {
