@@ -9,21 +9,21 @@ import { RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { AnyRunnerFromList, RunnersList, RunnersListController, RunnerToken } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerSerializedParameter } from '../../types/constructor';
+import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
 import { IRunnerResolverConfigBase } from '../base-runner.resolver';
 import { INodeResolverInitRunnerAction, NodeResolverAction } from '../node/node-resolver.actions';
-import { BaseWorkerResolverBridgeFactory, IBaseWorkerResolverBridge, IBaseWorkerResolverBridgeConfig } from '../resolver-bridge/worker/base-worker-resolver.bridge';
 import { WorkerResolverBridge } from '../resolver-bridge/worker/worker-resolver.bridge';
 import { IWorkerResolverAction, IWorkerResolverRunnerInitedAction, IWorkerResolverRunnerInitErrorAction, WorkerResolverAction } from './worker-resolver.actions';
 
 export interface IBaseWorkerRunnerResolver<L extends RunnersList> extends IRunnerResolverConfigBase<L> {
-    bridgeFactory?: BaseWorkerResolverBridgeFactory;
+    connections?: RunnerResolverPossibleConnection[];
 }
 
 export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
     
     protected runnerEnvironments = new Set<RunnerEnvironment<AnyRunnerFromList<L>>>();
-    protected resolverBridge?: IBaseWorkerResolverBridge;
+    protected resolverBridge: WorkerResolverBridge;
     
     protected readonly runnersListController: RunnersListController<L>;
     protected readonly RunnerEnvironmentConstructor = RunnerEnvironment; // TODO replace to factory
@@ -32,17 +32,29 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
     protected readonly connectEnvironment = new ConnectEnvironment({
         destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
         actionsHandler: this.handleAction.bind(this),
-        destroyHandler: this.handleDestroy.bind(this),
-    })
-    protected readonly bridgeFactory: BaseWorkerResolverBridgeFactory;
+        destroyHandler: this.onAllDisconnect.bind(this),
+    });
 
     constructor(config: IBaseWorkerRunnerResolver<L>) {
         this.runnersListController = new RunnersListController(config);
-        this.bridgeFactory = config.bridgeFactory || this.defaultBridgeFactory;
+        this.resolverBridge = new WorkerResolverBridge({
+            newConnectionHandler: this.newConnectionHandler,
+            connections: config.connections
+                ? config.connections.slice()
+                : [self],
+        });
     }
 
     public run(): void {
-        this.resolverBridge = this.bridgeFactory({ newConnectionHandler: this.newConnectionHandler });
+        this.resolverBridge.run();
+    }
+
+    public addConnections(connections: RunnerResolverPossibleConnection[]): void {
+        this.resolverBridge.addConnections(connections);
+    }
+
+    public removeConnections(connections: RunnerResolverPossibleConnection[]): void {
+        this.resolverBridge.removeConnections(connections);
     }
 
     public async handleAction(action: INodeResolverInitRunnerAction): Promise<IWorkerResolverAction> {
@@ -100,29 +112,14 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
         return result;
     }
 
-    public async handleDestroy(): Promise<void> {
-        const destroyErrors = new Array<ISerializedError>();
-        const destroying$ = new Array<Promise<void>>();
-        for (const runnerEnvironment of this.runnerEnvironments) {
-            destroying$.push(
-                runnerEnvironment.handleDestroy().catch(error => {
-                    destroyErrors.push(this.errorSerializer.serialize(error, new RunnerDestroyError({
-                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
-                            token: runnerEnvironment.token,
-                            runnerName: runnerEnvironment.runnerName,
-                        }),
-                        stack: error?.stack,
-                    })));
-                }),
-            );
-        }
-        await Promise.all(destroying$);
-        this.runnerEnvironments.clear();
-        if (destroyErrors.length > 0) {
-            throw new WorkerDestroyError({ // TODO need test
-                originalErrors: destroyErrors,
+    public async destroy(): Promise<void> {
+        if (!this.resolverBridge.isRunning) {
+            throw new WorkerRunnerUnexpectedError({
+                message: 'Resolver Worker Runner was caused to be destroyed but did not start previously.',
             });
         }
+        await this.clearEnvironment();
+        this.resolverBridge.destroy();
     }
 
     public wrapRunner(runner: InstanceType<AnyRunnerFromList<L>>): MessagePort {
@@ -165,10 +162,34 @@ export abstract class BaseWorkerRunnerResolver<L extends RunnersList> {
         return new RunnerController(config);
     }
 
-    private defaultBridgeFactory(config: IBaseWorkerResolverBridgeConfig): IBaseWorkerResolverBridge {
-        return new WorkerResolverBridge(config);
+    private async onAllDisconnect(): Promise<void> {
+        await this.clearEnvironment();
     }
 
+    private async clearEnvironment(): Promise<void> {
+        const destroyErrors = new Array<ISerializedError>();
+        const destroying$ = new Array<Promise<void>>();
+        for (const runnerEnvironment of this.runnerEnvironments) {
+            destroying$.push(
+                runnerEnvironment.handleDestroy().catch(error => {
+                    destroyErrors.push(this.errorSerializer.serialize(error, new RunnerDestroyError({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
+                            token: runnerEnvironment.token,
+                            runnerName: runnerEnvironment.runnerName,
+                        }),
+                        stack: error?.stack,
+                    })));
+                }),
+            );
+        }
+        await Promise.all(destroying$);
+        this.runnerEnvironments.clear();
+        if (destroyErrors.length > 0) {
+            throw new WorkerDestroyError({ // TODO need test
+                originalErrors: destroyErrors,
+            });
+        }
+    }
     private handleNewConnection(port: MessagePort): void {
         this.connectEnvironment.addPort(port);
     }

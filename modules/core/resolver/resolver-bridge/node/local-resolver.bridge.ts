@@ -1,32 +1,26 @@
 import { RunnersList } from "../../../runner/runner-bridge/runners-list.controller";
 import { BaseWorkerRunnerResolver } from "../../worker/worker-runner.resolver";
-import { BaseWorkerResolverBridgeFactory, IBaseWorkerResolverBridgeConfig } from "../worker/base-worker-resolver.bridge";
-import { LocalWorkerResolverBridge } from "../worker/local-resolver.bridge";
-import { IBaseResolverBridge } from './base-resolver.bridge'
+import { ResolverBridge } from "./resolver.bridge";
 
 export interface ILocalResolverBridgeConfig<L extends RunnersList> {
     workerRunnerResolverFactory: (
-        config: {bridgeFactory: BaseWorkerResolverBridgeFactory;}
+        config: { connections: [MessagePort] }
     ) => BaseWorkerRunnerResolver<L>;
 }
 
-export class LocalResolverBridge<L extends RunnersList> implements IBaseResolverBridge {
+export class LocalResolverBridge<L extends RunnersList> extends ResolverBridge {
     public readonly workerRunnerResolver: BaseWorkerRunnerResolver<L>;
-    private messageChanel = new MessageChannel();
 
     constructor (config: ILocalResolverBridgeConfig<L>) {
+        const messageChanel = new MessageChannel();
+        messageChanel.port1.start();
+        messageChanel.port2.start();
+        super({
+            connection: messageChanel.port1,
+        });
         this.workerRunnerResolver = config.workerRunnerResolverFactory({
-            bridgeFactory: (config: IBaseWorkerResolverBridgeConfig) => {
-                return new LocalWorkerResolverBridge({
-                    ...config,
-                    port: this.messageChanel.port1,
-                })
-            }
+            connections: [ messageChanel.port2]
         });
         this.workerRunnerResolver.run();
-    }
-
-    public async connect(): Promise<MessagePort> {
-        return this.messageChanel.port2;
     }
 }

@@ -1,8 +1,7 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
-import { IWorkerRunnerPossibleConnectionConfig, WorkerRunnerPossibleConnection } from "../../../types/possible-connection";
+import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
 import { IPromiseMethods } from "../../../utils/promise-list.resolver";
 import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "../worker/worker-resolver-bridge.actions";
-import { IBaseResolverBridge } from './base-resolver.bridge'
 import { IResolverBridgeConnectAction, ResolverBridgeAction } from "./resolver-bridge.actions";
 
 interface IBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
@@ -10,22 +9,21 @@ interface IBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
     messagePort?: MessagePort,
 }
 
-export class ResolverBridge implements IBaseResolverBridge {
+export interface IResolverBridgeConfig {
+    connection: RunnerResolverPossibleConnection;
+}
+
+export class ResolverBridge {
     private static readonly LAST_WORKER_ACTION_ID = '__workerRunner_lastActionId';
-    
-    public messagePort?: MessagePort;
+
+    protected readonly connection: RunnerResolverPossibleConnection;
 
     /** The bridge has a connection if the property exist */
     private connectInfo?: IBridgeConnectInfo;
-    private readonly connection: Exclude<WorkerRunnerPossibleConnection, SharedWorker>;
     private readonly workerMessageHandler = this.onWorkerMessage.bind(this);
 
-    constructor(config: IWorkerRunnerPossibleConnectionConfig) {
-        if (config.connection instanceof SharedWorker) {
-            this.connection = config.connection.port;
-        } else {
-            this.connection = config.connection;
-        }
+    constructor(config: IResolverBridgeConfig) {
+        this.connection = config.connection;
     }
 
     public async connect(): Promise<MessagePort> {
@@ -34,17 +32,18 @@ export class ResolverBridge implements IBaseResolverBridge {
                 message: 'Connection already established',
             });
         }
-        return new Promise((resolve, reject) => {
+        const messagePort = await new Promise<MessagePort>((resolve, reject) => {
             const actionId = this.resolveActionId();
             this.connectInfo = { actionId, resolve, reject };
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.connection.addEventListener('message', this.workerMessageHandler as any);
+            this.connection.addEventListener('message', this.workerMessageHandler as EventListener);
             const initAction: IResolverBridgeConnectAction = {
                 id: actionId,
                 type: ResolverBridgeAction.CONNECT,
             };
             this.connection.postMessage(initAction);
         });
+        this.connection.removeEventListener('message', this.workerMessageHandler as EventListener);
+        return messagePort;
     }
 
     private onWorkerMessage(event: MessageEvent): void {

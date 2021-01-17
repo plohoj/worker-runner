@@ -1,5 +1,1 @@
-export type WorkerRunnerPossibleConnection = Worker | ServiceWorker | SharedWorker | MessagePort;
-
-export type IWorkerRunnerPossibleConnectionConfig = {
-    connection: WorkerRunnerPossibleConnection;
-};
+export type RunnerResolverPossibleConnection = Worker | MessagePort | typeof self;
