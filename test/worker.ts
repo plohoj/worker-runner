@@ -1,4 +1,4 @@
-import { WorkerRunnerResolver } from '@worker-runner/promise';
+import { HostRunnerResolver } from '@worker-runner/promise';
 import { runners } from './common/runner-list';
 
-new WorkerRunnerResolver({runners, connections: [self]}).run();
+new HostRunnerResolver({runners, connections: [self]}).run();
