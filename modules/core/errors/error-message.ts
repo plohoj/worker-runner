@@ -57,11 +57,11 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     EXECUTE_ERROR(config: Readonly<IRunnerExecuteMessageConfig> = {}): string {
         return `Runtime Error${this.formatRunnerInfo(config, 'for')}`;
     },
-    WORKER_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+    HOST_RESOLVER_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
         return `An error occurred while destroying Runner${this.formatRunnerInfo(config)}`;
     },
-    WORKER_NOT_INIT(): string {
-        return 'Worker not init';
+    HOST_RESOLVER_NOT_INIT(): string {
+        return 'Host Resolver not init';
     },
 
     UNEXPECTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {

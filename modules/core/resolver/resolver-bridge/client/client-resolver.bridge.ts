@@ -1,28 +1,28 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
 import { IPromiseMethods } from "../../../utils/promise-list.resolver";
-import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "../worker/worker-resolver-bridge.actions";
-import { IResolverBridgeConnectAction, ResolverBridgeAction } from "./resolver-bridge.actions";
+import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction } from "../host/host-resolver-bridge.actions";
+import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction } from "./client-resolver-bridge.actions";
 
-interface IBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
+interface IClientBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
     readonly actionId: number,
     messagePort?: MessagePort,
 }
 
-export interface IResolverBridgeConfig {
+export interface IClientResolverBridgeConfig {
     connection: RunnerResolverPossibleConnection;
 }
 
-export class ResolverBridge {
-    private static readonly LAST_WORKER_ACTION_ID = '__workerRunner_lastActionId';
+export class ClientResolverBridge {
+    private static readonly LAST_BRIDGE_ACTION_ID = '__workerRunner_lastActionId';
 
     protected readonly connection: RunnerResolverPossibleConnection;
 
     /** The bridge has a connection if the property exist */
-    private connectInfo?: IBridgeConnectInfo;
-    private readonly workerMessageHandler = this.onWorkerMessage.bind(this);
+    private connectInfo?: IClientBridgeConnectInfo;
+    private readonly hostMessageHandler = this.onHostMessage.bind(this);
 
-    constructor(config: IResolverBridgeConfig) {
+    constructor(config: IClientResolverBridgeConfig) {
         this.connection = config.connection;
     }
 
@@ -35,31 +35,31 @@ export class ResolverBridge {
         const messagePort = await new Promise<MessagePort>((resolve, reject) => {
             const actionId = this.resolveActionId();
             this.connectInfo = { actionId, resolve, reject };
-            this.connection.addEventListener('message', this.workerMessageHandler as EventListener);
-            const initAction: IResolverBridgeConnectAction = {
+            this.connection.addEventListener('message', this.hostMessageHandler as EventListener);
+            const initAction: IClientResolverBridgeConnectAction = {
                 id: actionId,
-                type: ResolverBridgeAction.CONNECT,
+                type: ClientResolverBridgeAction.CONNECT,
             };
             this.connection.postMessage(initAction);
         });
-        this.connection.removeEventListener('message', this.workerMessageHandler as EventListener);
+        this.connection.removeEventListener('message', this.hostMessageHandler as EventListener);
         return messagePort;
     }
 
-    private onWorkerMessage(event: MessageEvent): void {
-        const action: IWorkerResolverBridgeConnectedAction = event.data;
+    private onHostMessage(event: MessageEvent): void {
+        const action: IHostResolverBridgeConnectedAction = event.data;
         switch (action.type) {
-            case WorkerResolverBridgeAction.CONNECTED:
+            case HostResolverBridgeAction.CONNECTED:
                 this.onConnected(action);
                 break;
             default:
                 throw new WorkerRunnerUnexpectedError({
-                    message: 'Unexpected action type in Node resolver Bridge from Worker resolver Bridge',
+                    message: 'Unexpected action type in Client Resolver Bridge from Host Resolver Bridge',
                 });
         }
     }
 
-    private onConnected(action: IWorkerResolverBridgeConnectedAction): void {
+    private onConnected(action: IHostResolverBridgeConnectedAction): void {
         if (!this.connectInfo) {
             throw new WorkerRunnerUnexpectedError({
                 message: 'Connection was established before initiation',
@@ -72,14 +72,14 @@ export class ResolverBridge {
 
     private resolveActionId(): number {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lastId = (this.connection as any)[ResolverBridge.LAST_WORKER_ACTION_ID];
+        let lastId = (this.connection as any)[ClientResolverBridge.LAST_BRIDGE_ACTION_ID];
         if (typeof lastId !== 'number') {
             lastId = 0;
         } else {
             lastId++;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.connection as any)[ResolverBridge.LAST_WORKER_ACTION_ID] = lastId;
+        (this.connection as any)[ClientResolverBridge.LAST_BRIDGE_ACTION_ID] = lastId;
         return lastId;
     }
 }

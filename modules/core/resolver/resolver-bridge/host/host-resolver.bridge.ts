@@ -1,25 +1,25 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
-import { IResolverBridgeConnectAction, ResolverBridgeAction } from "../node/resolver-bridge.actions";
-import { IWorkerResolverBridgeConnectedAction, WorkerResolverBridgeAction } from "./worker-resolver-bridge.actions";
+import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction } from "../client/client-resolver-bridge.actions";
+import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction } from "./host-resolver-bridge.actions";
 
-export interface IBaseWorkerResolverBridgeConfig {
+export interface IHostResolverBridgeConfigBase {
     newConnectionHandler: (messagePort: MessagePort) => void;
     connections: RunnerResolverPossibleConnection[];
 }
 
-export class WorkerResolverBridge {
+export class HostResolverBridge {
 
     public get isRunning(): boolean {
         return this._isRunning;
     }
 
     private _isRunning = false;
-    private onNewConnection: IBaseWorkerResolverBridgeConfig['newConnectionHandler'];
+    private onNewConnection: IHostResolverBridgeConfigBase['newConnectionHandler'];
     private connections = new Array<RunnerResolverPossibleConnection>();
     private connectionsHandlers = new Map<RunnerResolverPossibleConnection, EventListener>();
 
-    constructor (config: IBaseWorkerResolverBridgeConfig) {
+    constructor (config: IHostResolverBridgeConfigBase) {
         this.onNewConnection = config.newConnectionHandler;
         this.addConnections(config.connections.slice());
     }
@@ -72,19 +72,19 @@ export class WorkerResolverBridge {
     }
 
     private onMessage(connection: RunnerResolverPossibleConnection, event: MessageEvent): void {
-        const action: IResolverBridgeConnectAction = event.data;
-        if (action.type === ResolverBridgeAction.CONNECT) {
+        const action: IClientResolverBridgeConnectAction = event.data;
+        if (action.type === ClientResolverBridgeAction.CONNECT) {
             const messageChannel = new MessageChannel();
             this.onNewConnection(messageChannel.port1);
-            const connectedAction: IWorkerResolverBridgeConnectedAction = {
+            const connectedAction: IHostResolverBridgeConnectedAction = {
                 id: action.id,
-                type: WorkerResolverBridgeAction.CONNECTED,
+                type: HostResolverBridgeAction.CONNECTED,
                 port: messageChannel.port2,
             }
             connection.postMessage(connectedAction, [messageChannel.port2]);
         } else {
             throw new WorkerRunnerUnexpectedError({
-                message: 'Unexpected action type in Worker resolver Bridge from Node resolver Bridge',
+                message: 'Unexpected action type in Host Resolver Bridge from Client Resolver Bridge',
             });
         }
     }

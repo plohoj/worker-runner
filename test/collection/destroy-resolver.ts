@@ -20,7 +20,7 @@ each(resolverList, (mode, resolver) =>
 
         it ('when it was already destroyed', async () => {
             await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
                 name: ConnectionWasClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -29,7 +29,7 @@ each(resolverList, (mode, resolver) =>
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.WORKER_NOT_INIT(),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));

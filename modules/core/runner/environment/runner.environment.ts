@@ -3,7 +3,7 @@ import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/env
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-errors';
-import { BaseWorkerRunnerResolver } from '../../resolver/worker/worker-runner.resolver';
+import { HostRunnerResolverBase } from '../../resolver/host/host-runner.resolver';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
@@ -16,7 +16,7 @@ import { IRunnerEnvironmentAction, IRunnerEnvironmentExecuteResultAction, IRunne
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     token: RunnerToken;
     runner: InstanceType<R>;
-    workerRunnerResolver: BaseWorkerRunnerResolver<never>;
+    hostRunnerResolver: HostRunnerResolverBase<never>;
     errorSerializer: WorkerRunnerErrorSerializer;
     port: MessagePort;
     onDestroyed: () => void;
@@ -31,7 +31,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
     protected readonly connectEnvironment: ConnectEnvironment;
 
-    private workerRunnerResolver: BaseWorkerRunnerResolver<never>;
+    private hostRunnerResolver: HostRunnerResolverBase<never>;
     private onDestroyed: () => void;
     private connectedControllers = new Array<RunnerController<RunnerConstructor>>(); // TODO Need disconnect?
 
@@ -39,7 +39,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.token = config.token;
         this.errorSerializer = config.errorSerializer
         this.runnerInstance = config.runner;
-        this.workerRunnerResolver = config.workerRunnerResolver;
+        this.hostRunnerResolver = config.hostRunnerResolver;
         this.onDestroyed = config.onDestroyed;
         this.connectEnvironment = this.connectEnvironmentFactory({
             destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
@@ -53,11 +53,11 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         action: IRunnerControllerExecuteAction,
     ): Promise<IRunnerEnvironmentExecuteResultAction> {
         let response: IRunnerMethodResult;
-        const deserializeArgumentsData = this.workerRunnerResolver.deserializeArguments(action.args);
+        const deserializedArgumentsData = this.hostRunnerResolver.deserializeArguments(action.args);
         try {
-            response = await this.runnerInstance[action.method](...deserializeArgumentsData.args);
+            response = await this.runnerInstance[action.method](...deserializedArgumentsData.args);
         } catch (error) {
-            await Promise.all(deserializeArgumentsData.controllers
+            await Promise.all(deserializedArgumentsData.controllers
                 .map(controller => controller.disconnect()));
             return {
                 type: RunnerEnvironmentAction.EXECUTE_ERROR,
@@ -71,7 +71,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 })),
             };
         }
-        this.addConnectedControllers(deserializeArgumentsData.controllers);
+        this.addConnectedControllers(deserializedArgumentsData.controllers);
         return await this.handleExecuteResponse(response);
     }
 

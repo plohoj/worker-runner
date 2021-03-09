@@ -1,15 +1,15 @@
 import { RunnersList } from "../../../runner/runner-bridge/runners-list.controller";
-import { BaseWorkerRunnerResolver } from "../../worker/worker-runner.resolver";
-import { ResolverBridge } from "./resolver.bridge";
+import { HostRunnerResolverBase } from "../../host/host-runner.resolver";
+import { ClientResolverBridge } from "../client/client-resolver.bridge";
 
 export interface ILocalResolverBridgeConfig<L extends RunnersList> {
-    workerRunnerResolverFactory: (
+    hostRunnerResolverFactory: (
         config: { connections: [MessagePort] }
-    ) => BaseWorkerRunnerResolver<L>;
+    ) => HostRunnerResolverBase<L>;
 }
 
-export class LocalResolverBridge<L extends RunnersList> extends ResolverBridge {
-    public readonly workerRunnerResolver: BaseWorkerRunnerResolver<L>;
+export class LocalResolverBridge<L extends RunnersList> extends ClientResolverBridge {
+    public readonly hostRunnerResolver: HostRunnerResolverBase<L>;
 
     constructor (config: ILocalResolverBridgeConfig<L>) {
         const messageChanel = new MessageChannel();
@@ -18,9 +18,9 @@ export class LocalResolverBridge<L extends RunnersList> extends ResolverBridge {
         super({
             connection: messageChanel.port1,
         });
-        this.workerRunnerResolver = config.workerRunnerResolverFactory({
+        this.hostRunnerResolver = config.hostRunnerResolverFactory({
             connections: [ messageChanel.port2]
         });
-        this.workerRunnerResolver.run();
+        this.hostRunnerResolver.run();
     }
 }

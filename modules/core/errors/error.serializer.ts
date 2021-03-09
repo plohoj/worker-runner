@@ -1,7 +1,7 @@
 import { WorkerRunnerErrorCode } from './error-code';
 import { CODE_TO_ERROR_MAP } from './error-code-map';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
-import { WorkerDestroyError } from './runner-errors';
+import { HostResolverDestroyError } from './runner-errors';
 import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export interface ISerializedError extends IRunnerErrorConfigBase {
@@ -35,7 +35,7 @@ export class WorkerRunnerErrorSerializer {
                 message: error.message || alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
                 stack: error.stack || alternativeError.stack || new Error().stack,
             };
-            if (error instanceof WorkerDestroyError) {
+            if (error instanceof HostResolverDestroyError) {
                 serializedError.originalErrors = error.originalErrors.map(
                     originalError => this.serialize(originalError)
                 );
@@ -51,7 +51,7 @@ export class WorkerRunnerErrorSerializer {
             };
         }
         if (!serializedError.originalErrors) {
-            if (alternativeError instanceof WorkerDestroyError) {
+            if (alternativeError instanceof HostResolverDestroyError) {
                 serializedError.originalErrors = alternativeError.originalErrors.map(
                     originalError => this.serialize(originalError)
                 );
@@ -62,7 +62,7 @@ export class WorkerRunnerErrorSerializer {
 
     public deserialize(error: ISerializedError): WorkerRunnerError {
         if (error.errorCode === WorkerRunnerErrorCode.WORKER_DESTROY_ERROR) {
-            return new WorkerDestroyError({
+            return new HostResolverDestroyError({
                 captureOpt: this.deserialize,
                 ...error,
                 originalErrors: error.originalErrors?.map(originalError => this.deserialize(originalError))

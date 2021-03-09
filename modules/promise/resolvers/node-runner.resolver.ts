@@ -1,17 +1,10 @@
-import { IRunnerSerializedParameter, NodeRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, RunnersList } from '@worker-runner/core';
+import { RunnersList } from '@worker-runner/core';
+import { ClientRunnerResolver } from './client-runner.resolver';
 
-type RunnerArguments<R extends RunnerConstructor>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    = R extends RunnerConstructor<any, infer A>
-        ? A extends ArrayLike<IRunnerSerializedParameter>
-            ? ResolvedRunnerArguments<A>
-            : never
-        : never;
+/**
+ * @deprecated
+ * @see ClientRunnerResolver
+ */
+export class NodeRunnerResolver<L extends RunnersList> extends ClientRunnerResolver<L> {
 
-export class NodeRunnerResolver<L extends RunnersList> extends NodeRunnerResolverBase<L> {
-
-    declare public resolve: <I extends RunnerIdentifier<L>>(
-        identifier: I,
-        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
-    ) => Promise<ResolvedRunner<InstanceType<RunnerByIdentifier<L, I>>>>;
 }
