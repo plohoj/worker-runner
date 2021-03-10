@@ -37,7 +37,7 @@ export class LibraryRunner { // Example Runner
 
     // The method can return a result
     public checkBook(book: string): boolean {
-        return this.books.indexOf(book) !== -1;
+        return this.books.includes(book);
     }
 
     // The method can return result asynchronously
@@ -46,30 +46,30 @@ export class LibraryRunner { // Example Runner
     }
 }
 ```
-Declare your control instance of `NodeRunnerResolver` in a **main area**.
+Declare your control instance of `ClientRunnerResolver` in a **main area**.
 * The control instance must be declared with a list of Runner classes that will be executed in the workspace.
 * You must wait until the **asynchronous** call to the `run()` method completes.
 ``` ts
 // Main area
-import { NodeRunnerResolver } from '@worker-runner/promise';
+import { ClientRunnerResolver } from '@worker-runner/promise';
 
-const resolver = new NodeRunnerResolver({
+const resolver = new ClientRunnerResolver({
     runners: [LibraryRunner],
-    workerPath: './worker.js',
+    connection: new Worker('./worker.js'),
 });
 resolver.run(); // await asynchronous
 ```
-And also declare your control instance of `WorkerRunnerResolver` in a **worker area**.
-* The control instance must also have a list of Runner classes. This list **may differ** from the list used in `NodeRunnerResolver`.
+And also declare your control instance of `HostRunnerResolver` in a **worker area**.
+* The control instance must also have a list of Runner classes. This list **may differ** from the list used in `ClientRunnerResolver`.
 * Call the `run()` method.
 ``` ts
 // Worker area
-import { WorkerRunnerResolver } from '@worker-runner/promise';
+import { HostRunnerResolver } from '@worker-runner/promise';
 
-new WorkerRunnerResolver({ runners: [LibraryRunner] }).run();
+new HostRunnerResolver({ runners: [LibraryRunner] }).run();
 ```
 ## <a name="usage"></a> Usage
-After you initialized `NodeRunnerResolver` *(in main area)* and `WorkerRunnerResolver` *(in worker area)*, you can use the control instance to resolve instances of the Runner class that will be used in the main area and executed in the worker area.
+After you initialized `ClientRunnerResolver` *(in main area)* and `HostRunnerResolver` *(in worker area)*, you can use the control instance to resolve instances of the Runner class that will be used in the main area and executed in the worker area.
 ``` ts
 async function main() {
     await resolver.run();
@@ -133,7 +133,7 @@ await libraryPoolRunner.addLibrary(libraryRunners[1]);
 ```
 ## <a name="localrunnerresolver"></a> LocalRunnerResolver
 The original Runner instance will run in the same area in which it was resolved / wrapped.
-`LocalRunnerResolver` can be used to replace `NodeRunnerResolver` to simplify debugging in development mode and for testing.  
+`LocalRunnerResolver` can be used to replace `ClientRunnerResolver` to simplify debugging in development mode and for testing.  
 That allows to use a local Runner as [method result](#resolved-runner-as-method-result) or pass it [as argument](#resolved-runner-as-argument).
 ``` ts
 // ...
@@ -204,6 +204,11 @@ export class LibraryRunner {
     }
 }
 // ...
+const resolver = new RxClientRunnerResolver({
+    runners: [LibraryRunner],
+    connection: new Worker('./worker.js'),
+});
+await resolver.run();
 const libraryRunner = await resolver.resolve(LibraryRunner);
 (await libraryRunner.notification()).subscribe(() => {
     // ...
@@ -214,5 +219,5 @@ const libraryRunner = await resolver.resolve(LibraryRunner);
 
 * Internet Explorer requires **polyfill** for `Promise`.
 * Unfortunately the generic type cannot handle the `interface` correctly, **but** it does work correctly with `type alias` and `class`. Therefore, it is recommended to use `type alias` instead of `interface` to describe the type of your method arguments.
+* The library is compiled using the **ES2015** standard. If you need support for **older browsers** such as **Internet Explorer**, then you will need to recompile the library using **ES5** and **Promise plolyffil**. You can see an **[example of configuring webpack here](https://github.com/plohoj/worker-runner-webpack-example)**.
 
-## [Webpack configuration example](https://github.com/plohoj/worker-runner-webpack-example)
