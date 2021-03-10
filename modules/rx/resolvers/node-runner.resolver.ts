@@ -5,6 +5,4 @@ import { RxClientRunnerResolver } from './client-runner.resolver';
  * @deprecated
  * @see RxClientRunnerResolver
  */
-export class RxNodeRunnerResolver<L extends RunnersList> extends RxClientRunnerResolver<L> {
-
-}
+export class RxNodeRunnerResolver<L extends RunnersList> extends RxClientRunnerResolver<L> {}

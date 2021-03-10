@@ -5,7 +5,7 @@ const path = require("path");
 const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
-async function buildLibs() {
+async function buildModules() {
     await new Promise((resolve, reject) =>
         exec(`npx rollup --config`, (error) => error ? reject(error) : resolve()));
 }
@@ -53,7 +53,7 @@ async function copyModulesReadme() {
 (async function main() {
     try {
         console.log('Build modules ...');
-        await buildLibs();
+        await buildModules();
         console.log('Build declarations ...');
         await buildDeclarations();
         console.log('Move declarations ...');

@@ -8,5 +8,5 @@ export class TransferRunnerData<
     constructor(
         public data: D,
         public transfer: T[],
-    ) { }
+    ) {}
 }

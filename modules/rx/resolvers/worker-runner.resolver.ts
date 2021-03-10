@@ -5,6 +5,4 @@ import { RxHostRunnerResolver } from './host-runner.resolver';
  * @deprecated
  * @see RxHostRunnerResolver
  */
-export class RxWorkerRunnerResolver<L extends RunnersList> extends RxHostRunnerResolver<L> {
-
-}
+export class RxWorkerRunnerResolver<L extends RunnersList> extends RxHostRunnerResolver<L> {}

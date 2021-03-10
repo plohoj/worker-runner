@@ -46,7 +46,7 @@ const karmaConfig = {
     },
     optimization: {
       splitChunks: {
-        chunks: "all"
+        chunks: "all",
       },
     },
     module: {

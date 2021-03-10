@@ -33,6 +33,7 @@ export class WorkerRunnerErrorSerializer {
                 errorCode,
                 name: error.name || alternativeError.name || WorkerRunnerUnexpectedError.name,
                 message: error.message || alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
+                // eslint-disable-next-line unicorn/error-message
                 stack: error.stack || alternativeError.stack || new Error().stack,
             };
             if (error instanceof HostResolverDestroyError) {
@@ -47,15 +48,14 @@ export class WorkerRunnerErrorSerializer {
                 message: error
                     ? String(error)
                     : (alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR()),
+                // eslint-disable-next-line unicorn/error-message
                 stack: alternativeError.stack || new Error().stack,
             };
         }
-        if (!serializedError.originalErrors) {
-            if (alternativeError instanceof HostResolverDestroyError) {
-                serializedError.originalErrors = alternativeError.originalErrors.map(
-                    originalError => this.serialize(originalError)
-                );
-            }
+        if (!serializedError.originalErrors && alternativeError instanceof HostResolverDestroyError) {
+            serializedError.originalErrors = alternativeError.originalErrors.map(
+                originalError => this.serialize(originalError)
+            );
         }
         return serializedError;
     }

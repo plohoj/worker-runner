@@ -31,7 +31,10 @@ function generateBuildConfig(moduleName, moduleFormat) {
     return config;
 }
 
-module.exports = [].concat(
-    ...moduleNames.map(moduleName => moduleFormats.map((moduleFormat) =>
-        generateBuildConfig(moduleName, moduleFormat))),
-);
+const configs = [];
+for (const moduleName of moduleNames) {
+    for (const moduleFormat of moduleFormats) {
+        configs.push(generateBuildConfig(moduleName, moduleFormat));
+    }
+}
+module.exports = configs;
