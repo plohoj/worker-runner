@@ -1,29 +1,8 @@
-import { AnyRunnerFromList, IRunnerControllerConfig, NodeRunnerResolverBase, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, RunnersList } from '@worker-runner/core';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
-import { RxRunnerController } from '../runners/controller/runner.controller';
-import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
+import { RunnersList } from '@worker-runner/core';
+import { RxClientRunnerResolver } from './client-runner.resolver';
 
-type RxRunnerArguments<R extends RunnerConstructor>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    = R extends RunnerConstructor<any, infer A>
-        ? A extends ArrayLike<IRxRunnerSerializedParameter>
-            ? RxResolvedRunnerArguments<A>
-            : never
-        : never;
-
-export class RxNodeRunnerResolver<L extends RunnersList> extends NodeRunnerResolverBase<L> {
-
-    declare public resolve: <I extends RunnerIdentifier<L>>(
-        identifier: I,
-        ...args: RxRunnerArguments<RunnerByIdentifier<L, I>>
-    ) => Promise<RxResolvedRunner<InstanceType<RunnerByIdentifier<L, I>>>>;
-
-    declare protected runnerControllers: Set<RxRunnerController<AnyRunnerFromList<L>>>;
-    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
-
-    protected runnerControllerFactory(
-        config: IRunnerControllerConfig<AnyRunnerFromList<L>>
-    ): RxRunnerController<AnyRunnerFromList<L>> {
-        return new RxRunnerController(config);
-    }
-}
+/**
+ * @deprecated
+ * @see RxClientRunnerResolver
+ */
+export class RxNodeRunnerResolver<L extends RunnersList> extends RxClientRunnerResolver<L> {}

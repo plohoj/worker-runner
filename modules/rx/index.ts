@@ -1,5 +1,7 @@
 export { RxWorkerRunnerErrorCode } from './errors/error-code';
 export { RxRunnerEmitError, RxSubscriptionNotFoundError } from './errors/runner-errors';
+export { RxClientRunnerResolver } from './resolvers/client-runner.resolver';
+export { RxHostRunnerResolver } from './resolvers/host-runner.resolver';
 export { RxLocalRunnerResolver } from './resolvers/local-runner.resolver';
 export { RxNodeRunnerResolver } from './resolvers/node-runner.resolver';
 export { RxRunnerResolver } from './resolvers/runner.resolver';

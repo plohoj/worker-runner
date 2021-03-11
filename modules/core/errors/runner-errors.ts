@@ -62,15 +62,15 @@ export class RunnerDestroyError extends WorkerRunnerError {
     }
 }
 
-export class WorkerDestroyError extends WorkerRunnerError {
+export class HostResolverDestroyError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
     public originalErrors = new Array<Error>();
     constructor(config: IWorkerRunnerErrorConfig & {originalErrors?: Error[]} = {}) {
         super({
-            name: config.name || WorkerDestroyError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.WORKER_DESTROY_ERROR(),
+            name: config.name || HostResolverDestroyError.name,
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_DESTROY_ERROR(),
             stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || WorkerDestroyError,
+            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || HostResolverDestroyError,
         });
         if (config.originalErrors) {
             this.originalErrors.push(...config.originalErrors);

@@ -1,8 +1,7 @@
-
 import { TransferRunnerData } from '@worker-runner/core';
 
 export class WithTransferableRunnerStub {
-    constructor(private arrayBuffer?: ArrayBuffer) { }
+    constructor(private arrayBuffer?: ArrayBuffer) {}
 
     transferArrayBuffer(): TransferRunnerData<ArrayBuffer> {
         if (!this.arrayBuffer) {

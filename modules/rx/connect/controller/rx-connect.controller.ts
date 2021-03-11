@@ -22,10 +22,10 @@ export class RxConnectController extends ConnectController {
 
     public stopListen(isClosePort?: boolean): void {
         this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
-        this.subscribersMap.forEach(subscriber => {
+        for (const subscriber of this.subscribersMap.values()) {
             subscriber.error(this.disconnectStatus);
             subscriber.complete();
-        });
+        }
         this.subscribersMap.clear();
         this.canSubscribedList.clear();
         super.stopListen(isClosePort);

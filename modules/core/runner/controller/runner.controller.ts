@@ -3,7 +3,7 @@ import { ConnectController, IConnectControllerConfig } from '../../connect/contr
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
-import { NodeRunnerResolverBase } from '../../resolver/node/node-runner.resolver';
+import { ClientRunnerResolverBase } from '../../resolver/client/client-runner.resolver';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
@@ -59,7 +59,7 @@ export class RunnerController<R extends RunnerConstructor> {
         methodName: string,
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {
-        const serializedArgumentsData = await NodeRunnerResolverBase.serializeArguments(args);
+        const serializedArgumentsData = await ClientRunnerResolverBase.serializeArguments(args);
         const actionResult = await this.connectController
             .sendAction<IRunnerControllerExecuteAction, IRunnerEnvironmentExecuteResultAction>({
                 type: RunnerControllerAction.EXECUTE,

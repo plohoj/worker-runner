@@ -1,18 +1,21 @@
-import { INodeRunnerResolverConfigBase, RunnersList } from '@worker-runner/core';
-import { RxNodeRunnerResolver } from './node-runner.resolver';
-import { RxWorkerRunnerResolver } from './worker-runner.resolver';
+import { IClientRunnerResolverConfigBase, RunnersList } from '@worker-runner/core';
+import { RxClientRunnerResolver } from './client-runner.resolver';
+import { RxHostRunnerResolver } from './host-runner.resolver';
 
-/** @deprecated use **RxNodeRunnerResolver** and **RxWorkerRunnerResolver** */
-export class RxRunnerResolver<L extends RunnersList> extends RxNodeRunnerResolver<L> {
-    private workerRunnerResolver: RxWorkerRunnerResolver<L>;
+/**
+ * @deprecated
+ * @see RxClientRunnerResolver
+ * @see RxHostRunnerResolver
+ */
+export class RxRunnerResolver<L extends RunnersList> extends RxClientRunnerResolver<L> {
+    private hostRunnerResolver: RxHostRunnerResolver<L>;
 
-    /** @deprecated use **NodeRunnerResolver** and **WorkerRunnerResolver** */
-    constructor(config: INodeRunnerResolverConfigBase<L>) {
+    constructor(config: IClientRunnerResolverConfigBase<L>) {
         super(config);
-        this.workerRunnerResolver = new RxWorkerRunnerResolver(config);
+        this.hostRunnerResolver = new RxHostRunnerResolver(config);
     }
 
     public runInWorker(): void {
-        this.workerRunnerResolver.run();
+        this.hostRunnerResolver.run();
     }
 }
