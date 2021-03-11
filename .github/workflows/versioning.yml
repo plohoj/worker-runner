@@ -24,8 +24,8 @@ jobs:
       run: npm ci
     - name: Configure commit author
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "$(git log -1 --format='%ae')"
+        git config --local user.name "$(git log -1 --format='%an')"
     - name: Updating version
       run: npm run version:minor
     - name: Push to a branch
@@ -50,8 +50,8 @@ jobs:
       run: npm ci
     - name: Configure commit author
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "$(git log -1 --format='%ae')"
+        git config --local user.name "$(git log -1 --format='%an')"
     - name: Updating version
       run: npm run version:patch
     - name: Push to a branch
