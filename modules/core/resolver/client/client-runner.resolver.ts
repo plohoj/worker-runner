@@ -85,7 +85,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
         }
     }
 
-    /** TODO extract serialize / deserialize arguments to component */
+    // TODO extract serialize / deserialize arguments to component
     public static async serializeArguments(
         args: IRunnerParameter[],
     ): Promise<{
@@ -155,7 +155,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
             token = this.runnersListController.getRunnerToken(identifier);
         }
         const action = await this.sendInitAction(token, args);
-        const runnerController = this.runnerControllerPartFactory({
+        const runnerController = this.buildRunnerControllerByPartConfig({
             token: token,
             port: action.port,
             onConnectionClosed: () => this.runnerControllers.delete(runnerController),
@@ -194,22 +194,22 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
         this.resolverBridge = new ClientResolverBridge({ connection });
     }
 
-    protected runnerControllerPartFactory(config: {
+    protected buildRunnerControllerByPartConfig(config: {
         token: RunnerToken,
         port: MessagePort,
         onConnectionClosed?: () => void;
     }): RunnerController<AnyRunnerFromList<L>> {
         const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
         const originalRunnerName = this.runnersListController.getRunner(config.token).name;
-        return this.runnerControllerFactory({
+        return this.buildRunnerController({
             ...config,
             runnerBridgeConstructor,
             originalRunnerName,
-            runnerControllerPartFactory: this.runnerControllerPartFactory.bind(this),
+            runnerControllerPartFactory: this.buildRunnerControllerByPartConfig.bind(this),
         });
     }
 
-    protected runnerControllerFactory(
+    protected buildRunnerController(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RunnerController<AnyRunnerFromList<L>> {
         return new RunnerController(config);
@@ -238,7 +238,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
                 throw this.errorSerializer.deserialize(responseAction);
             }
             return responseAction;
-        } catch (error) { // TODO Needed?
+        } catch (error) {
             if (error instanceof WorkerRunnerError) {
                 throw error;
             }
@@ -247,7 +247,6 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
                     token,
                     runnerName: this.runnersListController.getRunner(token).name,
                 }),
-                stack: error?.stack,
             }));
         }
     }
@@ -277,7 +276,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
         }
         const token = this.runnersListController.getRunnerTokenByInstance(runnerInstance);
         const port = (this.resolverBridge as LocalResolverBridge<L>).hostRunnerResolver.wrapRunner(runnerInstance);
-        const runnerController = this.runnerControllerPartFactory({
+        const runnerController = this.buildRunnerControllerByPartConfig({
             token,
             port,
             onConnectionClosed: () => this.runnerControllers.delete(runnerController),

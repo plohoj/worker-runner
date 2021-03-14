@@ -25,7 +25,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return super.handleExecuteResponse(executeResult);
     }
 
-    protected connectEnvironmentFactory(config: IConnectEnvironmentConfig): RxConnectEnvironment {
+    protected buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
         return new RxConnectEnvironment(config);
     }
 
@@ -41,7 +41,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         } else {
             response = responseWithTransferData;
         }
-        if (RunnerBridge.isRunnerBridge(response)) { // TODO Code is duplicated
+        if (RunnerBridge.isRunnerBridge(response)) {
             const runnerController = await (response as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
             const transferPort: MessagePort =  await runnerController.resolveOrTransferControl();
             const runnerResultAction: IRxRunnerEnvironmentEmitRunnerResultAction = {
@@ -65,7 +65,6 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
     private async mapRxError(error: any): Promise<never> {
         const serializedError = this.errorSerializer.serialize(error, new RxRunnerEmitError({
             message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
-            stack: error?.stack,
         }));
         throw serializedError;
     }

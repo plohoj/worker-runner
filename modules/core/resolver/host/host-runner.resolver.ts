@@ -5,7 +5,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerDestroyError, RunnerInitError, RunnerNotFound, HostResolverDestroyError } from '../../errors/runner-errors';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
-import { RunnerEnvironment } from '../../runner/environment/runner.environment';
+import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { AnyRunnerFromList, RunnersList, RunnersListController, RunnerToken } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerSerializedParameter } from '../../types/constructor';
@@ -26,7 +26,6 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
     protected resolverBridge: HostResolverBridge;
     
     protected readonly runnersListController: RunnersListController<L>;
-    protected readonly RunnerEnvironmentConstructor = RunnerEnvironment; // TODO replace to factory
     protected readonly errorSerializer = this.buildWorkerErrorSerializer();
     protected readonly newConnectionHandler = this.handleNewConnection.bind(this);
     protected readonly connectEnvironment = new ConnectEnvironment({
@@ -74,7 +73,6 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
                                 token: action.token,
                                 runnerName,
                             }),
-                            stack: error?.stack,
                         })),
                     };
                     return errorAction;
@@ -97,7 +95,7 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
         for (const argument of args) {
             switch (argument.type) {
                 case RunnerArgumentType.RUNNER_INSTANCE: {
-                    const controller = this.runnerControllerPartFactory({
+                    const controller = this.buildRunnerControllerByPartConfig({
                         port: argument.port,
                         token: argument.token,
                     });
@@ -125,7 +123,7 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
     public wrapRunner(runner: InstanceType<AnyRunnerFromList<L>>): MessagePort {
         const messageChanel = new MessageChannel();
 
-        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
+        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = this.buildRunnerResolver({
             token: this.runnersListController.getRunnerTokenByInstance(runner),
             runner,
             port: messageChanel.port1,
@@ -138,25 +136,31 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
         return messageChanel.port2;
     }
 
+    protected buildRunnerResolver(
+        config: IRunnerEnvironmentConfig<AnyRunnerFromList<L>>
+    ): RunnerEnvironment<AnyRunnerFromList<L>> {
+        return new RunnerEnvironment(config);
+    }
+
     protected buildWorkerErrorSerializer(): WorkerRunnerErrorSerializer {
         return WORKER_RUNNER_ERROR_SERIALIZER;
     }
 
-    protected runnerControllerPartFactory(config: {
+    protected buildRunnerControllerByPartConfig(config: {
         token: RunnerToken,
         port: MessagePort,
     }): RunnerController<AnyRunnerFromList<L>> {
         const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
         const originalRunnerName = this.runnersListController.getRunner(config.token).name;
-        return this.runnerControllerFactory({
+        return this.buildRunnerController({
             ...config,
             runnerBridgeConstructor,
             originalRunnerName,
-            runnerControllerPartFactory: this.runnerControllerPartFactory.bind(this),
+            runnerControllerPartFactory: this.buildRunnerControllerByPartConfig.bind(this),
         });
     }
 
-    protected runnerControllerFactory(
+    protected buildRunnerController(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RunnerController<AnyRunnerFromList<L>> {
         return new RunnerController(config);
@@ -177,7 +181,6 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
                             token: runnerEnvironment.token,
                             runnerName: runnerEnvironment.runnerName,
                         }),
-                        stack: error?.stack,
                     })));
                 }),
             );
@@ -196,9 +199,7 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private destroyErrorSerializer(error: any): ISerializedError {
-        return this.errorSerializer.serialize(error, new HostResolverDestroyError({
-            stack: error?.stack,
-        }));
+        return this.errorSerializer.serialize(error, new HostResolverDestroyError());
     }
     
     private async initRunnerInstance(
@@ -211,22 +212,17 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
         try {
             runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AnyRunnerFromList<L>>;
         } catch (error) {
-            const errorAction: IHostResolverRunnerInitErrorAction = { // TODO throw
-                type: HostResolverAction.RUNNER_INIT_ERROR,
-                ... this.errorSerializer.serialize(error, new RunnerInitError ({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                        token: action.token,
-                        runnerName: runnerConstructor.name,
-                    }),
-                    stack: error?.stack,
-                })),
-            };
             await Promise.all(deserializeArgumentsData.controllers
                 .map(controller => controller.disconnect()));
-            return errorAction;
+            throw this.errorSerializer.deserialize(this.errorSerializer.serialize(error, new RunnerInitError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                    token: action.token,
+                    runnerName: runnerConstructor.name,
+                }),
+            })));
         }
 
-        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = new this.RunnerEnvironmentConstructor({
+        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = this.buildRunnerResolver({
             token: action.token,
             runner,
             port: messageChanel.port1,

@@ -1,7 +1,7 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
-import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction } from "../client/client-resolver-bridge.actions";
-import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction } from "./host-resolver-bridge.actions";
+import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction, IClientResolverBridgeAction } from "../client/client-resolver-bridge.actions";
+import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction, IHostResolverBridgePongAction, IHostResolverBridgePingAction } from "./host-resolver-bridge.actions";
 
 export interface IHostResolverBridgeConfigBase {
     newConnectionHandler: (messagePort: MessagePort) => void;
@@ -61,6 +61,8 @@ export class HostResolverBridge {
         const messageHandler = this.onMessage.bind(this, connection) as EventListener;
         connection.addEventListener('message',  messageHandler);
         this.connectionsHandlers.set(connection, messageHandler);
+        const pingAction: IHostResolverBridgePingAction = { type: HostResolverBridgeAction.PING };
+        connection.postMessage(pingAction);
     }
 
     private stopListen(connection: RunnerResolverPossibleConnection): void {
@@ -72,20 +74,37 @@ export class HostResolverBridge {
     }
 
     private onMessage(connection: RunnerResolverPossibleConnection, event: MessageEvent): void {
-        const action: IClientResolverBridgeConnectAction = event.data;
-        if (action.type === ClientResolverBridgeAction.CONNECT) {
-            const messageChannel = new MessageChannel();
-            this.onNewConnection(messageChannel.port1);
-            const connectedAction: IHostResolverBridgeConnectedAction = {
-                id: action.id,
-                type: HostResolverBridgeAction.CONNECTED,
-                port: messageChannel.port2,
-            }
-            connection.postMessage(connectedAction, [messageChannel.port2]);
-        } else {
-            throw new WorkerRunnerUnexpectedError({
-                message: 'Unexpected action type in Host Resolver Bridge from Client Resolver Bridge',
-            });
+        const action: IClientResolverBridgeAction = event.data;
+        switch (action.type) {
+            case ClientResolverBridgeAction.CONNECT:
+                this.onConnectAction(action, connection);
+                break;
+            case ClientResolverBridgeAction.PING:
+                this.onPingAction(connection);
+                break;
+            default:
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected action type in Host Resolver Bridge from Client Resolver Bridge',
+                });
+                break;
         }
+    }
+
+    private onPingAction(connection: RunnerResolverPossibleConnection,): void {
+        const pongAction: IHostResolverBridgePongAction = {
+            type: HostResolverBridgeAction.PONG,
+        }
+        connection.postMessage(pongAction);
+    }
+
+    private onConnectAction(action: IClientResolverBridgeConnectAction, connection: RunnerResolverPossibleConnection,): void {
+        const messageChannel = new MessageChannel();
+        this.onNewConnection(messageChannel.port1);
+        const connectedAction: IHostResolverBridgeConnectedAction = {
+            id: action.id,
+            type: HostResolverBridgeAction.CONNECTED,
+            port: messageChannel.port2,
+        }
+        connection.postMessage(connectedAction, [messageChannel.port2]);
     }
 }

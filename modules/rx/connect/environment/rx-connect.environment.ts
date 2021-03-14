@@ -73,8 +73,8 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         super.createMessagePortData(port, portData);
     }
 
-    protected listeningInterrupterFactory(): IRxListeningInterrupter {
-        const parentListeningInterrupter = super.listeningInterrupterFactory()
+    protected buildListeningInterrupter(): IRxListeningInterrupter {
+        const parentListeningInterrupter = super.buildListeningInterrupter()
         return {
             ...parentListeningInterrupter,
             observable: from(parentListeningInterrupter.promise),

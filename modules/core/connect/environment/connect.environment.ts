@@ -47,7 +47,7 @@ export class ConnectEnvironment {
         port.start();
         this.createMessagePortData(port, {
             handler,
-            listeningInterrupter: this.listeningInterrupterFactory(),
+            listeningInterrupter: this.buildListeningInterrupter(),
         });
         this.connectedPorts.add(port);
     }
@@ -104,7 +104,7 @@ export class ConnectEnvironment {
             throw new ConnectionWasClosedError();
         }
         portData.listeningInterrupter.resolve();
-        const listeningInterrupter = this.listeningInterrupterFactory();
+        const listeningInterrupter = this.buildListeningInterrupter();
         portData.listeningInterrupter = listeningInterrupter;
     }
     
@@ -191,7 +191,7 @@ export class ConnectEnvironment {
         return response;
     }
 
-    protected listeningInterrupterFactory(): IListeningInterrupter {
+    protected buildListeningInterrupter(): IListeningInterrupter {
         let resolver: IListeningInterrupter['resolve'];
         const promise = new Promise<void>(resolve => {
             resolver = resolve;

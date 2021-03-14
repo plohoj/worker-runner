@@ -30,7 +30,7 @@ export class RunnerController<R extends RunnerConstructor> {
     public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
     public readonly originalRunnerName: string;
-    // TODO use Factory
+
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly connectController: ConnectController;
     protected readonly runnerControllerPartFactory: RunnerControllerPartFactory<R>;
