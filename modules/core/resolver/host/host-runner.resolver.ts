@@ -73,7 +73,6 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
                                 token: action.token,
                                 runnerName,
                             }),
-                            stack: error?.stack,
                         })),
                     };
                     return errorAction;
@@ -182,7 +181,6 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
                             token: runnerEnvironment.token,
                             runnerName: runnerEnvironment.runnerName,
                         }),
-                        stack: error?.stack,
                     })));
                 }),
             );
@@ -201,9 +199,7 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private destroyErrorSerializer(error: any): ISerializedError {
-        return this.errorSerializer.serialize(error, new HostResolverDestroyError({
-            stack: error?.stack,
-        }));
+        return this.errorSerializer.serialize(error, new HostResolverDestroyError());
     }
     
     private async initRunnerInstance(
@@ -216,19 +212,14 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
         try {
             runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AnyRunnerFromList<L>>;
         } catch (error) {
-            const errorAction: IHostResolverRunnerInitErrorAction = { // TODO throw
-                type: HostResolverAction.RUNNER_INIT_ERROR,
-                ... this.errorSerializer.serialize(error, new RunnerInitError ({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                        token: action.token,
-                        runnerName: runnerConstructor.name,
-                    }),
-                    stack: error?.stack,
-                })),
-            };
             await Promise.all(deserializeArgumentsData.controllers
                 .map(controller => controller.disconnect()));
-            return errorAction;
+            throw this.errorSerializer.deserialize(this.errorSerializer.serialize(error, new RunnerInitError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                    token: action.token,
+                    runnerName: runnerConstructor.name,
+                }),
+            })));
         }
 
         const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = this.buildRunnerResolver({

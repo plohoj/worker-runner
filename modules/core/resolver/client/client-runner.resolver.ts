@@ -85,7 +85,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
         }
     }
 
-    /** TODO extract serialize / deserialize arguments to component */
+    // TODO extract serialize / deserialize arguments to component
     public static async serializeArguments(
         args: IRunnerParameter[],
     ): Promise<{
@@ -238,7 +238,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
                 throw this.errorSerializer.deserialize(responseAction);
             }
             return responseAction;
-        } catch (error) { // TODO Needed?
+        } catch (error) {
             if (error instanceof WorkerRunnerError) {
                 throw error;
             }
@@ -247,7 +247,6 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
                     token,
                     runnerName: this.runnersListController.getRunner(token).name,
                 }),
-                stack: error?.stack,
             }));
         }
     }

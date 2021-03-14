@@ -67,7 +67,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                         runnerName: this.runnerName,
                         methodName: action.method,
                     }),
-                    stack: error?.stack
                 })),
             };
         }
@@ -109,7 +108,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                                 methodName: action.method,
                                 runnerName: this.runnerName,
                             }),
-                            stack: error?.stack,
                         })),
                     };
                 }
@@ -158,7 +156,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 token: this.token,
                 runnerName: this.runnerName,
             }),
-            stack: error?.stack,
         }));
     }
 
