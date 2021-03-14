@@ -20,7 +20,7 @@ export class RxClientRunnerResolver<L extends RunnersList> extends ClientRunnerR
 
     protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
 
-    protected runnerControllerFactory(
+    protected buildRunnerController(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RxRunnerController<AnyRunnerFromList<L>> {
         return new RxRunnerController(config);

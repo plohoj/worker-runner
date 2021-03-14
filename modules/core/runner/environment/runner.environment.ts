@@ -41,7 +41,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.runnerInstance = config.runner;
         this.hostRunnerResolver = config.hostRunnerResolver;
         this.onDestroyed = config.onDestroyed;
-        this.connectEnvironment = this.connectEnvironmentFactory({
+        this.connectEnvironment = this.buildConnectEnvironment({
             destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
             actionsHandler: this.handleAction.bind(this),
             destroyHandler: this.handleDestroy.bind(this),
@@ -147,7 +147,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         }
     }
 
-    protected connectEnvironmentFactory(config: IConnectEnvironmentConfig): ConnectEnvironment {
+    protected buildConnectEnvironment(config: IConnectEnvironmentConfig): ConnectEnvironment {
         return new ConnectEnvironment(config);
     }
 

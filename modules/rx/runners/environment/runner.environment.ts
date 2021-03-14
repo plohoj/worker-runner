@@ -25,7 +25,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return super.handleExecuteResponse(executeResult);
     }
 
-    protected connectEnvironmentFactory(config: IConnectEnvironmentConfig): RxConnectEnvironment {
+    protected buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
         return new RxConnectEnvironment(config);
     }
 
