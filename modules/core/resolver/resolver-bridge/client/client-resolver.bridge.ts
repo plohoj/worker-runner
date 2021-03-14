@@ -1,11 +1,11 @@
 import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
 import { IPromiseMethods } from "../../../utils/promise-list.resolver";
-import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction } from "../host/host-resolver-bridge.actions";
-import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction } from "./client-resolver-bridge.actions";
+import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction, IHostResolverBridgeAction } from "../host/host-resolver-bridge.actions";
+import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction, IClientResolverBridgePingAction } from "./client-resolver-bridge.actions";
 
 interface IClientBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
-    readonly actionId: number,
+    actionId?: number,
     messagePort?: MessagePort,
 }
 
@@ -28,27 +28,25 @@ export class ClientResolverBridge {
 
     public async connect(): Promise<MessagePort> {
         if (this.connectInfo) {
-            throw new WorkerRunnerUnexpectedError({
-                message: 'Connection already established',
-            });
+            throw new WorkerRunnerUnexpectedError({ message: 'Connection already established' });
         }
         const messagePort = await new Promise<MessagePort>((resolve, reject) => {
-            const actionId = this.resolveActionId();
-            this.connectInfo = { actionId, resolve, reject };
+            this.connectInfo = { resolve, reject };
             this.connection.addEventListener('message', this.hostMessageHandler as EventListener);
-            const initAction: IClientResolverBridgeConnectAction = {
-                id: actionId,
-                type: ClientResolverBridgeAction.CONNECT,
-            };
-            this.connection.postMessage(initAction);
+            const pingAction: IClientResolverBridgePingAction = { type: ClientResolverBridgeAction.PING };
+            this.connection.postMessage(pingAction);
         });
         this.connection.removeEventListener('message', this.hostMessageHandler as EventListener);
         return messagePort;
     }
 
     private onHostMessage(event: MessageEvent): void {
-        const action: IHostResolverBridgeConnectedAction = event.data;
+        const action: IHostResolverBridgeAction = event.data;
         switch (action.type) {
+            case HostResolverBridgeAction.PING:
+            case HostResolverBridgeAction.PONG:
+                this.onPingOrPongAction();
+                break;
             case HostResolverBridgeAction.CONNECTED:
                 this.onConnected(action);
                 break;
@@ -58,12 +56,27 @@ export class ClientResolverBridge {
                 });
         }
     }
+    
+    private onPingOrPongAction(): void {
+        if (!this.connectInfo) {
+            throw new WorkerRunnerUnexpectedError({ message: 'Connection was established before initiation' });
+        }
+        if (typeof this.connectInfo.actionId === 'number') {
+            // The connection is already established or has been established
+            return;
+        }
+        const actionId = this.resolveActionId();
+        this.connectInfo.actionId = actionId;
+        const connectAction: IClientResolverBridgeConnectAction = {
+            id: actionId,
+            type: ClientResolverBridgeAction.CONNECT,
+        };
+        this.connection.postMessage(connectAction);
+    }
 
     private onConnected(action: IHostResolverBridgeConnectedAction): void {
         if (!this.connectInfo) {
-            throw new WorkerRunnerUnexpectedError({
-                message: 'Connection was established before initiation',
-            });
+            throw new WorkerRunnerUnexpectedError({ message: 'Connection was established before initiation' });
         }
         if (this.connectInfo.actionId === action.id) {
             this.connectInfo.resolve(action.port);

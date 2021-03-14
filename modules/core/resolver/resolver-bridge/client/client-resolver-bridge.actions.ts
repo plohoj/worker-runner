@@ -1,7 +1,11 @@
 export enum ClientResolverBridgeAction {
+    PING = 'PING',
     CONNECT = 'CONNECT',
-    DISCONNECT = 'DISCONNECT',
-    DESTROY = 'DESTROY',
+}
+
+
+export interface IClientResolverBridgePingAction {
+    type: ClientResolverBridgeAction.PING;
 }
 
 export interface IClientResolverBridgeConnectAction {
@@ -9,12 +13,4 @@ export interface IClientResolverBridgeConnectAction {
     type: ClientResolverBridgeAction.CONNECT;
 }
 
-export interface IClientResolverBridgeDisconnectAction {
-    id: number;
-    type: ClientResolverBridgeAction.DISCONNECT;
-}
-
-export interface IClientResolverBridgeDestroyAction {
-    id: number;
-    type: ClientResolverBridgeAction.DESTROY;
-}
+export type IClientResolverBridgeAction = IClientResolverBridgePingAction | IClientResolverBridgeConnectAction;

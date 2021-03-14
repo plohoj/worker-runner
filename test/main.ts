@@ -1,3 +1,4 @@
+import './collection/connection-timeout';
 import './collection/constructor';
 import './collection/destroy-resolver';
 import './collection/destroy-runner';
