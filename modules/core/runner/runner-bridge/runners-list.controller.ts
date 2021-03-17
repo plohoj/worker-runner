@@ -65,7 +65,6 @@ type RunnerInIdentifierMap<M extends RunnersList, R extends RunnerConstructor>
                 : never
         : never;
 
-// TODO Just transfer RunnerIdentifierMap to IRunnerWidthToken
 export type RunnerByIdentifier<M extends RunnersList, T extends RunnerIdentifier>
     = T extends RunnerConstructor
         ? RunnerInIdentifierMap<M, T>
