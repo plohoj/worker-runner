@@ -39,7 +39,7 @@ export abstract class HostRunnerResolverBase<L extends RunnersList> {
         this.resolverBridge = new HostResolverBridge({
             newConnectionHandler: this.newConnectionHandler,
             connections: config.connections
-                ? config.connections.slice()
+                ? [...config.connections]
                 : [self],
         });
     }

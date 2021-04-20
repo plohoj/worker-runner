@@ -73,6 +73,7 @@ export class ClientRunnerResolverBase<L extends RunnersList>  {
         this.runnersListController = new RunnersListController({
             runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,
         });
+        // eslint-disable-next-line unicorn/prefer-ternary
         if ('connection' in config) {
             this.connectionConfig = {
                 connection: config.connection

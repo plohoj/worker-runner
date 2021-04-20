@@ -1,10 +1,10 @@
 import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from 'test/common/resolver-list';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { each } from 'test/utils/each';
-import { errorContaining } from 'test/utils/error-containing';
+import { resolverList } from '../common/resolver-list';
+import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { each } from '../utils/each';
+import { errorContaining } from '../utils/error-containing';
 
 each(resolverList, (mode, resolver) =>
     describe(`${mode} destroy resolver`, () => {

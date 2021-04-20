@@ -21,7 +21,7 @@ export class HostResolverBridge {
 
     constructor (config: IHostResolverBridgeConfigBase) {
         this.onNewConnection = config.newConnectionHandler;
-        this.addConnections(config.connections.slice());
+        this.addConnections([...config.connections]);
     }
 
     public run(): void {

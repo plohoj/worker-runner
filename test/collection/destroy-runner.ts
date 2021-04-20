@@ -1,13 +1,13 @@
 import { ResolvedRunner, RunnerDestroyError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from 'test/common/resolver-list';
-import { EXECUTABLE_STUB_RUNNER_TOKEN } from 'test/common/runner-list';
-import { ErrorStubRunner } from 'test/common/stubs/error-stub.runner';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
-import { each } from 'test/utils/each';
-import { errorContaining } from 'test/utils/error-containing';
+import { resolverList } from '../common/resolver-list';
+import { EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/runner-list';
+import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
+import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
+import { each } from '../utils/each';
+import { errorContaining } from '../utils/error-containing';
 
 each(resolverList, (mode, resolver) =>
     describe(`${mode} destroy runner`, () => {

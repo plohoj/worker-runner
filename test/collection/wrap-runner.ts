@@ -1,9 +1,9 @@
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { runners } from 'test/common/runner-list';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
-import { each } from 'test/utils/each';
+import { runners } from '../common/runner-list';
+import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
+import { each } from '../utils/each';
 
 each({
     Local: LocalRunnerResolver,

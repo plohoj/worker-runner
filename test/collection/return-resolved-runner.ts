@@ -1,11 +1,11 @@
 import { ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from 'test/common/resolver-list';
-import { runners } from 'test/common/runner-list';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { WithLocalResolverStub } from 'test/common/stubs/with-local-resolver-stub.runner';
-import { each } from 'test/utils/each';
+import { resolverList } from '../common/resolver-list';
+import { runners } from '../common/runner-list';
+import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';
+import { each } from '../utils/each';
 
 each(resolverList, (mode, resolver) =>
     describe(`${mode} return Resolved Runner`, () => {

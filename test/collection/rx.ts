@@ -1,11 +1,11 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { rxLocalRunnerResolver, rxRunnerResolver } from 'test/common/rx';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { RxStubRunner } from 'test/common/stubs/rx-stub.runner';
-import { each } from 'test/utils/each';
-import { errorContaining } from 'test/utils/error-containing';
-import { isIE } from 'test/utils/is-internet-explorer';
+import { rxLocalRunnerResolver, rxRunnerResolver } from '../common/rx';
+import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { RxStubRunner } from '../common/stubs/rx-stub.runner';
+import { each } from '../utils/each';
+import { errorContaining } from '../utils/error-containing';
+import { isIE } from '../utils/is-internet-explorer';
 
 each({
     Rx: rxRunnerResolver,
