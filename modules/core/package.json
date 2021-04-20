@@ -3,7 +3,7 @@
   "version": "0.9.2",
   "repository": {
     "type": "git",
-    "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
+    "url": "git+https://github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
   "license": "MIT",
