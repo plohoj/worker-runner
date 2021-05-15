@@ -25,9 +25,8 @@
     "asynchronous"
   ],
   "dependencies": {
-    "@worker-runner/core": "^0.9.0"
-  },
-  "peerDependencies": {
-    "rxjs": ">=6.0.0"
+    "@worker-runner/core": "^0.9.0",
+    "rxjs": ">=6.0.0",
+    "tslib": "^2.2.0"
   }
 }

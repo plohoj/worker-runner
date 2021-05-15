@@ -73,6 +73,8 @@ module.exports = {
             },
             rules: {
                 '@typescript-eslint/no-var-requires': 'off',
+                'unicorn/prefer-module': 'off',
+                'unicorn/prefer-node-protocol': 'off'
             },
         },
     ],

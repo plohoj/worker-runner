@@ -1,9 +1,9 @@
-import { WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerDestroyError, RunnerInitError, RunnerNotFound, HostResolverDestroyError } from '../../errors/runner-errors';
+import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { ResolvedRunner } from '../../runner/resolved-runner';

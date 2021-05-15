@@ -1,4 +1,4 @@
-import { ConnectionWasClosedError } from "@worker-runner/core";
+import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
 import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActionPropertiesRequirements, IConnectEnvironmentActions, IConnectEnvironmentDestroyedWithErrorAction } from "../environment/connect-environment.actions";
 import { IConnectControllerErrorDeserializer } from "./connect-controller-error-deserializer";

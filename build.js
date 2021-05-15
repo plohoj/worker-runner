@@ -1,21 +1,36 @@
 const { exec } = require('child_process');
-const { readdirSync, rename, rmdir, copyFile } = require('fs');
+const { readdirSync, rename, rmdir, copyFile, rm } = require('fs');
 const path = require("path");
 
 const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
-    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+
+async function removeDistFolder() {
+    await new Promise((resolve, reject) => rm(
+        path.resolve('dist'),
+        {recursive: true, force: true},
+        error => error ? reject(error) : resolve(),
+    ));
+}
 
 async function buildModules() {
     await new Promise((resolve, reject) =>
-        exec(`npx rollup --config`, (error) => error ? reject(error) : resolve()));
+        exec(
+            `npx rollup --config`,
+            (error) => error ? reject(error) : resolve()
+        )
+    );
 }
 
 async function buildDeclarations() {
     await Promise.all(moduleNames
         .filter(moduleName => moduleName !== 'core')
         .map(moduleName => new Promise((resolve, reject) => 
-            exec(`npx tsc -p ./modules/${moduleName} --outDir "./dist/declarations" -d true --emitDeclarationOnly true`,
-                (error) => error ? reject(error) : resolve()),
+            exec(
+                `npx tsc -p ./modules/${moduleName} --outDir "./dist/declarations" -d true --emitDeclarationOnly true`,
+                (error) => error ? reject(error) : resolve(),
+            ),
         )),
     );
 }
@@ -23,20 +38,28 @@ async function buildDeclarations() {
 async function moveDeclarations() {
     await Promise.all(moduleNames
         .map(moduleName => new Promise((resolve, reject) =>
-            rename(path.resolve(`dist/declarations/${moduleName}`), path.resolve(`dist/${moduleName}/declarations`),
+            rename(
+                path.resolve(`dist/declarations/${moduleName}`),
+                path.resolve(`dist/${moduleName}/declarations`),
                 error => error ? reject(error) : resolve()),
-        )),
+            ),
+        ),
     );
-    await new Promise((resolve, reject) => rmdir(path.resolve('dist/declarations'),
-        error => error ? reject(error) : resolve()));
+    await new Promise((resolve, reject) => rmdir(
+        path.resolve('dist/declarations'),
+        error => error ? reject(error) : resolve(),
+    ));
 }
 
 async function copyModulesPackage() {
     await Promise.all(moduleNames
         .map(moduleName => new Promise((resolve, reject) =>
-            copyFile(path.resolve(`modules/${moduleName}/package.json`), path.resolve(`dist/${moduleName}/package.json`),
+            copyFile(
+                path.resolve(`modules/${moduleName}/package.json`),
+                path.resolve(`dist/${moduleName}/package.json`),
                 error => error ? reject(error) : resolve()),
-        )),
+            ),
+        ),
     );
 }
 
@@ -44,14 +67,19 @@ async function copyModulesReadme() {
     await Promise.all(moduleNames
         .map(moduleName => new Promise((resolve, reject) => {
             const readmeFilePath = moduleName == 'core' ? `modules/core/README.md` : `README.md`
-            copyFile(path.resolve(readmeFilePath), path.resolve(`dist/${moduleName}/README.md`),
-                error => error ? reject(error) : resolve());
+            copyFile(
+                path.resolve(readmeFilePath),
+                path.resolve(`dist/${moduleName}/README.md`),
+                error => error ? reject(error) : resolve(),
+            );
         })),
     );
 }
 
 (async function main() {
     try {
+        console.log('Remove "./dist" folder ...');
+        await removeDistFolder();
         console.log('Build modules ...');
         await buildModules();
         console.log('Build declarations ...');

@@ -3,7 +3,8 @@ const { readdirSync } = require('fs');
 const path = require("path");
 
 const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
-    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
 
 async function publish(moduleName) {
     await new Promise((resolve, reject) =>

@@ -26,22 +26,22 @@
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "devDependencies": {
-    "@babel/core": "^7.13.16",
-    "@babel/preset-env": "^7.13.15",
-    "@types/jasmine": "^3.6.10",
+    "@babel/core": "^7.14.2",
+    "@babel/preset-env": "^7.14.2",
+    "@types/jasmine": "^3.7.4",
     "@types/karma-webpack": "^2.0.9",
-    "@types/webpack": "^4.41.26",
-    "@typescript-eslint/eslint-plugin": "^4.22.0",
-    "@typescript-eslint/parser": "^4.22.0",
+    "@types/webpack": "^4.41.28",
+    "@typescript-eslint/eslint-plugin": "^4.23.0",
+    "@typescript-eslint/parser": "^4.23.0",
     "babel-loader": "^8.2.2",
-    "core-js": "^3.11.0",
+    "core-js": "^3.12.1",
     "coverage-istanbul-loader": "^3.0.5",
-    "eslint": "^7.25.0",
+    "eslint": "^7.26.0",
     "eslint-loader": "^4.0.2",
     "eslint-plugin-es": "^4.1.0",
-    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-import": "^2.23.1",
     "eslint-plugin-promise": "^5.1.0",
-    "eslint-plugin-unicorn": "^31.0.0",
+    "eslint-plugin-unicorn": "^32.0.1",
     "jasmine": "^3.7.0",
     "karma": "^6.3.2",
     "karma-chrome-launcher": "^3.1.0",
@@ -50,7 +50,7 @@
     "karma-ie-launcher": "^1.0.0",
     "karma-jasmine": "^4.0.1",
     "karma-webpack": "^4.0.2",
-    "rollup": "^2.45.2",
+    "rollup": "^2.48.0",
     "rollup-plugin-typescript2": "^0.30.0",
     "semver": "^7.3.5",
     "ts-loader": "^8.2.0",
@@ -59,6 +59,7 @@
     "webpack": "^4.44.2"
   },
   "dependencies": {
-    "rxjs": "^6.6.7"
+    "rxjs": "^7.0.1",
+    "tslib": "^2.2.0"
   }
 }

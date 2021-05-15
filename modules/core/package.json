@@ -17,5 +17,8 @@
   "module": "./esm/core.js",
   "keywords": [
     "worker-runner"
-  ]
+  ],
+  "dependencies": {
+    "tslib": "^2.2.0"
+  }
 }
