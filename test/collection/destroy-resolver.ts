@@ -1,7 +1,7 @@
 import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from '../common/resolver-list';
+import { resolverList } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';

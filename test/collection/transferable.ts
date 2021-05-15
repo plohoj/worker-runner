@@ -1,5 +1,5 @@
 import { TransferRunnerData } from '@worker-runner/core';
-import { resolverList } from '../common/resolver-list';
+import { resolverList } from '../client/resolver-list';
 import { WithTransferableRunnerStub } from '../common/stubs/with-transferable-data.stub';
 import { each } from '../utils/each';
 

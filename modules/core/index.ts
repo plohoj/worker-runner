@@ -8,7 +8,6 @@ export { IRunnerExecuteMessageConfig, IRunnerMessageConfig, WORKER_RUNNER_ERROR_
 export { ISerializedErrorAction, WorkerRunnerErrorSerializer } from './errors/error.serializer';
 export { ConnectionWasClosedError, HostResolverDestroyError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from './errors/runner-errors';
 export { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
-export { IRunnerResolverConfigBase } from './resolver/base-runner.resolver';
 export { ClientResolverAction } from './resolver/client/client-resolver.actions';
 export { ClientRunnerResolverBase, IClientRunnerResolverConfigBase, INodeRunnerResolverWorkerConfigBase } from './resolver/client/client-runner.resolver';
 export { HostResolverAction, IHostResolverAction } from './resolver/host/host-resolver.actions';
@@ -20,9 +19,9 @@ export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAct
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/environment/runner.environment';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod, ResolveRunner } from './runner/resolved-runner';
 export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner-bridge/runner.bridge';
-export { AnyRunnerFromList, RunnerByIdentifier, RunnerIdentifier, RunnersList, RunnerToken } from './runner/runner-bridge/runners-list.controller';
 export { BanProperties } from './types/ban-properties';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { JsonObject, TransferableJsonObject } from './types/json-object';
+export { AnyRunnerFromList, ISoftRunnerTokenConfig, IStrictRunnerTokenConfig, RunnerByIdentifier, RunnerIdentifier, RunnerToken, SoftRunnersList, StrictRunnersList } from './types/runner-token';
 export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

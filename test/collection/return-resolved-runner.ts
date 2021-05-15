@@ -1,7 +1,7 @@
 import { ResolvedRunner } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
 import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from '../common/resolver-list';
+import { resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';

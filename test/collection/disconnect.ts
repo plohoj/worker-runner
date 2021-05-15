@@ -1,7 +1,6 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { resolverList } from '../common/resolver-list';
-import { EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/runner-list';
-import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
+import { resolverList } from '../client/resolver-list';
+import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';

@@ -1,4 +1,4 @@
-import { AnyRunnerFromList, ClientRunnerResolverBase, Constructor, IRunnerControllerConfig, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, RunnersList } from '@worker-runner/core';
+import { AnyRunnerFromList, ClientRunnerResolverBase, Constructor, IRunnerControllerConfig, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, SoftRunnersList } from '@worker-runner/core';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerController } from '../runners/controller/runner.controller';
 import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
@@ -11,7 +11,7 @@ type RxRunnerArguments<R extends RunnerConstructor>
             : never
         : never;
 
-export class RxClientRunnerResolver<L extends RunnersList> extends ClientRunnerResolverBase<L> {
+export class RxClientRunnerResolver<L extends SoftRunnersList> extends ClientRunnerResolverBase<L> {
 
     declare public resolve: <I extends RunnerIdentifier<L>>(
         identifier: I,

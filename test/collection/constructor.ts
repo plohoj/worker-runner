@@ -1,10 +1,10 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { resolverList } from '../common/resolver-list';
-import { EXECUTABLE_STUB_RUNNER_TOKEN, runners } from '../common/runner-list';
+import { resolverList } from '../client/resolver-list';
+import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
-import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
-import { ExtendedStubRunner } from '../common/stubs/extended-stub.runner';
+import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
+import { EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
@@ -32,7 +32,7 @@ each(resolverList, (mode, resolver) =>
 
         it ('with arguments by token', async () => {
             const storageData = {
-                id: 5326,
+                id: 186,
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
@@ -43,7 +43,7 @@ each(resolverList, (mode, resolver) =>
 
         it ('with Resolved Runner in arguments', async () => {
             const storageData = {
-                id: 5326,
+                id: 675,
                 type: 'STORAGE_DATA',
             };
             const executableStubRunner = await resolver
@@ -86,8 +86,10 @@ each(resolverList, (mode, resolver) =>
                 }));
         });
 
-        it('with extended class', async () => {
-            const executableStubRunner = await resolver.resolve(ExtendedStubRunner);
+        it('with extended and soft configured class', async () => {
+            // TODO the next line should throw a type error
+            // const executableStubRunner = await resolver.resolve(ExtendedStubRunner);
+            const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
         });
 

@@ -1,8 +1,8 @@
-import { RunnersList } from '@worker-runner/core';
+import { StrictRunnersList } from '@worker-runner/core';
 import { HostRunnerResolver } from './host-runner.resolver';
 
 /**
  * @deprecated
  * @see HostRunnerResolver
  */
-export class WorkerRunnerResolver<L extends RunnersList> extends HostRunnerResolver<L> {}
+export class WorkerRunnerResolver<L extends StrictRunnersList> extends HostRunnerResolver<L> {}

@@ -38,8 +38,8 @@ const babelLoader = {
 module.exports = {
     entry: {
         ...modulesEntry,
-        worker: './test/worker.ts',
-        'rx-worker': './test/rx-worker.ts',
+        worker: './test/host/worker.ts',
+        'rx-worker': './test/host/rx-worker.ts',
     },
     context: path.resolve(),
     module: {

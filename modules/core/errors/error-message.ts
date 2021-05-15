@@ -1,4 +1,4 @@
-import { RunnerToken } from "../runner/runner-bridge/runners-list.controller";
+import { RunnerToken } from "../types/runner-token";
 
 export interface IRunnerMessageConfig {
     token?: RunnerToken;

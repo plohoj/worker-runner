@@ -6,11 +6,11 @@ import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-erro
 import { HostRunnerResolverBase } from '../../resolver/host/host-runner.resolver';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
+import { RunnerToken } from "../../types/runner-token";
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
 import { RunnerController } from '../controller/runner.controller';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner-bridge/runner.bridge';
-import { RunnerToken } from '../runner-bridge/runners-list.controller';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from './runner-environment.actions';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {

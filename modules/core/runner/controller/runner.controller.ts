@@ -5,10 +5,10 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { ClientRunnerResolverBase } from '../../resolver/client/client-runner.resolver';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
+import { RunnerToken } from "../../types/runner-token";
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner-bridge/runner.bridge';
-import { RunnerToken } from '../runner-bridge/runners-list.controller';
 import { IRunnerControllerExecuteAction, RunnerControllerAction } from './runner-controller.actions';
 
 type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
@@ -18,7 +18,7 @@ type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
     token: RunnerToken;
-    originalRunnerName: string;
+    originalRunnerName?: string;
     port: MessagePort;
     runnerBridgeConstructor: IRunnerBridgeConstructor<R>;
     onConnectionClosed?: () => void;
@@ -29,7 +29,7 @@ export class RunnerController<R extends RunnerConstructor> {
     public readonly token: RunnerToken;
     public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
-    public readonly originalRunnerName: string;
+    public readonly originalRunnerName?: string;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly connectController: ConnectController;

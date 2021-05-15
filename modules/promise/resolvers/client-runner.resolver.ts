@@ -1,4 +1,4 @@
-import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, RunnersList } from '@worker-runner/core';
+import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, SoftRunnersList } from '@worker-runner/core';
 
 type RunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,7 +8,7 @@ type RunnerArguments<R extends RunnerConstructor>
             : never
         : never;
 
-export class ClientRunnerResolver<L extends RunnersList> extends ClientRunnerResolverBase<L> {
+export class ClientRunnerResolver<L extends SoftRunnersList> extends ClientRunnerResolverBase<L> {
 
     declare public resolve: <I extends RunnerIdentifier<L>>(
         identifier: I,

@@ -2,90 +2,23 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../../errors/error-message";
 import { RunnerNotFound } from "../../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../../types/constructor";
 import { JsonObject } from "../../types/json-object";
+import { AnyRunnerFromList, RunnerToken, RunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList } from "../../types/runner-token";
 import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
 
-/**
- * Runner identification token.
- * By default equal to the Runner class name
- */
-export type RunnerToken = string;
-
-interface IRunnerWidthToken<R extends RunnerConstructor = RunnerConstructor> {
-    token: RunnerToken,
-    runner: R,
-}
-
-export type RunnersList = ReadonlyArray<IRunnerWidthToken | RunnerConstructor>
-
-type isLiteralString<T extends string> = string extends T ? false : true;
-
-export type AnyRunnerFromList<T extends RunnersList>
-    = T extends ArrayLike<infer TOR>
-        ? TOR extends IRunnerWidthToken
-            ? TOR['runner']
-            : TOR
-        : never;
-
-export type RunnerIdentifier<M extends RunnersList = RunnersList> = RunnerToken | AnyRunnerFromList<M>;
-
-type RunnerByToken<M extends RunnersList, T extends RunnerToken>
-    = isLiteralString<T> extends true
-        ? M extends ArrayLike<infer TOR>
-            ? TOR extends IRunnerWidthToken
-                ? T extends TOR['token']
-                    ? isLiteralString<TOR['token']> extends true
-                        ? TOR['runner']
-                        : never
-                    : never
-                : never
-            : never
-        :never;
-
-type NotTargetRunners<M extends RunnersList, T extends RunnerToken>
-    = isLiteralString<T> extends true
-        ? M extends ArrayLike<infer TOR>
-            ? TOR extends IRunnerWidthToken
-                ? T extends TOR['token']
-                    ? never
-                    : isLiteralString<TOR['token']> extends true
-                        ? TOR['runner']
-                        : never
-                : never
-            : never
-        : never;
-
-type RunnerInIdentifierMap<M extends RunnersList, R extends RunnerConstructor>
-    = M extends ArrayLike<infer TOR>
-        ? TOR extends R 
-            ? R
-            : TOR extends IRunnerWidthToken
-                ? TOR['runner'] extends R
-                    ? TOR['runner']
-                    : never
-                : never
-        : never;
-
-export type RunnerByIdentifier<M extends RunnersList, T extends RunnerIdentifier>
-    = T extends RunnerConstructor
-        ? RunnerInIdentifierMap<M, T>
-        : T extends RunnerToken
-            ? RunnerByToken<M, T> extends never
-                ? Exclude<AnyRunnerFromList<M>, NotTargetRunners<M, T>>
-                : RunnerByToken<M, T>
-            : never
-
-interface IRunnerBridgeCollectionConfig<M extends RunnersList> {
+interface IRunnerBridgeCollectionConfig<M extends SoftRunnersList> {
     runners: M;
 }
 
-interface IRunnerByTokenDataRecord {
-    [token: string]: {
-        runnerConstructor: RunnerConstructor;
-        bridgeConstructor: IRunnerBridgeConstructor;
-    }
+interface IRunnerByTokenData {
+    runnerConstructor?: RunnerConstructor;
+    bridgeConstructor: IRunnerBridgeConstructor;
 }
 
-export class RunnersListController<L extends RunnersList> {
+interface IRunnerByTokenDataRecord {
+    [token: string]: undefined | IRunnerByTokenData;
+}
+
+export class RunnersListController<L extends SoftRunnersList> {
     public readonly runnerByTokenDataRecord: IRunnerByTokenDataRecord = {};
     public readonly runnerTokenMap = new Map<AnyRunnerFromList<L>, RunnerToken>();
 
@@ -109,18 +42,30 @@ export class RunnersListController<L extends RunnersList> {
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
+    public getRunnerSoft<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> | undefined {
+        return this.runnerByTokenDataRecord[token]?.runnerConstructor as RunnerByIdentifier<L, T> | undefined;
+    }
+
     public getRunner<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> {
-        const runnerData = this.runnerByTokenDataRecord[token];
-        if (!runnerData) {
+        const runnerConstructor = this.getRunnerSoft(token);
+        if (!runnerConstructor) {
             throw new RunnerNotFound({
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
             });
         }
-        return runnerData.runnerConstructor as RunnerByIdentifier<L, T>;
+        return runnerConstructor;
     }
 
-    public checkToken<T extends RunnerToken = RunnerToken>(token: T): boolean {
+    public hasToken<T extends RunnerToken = RunnerToken>(token: T): boolean {
         return token in this.runnerByTokenDataRecord;
+    }
+
+    public hasBridgeConstructor<T extends RunnerToken = RunnerToken>(token: T): boolean {
+        const runnerByTokenData = this.runnerByTokenDataRecord[token];
+        if (!runnerByTokenData) {
+            return false;
+        }
+        return 'bridgeConstructor' in runnerByTokenData;
     }
 
     public getRunnerBridgeConstructor<T extends RunnerToken = RunnerToken>(
@@ -135,12 +80,29 @@ export class RunnersListController<L extends RunnersList> {
         return runnerData.bridgeConstructor as IRunnerBridgeConstructor<RunnerByIdentifier<L, T>>;
     }
 
-    public getRunnerList(): IRunnerWidthToken<AnyRunnerFromList<L>>[] {
-        const runnersList = new Array<IRunnerWidthToken<AnyRunnerFromList<L>>>();
+    public defineRunnerBridge(token: RunnerToken, methodsNames: string[]): void {
+        const ResolvedRunner = this.buildBaseBridgeConstructor('ByToken' + token);
+        for (const methodsName of methodsNames) {
+            this.attachUndeclaredMethod(ResolvedRunner, methodsName)
+        }
+        this.runnerByTokenDataRecord[token] = {
+            bridgeConstructor: ResolvedRunner,
+        };
+    }
+
+    public getRunnerList(): IStrictRunnerTokenConfig<AnyRunnerFromList<L>>[] {
+        const runnersList = new Array<IStrictRunnerTokenConfig<AnyRunnerFromList<L>>>();
         for (const [runner, token] of this.runnerTokenMap) {
             runnersList.push({ runner, token });
         }
         return runnersList;
+    }
+
+    public getRunnerMethodsNames(token: RunnerToken): string[] {
+        const runnerBridgeConstructor = this.getRunnerBridgeConstructor(token);
+        const allMethodsNames = Object.keys(runnerBridgeConstructor.prototype);
+        const methodsNames = allMethodsNames.filter(methodName => !(methodName in RunnerBridge.prototype));
+        return methodsNames;
     }
 
     private applyRunnerMap(runnersMap: L): void {
@@ -154,32 +116,45 @@ export class RunnersListController<L extends RunnersList> {
                 token = runner.name;
                 runnerConstructor = runner as AnyRunnerFromList<L>;
             }
-            this.runnerByTokenDataRecord[token] = {
-                bridgeConstructor: this.resolveRunnerBridgeConstructor(runnerConstructor),
-                runnerConstructor: runnerConstructor,
-            };
-            this.runnerTokenMap.set(runnerConstructor, token);
+            if (runnerConstructor) {
+                this.runnerByTokenDataRecord[token] = {
+                    bridgeConstructor: this.resolveRunnerBridgeConstructor(runnerConstructor),
+                    runnerConstructor: runnerConstructor,
+                };
+                this.runnerTokenMap.set(runnerConstructor, token);
+             } else {
+                this.runnerByTokenDataRecord[token] = undefined;
+             }
         }
     }
 
-    private recursiveOverrideProperty(construct: Constructor, proto: Constructor) {
+    private recursiveAttachUndeclaredMethods(construct: Constructor, proto: Constructor): void {
         for (const key of Object.getOwnPropertyNames(proto.prototype)) {
-            if (!(key in RunnerBridge.prototype)) {
-                construct.prototype[key] = function(this: RunnerBridge, ...args: JsonObject[]) {
-                    return this[EXECUTE_RUNNER_CONTROLLER_METHOD](key, args);
-                };
-            }
+            this.attachUndeclaredMethod(construct, key)
             const parent = Object.getPrototypeOf(proto);
             if (parent.prototype) {
-                this.recursiveOverrideProperty(construct, parent);
+                this.recursiveAttachUndeclaredMethods(construct, parent);
             }
+        }
+    }
+
+    private attachUndeclaredMethod(bridgeConstructor: Constructor, methodName: string): void {
+        if (!(methodName in bridgeConstructor.prototype)) {
+            bridgeConstructor.prototype[methodName] = function(this: RunnerBridge, ...args: JsonObject[]) {
+                return this[EXECUTE_RUNNER_CONTROLLER_METHOD](methodName, args);
+            };
         }
     }
 
     private resolveRunnerBridgeConstructor(runner: RunnerConstructor): IRunnerBridgeConstructor<RunnerConstructor> {
-        const className = 'Resolved' + runner.name;
+        const ResolvedRunner = this.buildBaseBridgeConstructor(runner.name);
+        this.recursiveAttachUndeclaredMethods(ResolvedRunner, runner);
+        return ResolvedRunner;
+    }
+
+    private buildBaseBridgeConstructor(name: string): IRunnerBridgeConstructor {
+        const className = 'Resolved' + name;
         const ResolvedRunner = {[className]: class extends RunnerBridge {}}[className];
-        this.recursiveOverrideProperty(ResolvedRunner, runner);
-        return ResolvedRunner as unknown as IRunnerBridgeConstructor<RunnerConstructor>;
+        return ResolvedRunner as unknown as IRunnerBridgeConstructor;
     }
 } 

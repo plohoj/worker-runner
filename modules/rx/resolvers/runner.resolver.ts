@@ -1,4 +1,4 @@
-import { IClientRunnerResolverConfigBase, RunnersList } from '@worker-runner/core';
+import { IClientRunnerResolverConfigBase, StrictRunnersList } from '@worker-runner/core';
 import { RxClientRunnerResolver } from './client-runner.resolver';
 import { RxHostRunnerResolver } from './host-runner.resolver';
 
@@ -7,7 +7,7 @@ import { RxHostRunnerResolver } from './host-runner.resolver';
  * @see RxClientRunnerResolver
  * @see RxHostRunnerResolver
  */
-export class RxRunnerResolver<L extends RunnersList> extends RxClientRunnerResolver<L> {
+export class RxRunnerResolver<L extends StrictRunnersList> extends RxClientRunnerResolver<L> {
     private hostRunnerResolver: RxHostRunnerResolver<L>;
 
     constructor(config: IClientRunnerResolverConfigBase<L>) {

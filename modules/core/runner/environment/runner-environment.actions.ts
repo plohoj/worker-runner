@@ -1,6 +1,6 @@
 import { ISerializedErrorAction } from '../../errors/error.serializer';
 import { TransferableJsonObject } from '../../types/json-object';
-import { RunnerToken } from '../runner-bridge/runners-list.controller';
+import { RunnerToken } from "../../types/runner-token";
 
 export enum RunnerEnvironmentAction {
     EXECUTED = 'EXECUTED',

@@ -1,5 +1,5 @@
-import { RunnerToken } from '../runner/runner-bridge/runners-list.controller';
 import { JsonObject } from './json-object';
+import { RunnerToken } from "./runner-token";
 
 export enum RunnerArgumentType {
     JSON = 'JSON',
