@@ -1,4 +1,4 @@
-import { AnyRunnerFromList, LocalResolverBridge, ResolvedRunner, StrictRunnersList } from '@worker-runner/core';
+import { AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, StrictRunnersList } from '@worker-runner/core';
 import { ClientRunnerResolver } from './client-runner.resolver';
 import { HostRunnerResolver } from './host-runner.resolver';
 
@@ -7,7 +7,7 @@ interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
 }
 
 export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunnerResolver<L> {
-    declare public wrapRunner: <R extends InstanceType<AnyRunnerFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
+    declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
 
     declare protected resolverBridge?: LocalResolverBridge<L>;
 

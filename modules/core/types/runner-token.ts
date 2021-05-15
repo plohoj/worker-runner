@@ -4,7 +4,6 @@ import { RunnerConstructor } from "./constructor";
  * Runner identification token.
  * By default equal to the Runner class name
  */
-
 export type RunnerToken = string;
 
 export type IStrictRunnerTokenConfig<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken> = {
@@ -21,6 +20,15 @@ export type SoftRunnersList = ReadonlyArray<ISoftRunnerTokenConfig | RunnerConst
 
 type isLiteralString<T extends string> = string extends T ? false : true;
 
+export type AvailableRunnersFromList<L extends SoftRunnersList>
+    = L extends ArrayLike<infer TOR>
+        ? TOR extends ISoftRunnerTokenConfig
+            ? undefined extends TOR['runner'] 
+                ? never
+                : TOR['runner']
+            : TOR
+        : never;
+
 export type AnyRunnerFromList<L extends SoftRunnersList>
     = L extends ArrayLike<infer TOR>
         ? TOR extends ISoftRunnerTokenConfig
@@ -28,11 +36,11 @@ export type AnyRunnerFromList<L extends SoftRunnersList>
             : TOR
         : never;
 
-export type RunnerIdentifier<M extends SoftRunnersList = SoftRunnersList> = RunnerToken | AnyRunnerFromList<M>;
+export type RunnerIdentifier<L extends SoftRunnersList = SoftRunnersList> = RunnerToken | AvailableRunnersFromList<L>;
 
-type RunnerByToken<M extends SoftRunnersList, T extends RunnerToken>
+export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
     = isLiteralString<T> extends true
-        ? M extends ArrayLike<infer TOR>
+        ? L extends ArrayLike<infer TOR>
             ? TOR extends ISoftRunnerTokenConfig
                 ? T extends TOR['token']
                     ? isLiteralString<TOR['token']> extends true
@@ -43,9 +51,9 @@ type RunnerByToken<M extends SoftRunnersList, T extends RunnerToken>
             : never
         :never;
 
-type NotTargetRunners<M extends SoftRunnersList, T extends RunnerToken>
+type NotTargetRunners<L extends SoftRunnersList, T extends RunnerToken>
     = isLiteralString<T> extends true
-        ? M extends ArrayLike<infer TOR>
+        ? L extends ArrayLike<infer TOR>
             ? TOR extends ISoftRunnerTokenConfig
                 ? T extends TOR['token']
                     ? never
@@ -56,20 +64,22 @@ type NotTargetRunners<M extends SoftRunnersList, T extends RunnerToken>
             : never
         : never;
 
-type RunnerInIdentifierMap<M extends SoftRunnersList, R extends RunnerConstructor>
-    = M extends ArrayLike<infer TOR>
+type RunnerConstructorInList<L extends SoftRunnersList, R extends RunnerConstructor>
+    = L extends ArrayLike<infer TOR>
         ? TOR extends R 
             ? R
             : TOR extends ISoftRunnerTokenConfig
                 ? TOR['runner'] extends R
-                    ? Exclude<TOR['runner'], undefined>
+                    ? undefined extends TOR['runner']
+                        ? never
+                        : TOR['runner']
                     : never
                 : never
         : never;
 
 export type RunnerByIdentifier<L extends SoftRunnersList, T extends RunnerIdentifier>
     = T extends RunnerConstructor
-        ? RunnerInIdentifierMap<L, T>
+        ? RunnerConstructorInList<L, T>
         : T extends RunnerToken
             ? RunnerByToken<L, T> extends never
                 ? Exclude<AnyRunnerFromList<L>, NotTargetRunners<L, T>>

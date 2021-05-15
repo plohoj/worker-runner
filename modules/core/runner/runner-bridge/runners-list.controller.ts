@@ -2,7 +2,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../../errors/error-message";
 import { RunnerNotFound } from "../../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../../types/constructor";
 import { JsonObject } from "../../types/json-object";
-import { AnyRunnerFromList, RunnerToken, RunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList, RunnerByToken } from "../../types/runner-token";
 import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
 
 interface IRunnerBridgeCollectionConfig<M extends SoftRunnersList> {
@@ -20,13 +20,13 @@ interface IRunnerByTokenDataRecord {
 
 export class RunnersListController<L extends SoftRunnersList> {
     public readonly runnerByTokenDataRecord: IRunnerByTokenDataRecord = {};
-    public readonly runnerTokenMap = new Map<AnyRunnerFromList<L>, RunnerToken>();
+    public readonly runnerTokenMap = new Map<AvailableRunnersFromList<L>, RunnerToken>();
 
     constructor(config: IRunnerBridgeCollectionConfig<L>) {
         this.applyRunnerMap(config.runners);
     }
 
-    public getRunnerToken<R extends AnyRunnerFromList<L>>(runner: R): RunnerToken {
+    public getRunnerToken<R extends AvailableRunnersFromList<L>>(runner: R): RunnerToken {
         const runnerToken = this.runnerTokenMap.get(runner);
         if (!runnerToken) {
             throw new RunnerNotFound({
@@ -38,7 +38,7 @@ export class RunnersListController<L extends SoftRunnersList> {
         return runnerToken;
     }
 
-    public getRunnerTokenByInstance<R extends AnyRunnerFromList<L>>(runnerInstance: InstanceType<R>): RunnerToken {
+    public getRunnerTokenByInstance<R extends AvailableRunnersFromList<L>>(runnerInstance: InstanceType<R>): RunnerToken {
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
@@ -70,14 +70,14 @@ export class RunnersListController<L extends SoftRunnersList> {
 
     public getRunnerBridgeConstructor<T extends RunnerToken = RunnerToken>(
         token: T
-    ): IRunnerBridgeConstructor<RunnerByIdentifier<L, T>> {
+    ): IRunnerBridgeConstructor<RunnerByToken<L, T>> {
         const runnerData = this.runnerByTokenDataRecord[token];
         if (!runnerData) {
             throw new RunnerNotFound({
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
             });
         }
-        return runnerData.bridgeConstructor as IRunnerBridgeConstructor<RunnerByIdentifier<L, T>>;
+        return runnerData.bridgeConstructor;
     }
 
     public defineRunnerBridge(token: RunnerToken, methodsNames: string[]): void {
@@ -90,8 +90,8 @@ export class RunnersListController<L extends SoftRunnersList> {
         };
     }
 
-    public getRunnerList(): IStrictRunnerTokenConfig<AnyRunnerFromList<L>>[] {
-        const runnersList = new Array<IStrictRunnerTokenConfig<AnyRunnerFromList<L>>>();
+    public getRunnerList(): IStrictRunnerTokenConfig<AvailableRunnersFromList<L>>[] {
+        const runnersList = new Array<IStrictRunnerTokenConfig<AvailableRunnersFromList<L>>>();
         for (const [runner, token] of this.runnerTokenMap) {
             runnersList.push({ runner, token });
         }
@@ -108,13 +108,13 @@ export class RunnersListController<L extends SoftRunnersList> {
     private applyRunnerMap(runnersMap: L): void {
         for (const runner of runnersMap) {
             let token: RunnerToken;
-            let runnerConstructor: AnyRunnerFromList<L>;
+            let runnerConstructor: AvailableRunnersFromList<L>;
             if ('token' in runner) {
                 token = runner.token;
-                runnerConstructor = runner.runner as AnyRunnerFromList<L>;
+                runnerConstructor = runner.runner as AvailableRunnersFromList<L>;
             } else {
                 token = runner.name;
-                runnerConstructor = runner as AnyRunnerFromList<L>;
+                runnerConstructor = runner as AvailableRunnersFromList<L>;
             }
             if (runnerConstructor) {
                 this.runnerByTokenDataRecord[token] = {

@@ -1,6 +1,6 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { resolverList } from '../client/resolver-list';
+import { clientResolverList, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -147,6 +147,23 @@ each(resolverList, (mode, resolver) =>
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+        });
+
+        it('soft initialized runner', async () => {
+            const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
+            await expectAsync(executableStubRunner.amount(2, 5)).toBeResolvedTo(7);
+        });
+    }),
+);
+
+each(clientResolverList, (mode, resolver) =>
+    describe(`${mode} execute`, () => {
+        beforeAll(async () => {
+            await resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
         });
 
         it('soft initialized runner', async () => {

@@ -1,10 +1,10 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { resolverList } from '../client/resolver-list';
+import { clientResolverList, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
-import { EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
+import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
@@ -86,10 +86,8 @@ each(resolverList, (mode, resolver) =>
                 }));
         });
 
-        it('with extended and soft configured class', async () => {
-            // TODO the next line should throw a type error
-            // const executableStubRunner = await resolver.resolve(ExtendedStubRunner);
-            const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
+        it('with extended class', async () => {
+            const executableStubRunner = await resolver.resolve(ExtendedStubRunner);
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
         });
 
@@ -121,6 +119,23 @@ each(resolverList, (mode, resolver) =>
                 name: RunnerNotFound.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
+        });
+    }),
+);
+
+each(clientResolverList, (mode, resolver) =>
+    describe(`${mode} constructor`, () => {
+        beforeAll(async () => {
+            await resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
+        it('with soft token configured', async () => {
+            const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
+            await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
         });
     }),
 );

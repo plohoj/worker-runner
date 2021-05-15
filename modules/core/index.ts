@@ -22,6 +22,6 @@ export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner-bridge/r
 export { BanProperties } from './types/ban-properties';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { JsonObject, TransferableJsonObject } from './types/json-object';
-export { AnyRunnerFromList, ISoftRunnerTokenConfig, IStrictRunnerTokenConfig, RunnerByIdentifier, RunnerIdentifier, RunnerToken, SoftRunnersList, StrictRunnersList } from './types/runner-token';
+export { AnyRunnerFromList, AvailableRunnersFromList, ISoftRunnerTokenConfig, IStrictRunnerTokenConfig, RunnerByIdentifier, RunnerIdentifier, RunnerToken, SoftRunnersList, StrictRunnersList } from './types/runner-token';
 export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

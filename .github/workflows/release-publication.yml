@@ -15,7 +15,7 @@ jobs:
     - name: Checkout to commit
       uses: actions/checkout@v2
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
       with:
         registry-url: https://registry.npmjs.org
     - name: Install npm dependencies

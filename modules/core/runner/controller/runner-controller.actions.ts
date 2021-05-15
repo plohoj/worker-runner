@@ -12,7 +12,6 @@ export interface IRunnerControllerExecuteAction {
     transfer?: Transferable[]
 }
 
-
 export interface IRunnerControllerResolveAction {
     type: RunnerControllerAction.RESOLVE;
 }

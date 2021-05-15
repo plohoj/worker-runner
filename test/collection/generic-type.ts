@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { LocalRunnerResolver } from "@worker-runner/promise";
+import { ISoftRunnerTokenConfig } from "@worker-runner/core";
+import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promise";
 
 describe(`Type check:`, () => {
     class Runner1 { declare method1: () => void; declare method12: () => void }
@@ -220,6 +221,30 @@ describe(`Type check:`, () => {
             // @ts-expect-error
             check3.method2();
             check3.method12();
+        }
+    })
+
+    it('soft token', async () => {
+        if (!skipExecute) {
+            const check0 = await new ClientRunnerResolver({runners: [
+                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1>,
+                Runner2,
+            // @ts-expect-error
+            ]}).resolve(Runner1);
+            // @ts-expect-error
+            check0.method1();
+            // @ts-expect-error
+            check0.method2();
+            check0.method12();
+
+            const check1 = await new ClientRunnerResolver({runners: [
+                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1, 'Runner1'>,
+                Runner2,
+            ]}).resolve('Runner1');
+            check1.method1();
+            // @ts-expect-error
+            check1.method2();
+            check1.method12();
         }
     })
 });

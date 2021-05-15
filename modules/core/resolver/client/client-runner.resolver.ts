@@ -11,7 +11,7 @@ import { IRunnerParameter, IRunnerSerializedParameter } from '../../types/constr
 import { JsonObject } from '../../types/json-object';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
-import { AnyRunnerFromList, RunnerToken, RunnerIdentifier, SoftRunnersList } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, RunnerIdentifier, SoftRunnersList, AnyRunnerFromList } from "../../types/runner-token";
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
 import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
@@ -276,7 +276,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
-    protected wrapRunner(runnerInstance: InstanceType<AnyRunnerFromList<L>>): RunnerBridge {
+    protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerBridge {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),

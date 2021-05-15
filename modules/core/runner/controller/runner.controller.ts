@@ -129,6 +129,7 @@ export class RunnerController<R extends RunnerConstructor> {
         switch (actionResult.type) {
             case RunnerEnvironmentAction.EXECUTE_ERROR:
                 throw this.errorSerializer.deserialize(actionResult);
+            // TODO Result can soft token and bridgeConstructor not available (not received yet)
             case RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT:
                 return this.runnerControllerPartFactory({
                     token: actionResult.token,

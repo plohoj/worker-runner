@@ -11,7 +11,7 @@ import { RunnersListController } from '../../runner/runner-bridge/runners-list.c
 import { IRunnerSerializedParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
-import { AnyRunnerFromList, StrictRunnersList, RunnerToken } from "../../types/runner-token";
+import { AvailableRunnersFromList, StrictRunnersList, RunnerToken } from "../../types/runner-token";
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverInitSoftRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
 import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
@@ -23,7 +23,7 @@ export interface IHostRunnerResolverConfigBase<L extends StrictRunnersList> {
 
 export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     
-    protected runnerEnvironments = new Set<RunnerEnvironment<AnyRunnerFromList<L>>>();
+    protected runnerEnvironments = new Set<RunnerEnvironment<AvailableRunnersFromList<L>>>();
     protected resolverBridge: HostResolverBridge;
     
     protected readonly runnersListController: RunnersListController<L>;
@@ -84,11 +84,11 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
 
     public deserializeArguments(args: IRunnerArgument[]): {
         args: Array<IRunnerSerializedParameter>,
-        controllers: Array<RunnerController<AnyRunnerFromList<L>>>,
+        controllers: Array<RunnerController<AvailableRunnersFromList<L>>>,
     } {
         const result = {
             args: new Array<IRunnerSerializedParameter>(),
-            controllers: new Array<RunnerController<AnyRunnerFromList<L>>>(),
+            controllers: new Array<RunnerController<AvailableRunnersFromList<L>>>(),
         };
         for (const argument of args) {
             switch (argument.type) {
@@ -98,7 +98,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
                         token: argument.token,
                     });
                     result.controllers.push(controller);
-                    result.args.push(controller.resolvedRunner as ResolvedRunner<AnyRunnerFromList<L>>);
+                    result.args.push(controller.resolvedRunner as ResolvedRunner<AvailableRunnersFromList<L>>);
                     break;
                 }
                 default:
@@ -118,10 +118,10 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
         this.resolverBridge.destroy();
     }
 
-    public wrapRunner(runner: InstanceType<AnyRunnerFromList<L>>): MessagePort {
+    public wrapRunner(runner: InstanceType<AvailableRunnersFromList<L>>): MessagePort {
         const messageChanel = new MessageChannel();
 
-        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = this.buildRunnerResolver({
+        const runnerEnvironment: RunnerEnvironment<AvailableRunnersFromList<L>> = this.buildRunnerResolver({
             token: this.runnersListController.getRunnerTokenByInstance(runner),
             runner,
             port: messageChanel.port1,
@@ -135,8 +135,8 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     }
 
     protected buildRunnerResolver(
-        config: IRunnerEnvironmentConfig<AnyRunnerFromList<L>>
-    ): RunnerEnvironment<AnyRunnerFromList<L>> {
+        config: IRunnerEnvironmentConfig<AvailableRunnersFromList<L>>
+    ): RunnerEnvironment<AvailableRunnersFromList<L>> {
         return new RunnerEnvironment(config);
     }
 
@@ -147,7 +147,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     protected buildRunnerControllerByPartConfig(config: {
         token: RunnerToken,
         port: MessagePort,
-    }): RunnerController<AnyRunnerFromList<L>> {
+    }): RunnerController<AvailableRunnersFromList<L>> {
         const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
         const originalRunnerName = this.runnersListController.getRunner(config.token).name;
         return this.buildRunnerController({
@@ -159,8 +159,8 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     }
 
     protected buildRunnerController(
-        config: IRunnerControllerConfig<AnyRunnerFromList<L>>
-    ): RunnerController<AnyRunnerFromList<L>> {
+        config: IRunnerControllerConfig<AvailableRunnersFromList<L>>
+    ): RunnerController<AvailableRunnersFromList<L>> {
         return new RunnerController(config);
     }
 
@@ -210,9 +210,9 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
         const runnerConstructor = this.runnersListController.getRunner(action.token);
         const messageChanel = new MessageChannel();
         const deserializeArgumentsData = this.deserializeArguments(action.args);
-        let runner: InstanceType<AnyRunnerFromList<L>>;
+        let runner: InstanceType<AvailableRunnersFromList<L>>;
         try {
-            runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AnyRunnerFromList<L>>;
+            runner = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AvailableRunnersFromList<L>>;
         } catch (error) {
             await Promise.all(deserializeArgumentsData.controllers
                 .map(controller => controller.disconnect()));
@@ -224,7 +224,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
             })));
         }
 
-        const runnerEnvironment: RunnerEnvironment<AnyRunnerFromList<L>> = this.buildRunnerResolver({
+        const runnerEnvironment: RunnerEnvironment<AvailableRunnersFromList<L>> = this.buildRunnerResolver({
             token: action.token,
             runner,
             port: messageChanel.port1,

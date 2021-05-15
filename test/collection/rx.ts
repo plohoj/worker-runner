@@ -1,6 +1,6 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { rxLocalRunnerResolver, rxRunnerResolver } from '../client/rx';
+import { rxLocalRunnerResolver, rxRunnerResolver } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
 import { each } from '../utils/each';
