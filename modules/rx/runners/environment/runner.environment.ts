@@ -9,10 +9,10 @@ import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitRunnerResultAction, RxRunnerEnvironmentAction } from './runner-environment.actions';
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
-    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
+    protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
     declare protected readonly connectEnvironment: RxConnectEnvironment;
 
-    protected async handleExecuteResponse(
+    protected override async handleExecuteResponse(
         executeResult: IRunnerMethodResult,
     ): Promise<IRunnerEnvironmentExecuteResultAction> {
         if (executeResult instanceof Observable) {
@@ -25,7 +25,7 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return super.handleExecuteResponse(executeResult);
     }
 
-    protected buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
+    protected override buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
         return new RxConnectEnvironment(config);
     }
 

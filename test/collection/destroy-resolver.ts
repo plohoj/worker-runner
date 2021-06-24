@@ -1,7 +1,5 @@
 import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { LocalRunnerResolver } from '@worker-runner/promise';
-import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from '../client/resolver-list';
+import { localResolvers, resolverList } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
@@ -37,11 +35,8 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each({
-        Local: LocalRunnerResolver,
-        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
-    },
-    (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy resolver`, () => {
+each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+    describe(`${mode} destroy resolver`, () => {
         it ('simple', async () => {
             class DestroyStub {
                 public destroy(): void {

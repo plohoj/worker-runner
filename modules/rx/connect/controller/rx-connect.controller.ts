@@ -6,10 +6,7 @@ import { IRxConnectEnvironmentActionPropertiesRequirements, IRxConnectEnvironmen
 import { IRxConnectControllerActionPropertiesRequirements, IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";
 
 /** **WARNING**: Errors emits as is, need use pipe for deserialize */
-export class RxConnectController extends ConnectController {
-    /** {actionId: Subscriber} */
-    public readonly subscribersMap = new Map<number, Subscriber<IConnectEnvironmentAction>>();
-    
+export class RxConnectController extends ConnectController {    
     declare public sendAction: <
         O extends IRxConnectControllerActionPropertiesRequirements<O>,
         I extends IRxConnectEnvironmentActionPropertiesRequirements<I>
@@ -19,8 +16,10 @@ export class RxConnectController extends ConnectController {
     declare protected readonly promiseListResolver: PromiseListResolver<IConnectEnvironmentAction | Observable<IConnectEnvironmentAction>>;
     /** List of action ids that can subscribe to */
     private readonly canSubscribedList = new Set<number>();
+     /** {actionId: Subscriber} */
+     private readonly subscribersMap = new Map<number, Subscriber<IConnectEnvironmentAction>>();
 
-    public stopListen(isClosePort?: boolean): void {
+    public override stopListen(isClosePort?: boolean): void {
         this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
         for (const subscriber of this.subscribersMap.values()) {
             subscriber.error(this.disconnectStatus);
@@ -31,7 +30,7 @@ export class RxConnectController extends ConnectController {
         super.stopListen(isClosePort);
     }
 
-    protected handleAction(
+    protected override handleAction(
         actionWithId:
             | IConnectEnvironmentAction
             | IConnectEnvironmentActions

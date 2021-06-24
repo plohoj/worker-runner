@@ -6,7 +6,7 @@ import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-erro
 import { ArgumentsDeserializer } from '../../resolver/host/arguments-deserializer';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
-import { RunnerToken } from "../../types/runner-token";
+import { RunnerToken, StrictRunnersList } from "../../types/runner-token";
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
 import { RunnerController } from '../controller/runner.controller';
@@ -17,7 +17,7 @@ export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     token: RunnerToken;
     runner: InstanceType<R>;
     errorSerializer: WorkerRunnerErrorSerializer;
-    argumentsDeserializer: ArgumentsDeserializer<R>,
+    argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>,
     port: MessagePort;
     onDestroyed: () => void;
 }
@@ -25,6 +25,7 @@ export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
 export class RunnerEnvironment<R extends RunnerConstructor> {
 
     public readonly token: RunnerToken;
+    public readonly runnerControllerDestroyedHandler = this.onRunnerControllerDestroyed.bind(this);
 
     public runnerInstance: InstanceType<R>;
 
@@ -32,8 +33,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected readonly connectEnvironment: ConnectEnvironment;
 
     private onDestroyed: () => void;
-    private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
-    private argumentsDeserializer: ArgumentsDeserializer<R>;
+    private connectedControllers = new Set<RunnerController<RunnerConstructor>>();
+    private argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>;
 
     constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.token = config.token;
@@ -53,7 +54,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         action: IRunnerControllerExecuteAction,
     ): Promise<IRunnerEnvironmentExecuteResultAction> {
         let response: IRunnerMethodResult;
-        const deserializedArgumentsData = this.argumentsDeserializer.deserializeArguments(action.args);
+        const deserializedArgumentsData = this.argumentsDeserializer.deserializeArguments({
+            args: action.args,
+            onRunnerControllerDestroyed: this.runnerControllerDestroyedHandler, // TODO Need test
+        });
         try {
             response = await this.runnerInstance[action.method](...deserializedArgumentsData.args);
         } catch (error) {
@@ -75,7 +79,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     }
 
     public addConnectedControllers(controllers: RunnerController<RunnerConstructor>[]): void {
-        this.connectedControllers.push(...controllers);
+        for (const controller of controllers) {
+            this.connectedControllers.add(controller);
+        }
     }
 
     public async handleDestroy(): Promise<void> {
@@ -85,13 +91,13 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             }
         } finally {
             await Promise.all(
-                this.connectedControllers
+                [...this.connectedControllers]
                     .map(controller => controller
                         .destroy()
                         .catch(console.error), // TODO need to combine errors
                     ),
             );
-            this.connectedControllers = [];
+            this.connectedControllers.clear();
             this.onDestroyed();
         }
     }
@@ -175,5 +181,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             port: messageChanel.port2,
             transfer: [messageChanel.port2]
         };
+    }
+
+    private onRunnerControllerDestroyed(runnerController: RunnerController<RunnerConstructor>): void {
+        this.connectedControllers.delete(runnerController);
     }
 }

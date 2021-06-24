@@ -1,5 +1,6 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
+import { lastValueFrom } from 'rxjs';
 import { rxLocalRunnerResolver, rxRunnerResolver } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
@@ -23,7 +24,7 @@ each({
     it('simple observable', async () => {
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         await expectAsync(
-            (await rxStubRunner.emitMessages(['Book', 'Pen'])).toPromise(),
+            lastValueFrom(await rxStubRunner.emitMessages(['Book', 'Pen'])),
         ).toBeResolvedTo('Pen');
         await rxStubRunner.destroy();
     });
@@ -32,7 +33,7 @@ each({
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         const emitDelay = 19;
         await expectAsync(
-            (await rxStubRunner.emitMessages(['Work', 'Job'], emitDelay)).toPromise(),
+            lastValueFrom(await rxStubRunner.emitMessages(['Work', 'Job'], emitDelay)),
         ).toBeResolvedTo('Job');
         await rxStubRunner.destroy();
     });
@@ -42,7 +43,7 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         rxStubRunner.destroy();
         await expectAsync(
-            observable.toPromise(),
+            lastValueFrom(observable),
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 token: RxStubRunner.name,
@@ -58,7 +59,7 @@ each({
         const observable = await rxStubRunner.emitMessages([], 1000);
         await rxStubRunner.destroy();
         await expectAsync(
-            observable.toPromise()
+            lastValueFrom(observable),
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 token: RxStubRunner.name,
@@ -76,8 +77,9 @@ each({
         };
         const rxStubRunner = await resolver.resolve(RxStubRunner);
         await rxStubRunner.run();
-        const executableStubRunner = await (await rxStubRunner.resolveExecutableRunner(storageData))
-            .toPromise() as ResolvedRunner<ExecutableStubRunner<typeof storageData>>;
+        const executableStubRunner = await lastValueFrom(
+            await rxStubRunner.resolveExecutableRunner(storageData)
+        ) as ResolvedRunner<ExecutableStubRunner<typeof storageData>>;
         await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
     });
 
@@ -94,7 +96,7 @@ each({
         if (!isIE) {
             expectedProperty.stack = jasmine.stringMatching(/.+/);
         }
-        await expectAsync((await (await rxStubRunner.emitError(errorData))).toPromise())
+        await expectAsync(lastValueFrom(await rxStubRunner.emitError(errorData)))
             .toBeRejectedWith(errorContaining(RxRunnerEmitError, expectedProperty));
     });
 
@@ -103,7 +105,7 @@ each({
         const observable = await rxStubRunner.emitError();
         await rxStubRunner.destroy();
         await expectAsync(
-            observable.toPromise()
+            lastValueFrom(observable)
         ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 token: RxStubRunner.name,
@@ -124,7 +126,7 @@ each({
         const firstRxStubRunner = await resolver.resolve(RxStubRunner);
         const secondRxStubRunner = await resolver.resolve(RxStubRunner);
         await expectAsync(
-            (await secondRxStubRunner.getObservableFromOtherRxStub(firstRxStubRunner, ['Work', 'Job'])).toPromise(),
+            lastValueFrom(await secondRxStubRunner.getObservableFromOtherRxStub(firstRxStubRunner, ['Work', 'Job'])),
         ).toBeResolvedTo('Job');
     });
 }));

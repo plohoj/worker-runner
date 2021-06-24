@@ -7,10 +7,10 @@ import { IRxRunnerEnvironmentAction, RxRunnerEnvironmentAction } from '../enviro
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
 
-    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
+    protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
     protected declare readonly connectController: RxConnectController;
 
-    public async execute(
+    public override async execute(
         methodName: string,
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {
@@ -25,16 +25,16 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         return response;
     }
 
-    protected handleExecuteResult(
+    protected override async handleExecuteResult(
         actionResult: IRunnerEnvironmentExecuteResultAction | Observable<unknown>
-    ): IRunnerSerializedMethodResult {
+    ): Promise<IRunnerSerializedMethodResult> {
         if (actionResult instanceof Observable) {
             return actionResult as unknown as IRunnerSerializedMethodResult;
         }
         return super.handleExecuteResult(actionResult);
     }
 
-    protected buildConnectController(config: IConnectControllerConfig): RxConnectController {
+    protected override buildConnectController(config: IConnectControllerConfig): RxConnectController {
         return new RxConnectController(config);
     }
 
@@ -45,10 +45,11 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
             case RxRunnerEnvironmentAction.RX_EMIT:
                 return action.response;
             case RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT:
-                return this.runnerControllerPartFactory({
+                return (await this.runnerControllerPartFactory({
                     token: action.token,
-                    port: action.port}
-                ).resolvedRunner;
+                    port: action.port,
+                    onDestroyed: this.onDestroyed,
+                })).resolvedRunner;
             default:
                 throw new WorkerRunnerUnexpectedError({
                     message: 'Unexpected action type was emitted in Runner controller via Rx Observable',

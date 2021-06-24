@@ -1,7 +1,5 @@
 import { ResolvedRunner } from '@worker-runner/core';
-import { LocalRunnerResolver } from '@worker-runner/promise';
-import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from '../client/resolver-list';
+import { localResolvers, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';
@@ -32,11 +30,8 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each({
-        Local: LocalRunnerResolver,
-        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
-    },
-    (mode, IterateLocalRunnerResolver) => describe(`${mode} return resolved runner`, () => {
+each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+    describe(`${mode} return resolved runner`, () => {
         it ('with mark for transfer and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateLocalRunnerResolver({ runners });

@@ -25,7 +25,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
 
     declare protected getMessagePortData: (port: MessagePort) => IMessagePortRxConnectEnvironmentData | undefined;
 
-    protected async handleAction(
+    protected override async handleAction(
         port: MessagePort,
         actionWithId: IConnectEnvironmentAction | IConnectControllerActions | IRxConnectControllerActions
     ): Promise<void> {
@@ -41,7 +41,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         }
     }
 
-    protected async handleCustomActionResponse (
+    protected override async handleCustomActionResponse (
         port: MessagePort,
         response: Record<string, TransferableJsonObject> | Observable<Record<string, TransferableJsonObject>>,
         actionId: number,
@@ -64,7 +64,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         }
     }
 
-    protected createMessagePortData(port: MessagePort, data: IMessagePortRxConnectEnvironmentData): void {
+    protected override createMessagePortData(port: MessagePort, data: IMessagePortRxConnectEnvironmentData): void {
         const portData: IMessagePortRxConnectEnvironmentData = {
             ...data,
             observablesMap: new Map(),
@@ -73,7 +73,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         super.createMessagePortData(port, portData);
     }
 
-    protected buildListeningInterrupter(): IRxListeningInterrupter {
+    protected override buildListeningInterrupter(): IRxListeningInterrupter {
         const parentListeningInterrupter = super.buildListeningInterrupter()
         return {
             ...parentListeningInterrupter,

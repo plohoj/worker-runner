@@ -1,6 +1,6 @@
 import { IClientRunnerResolverConfigBase, StrictRunnersList } from '@worker-runner/core';
-import { ClientRunnerResolver } from './client-runner.resolver';
-import { HostRunnerResolver } from './host-runner.resolver';
+import { ClientRunnerResolver } from './client/client-runner.resolver';
+import { HostRunnerResolver } from './host/host-runner.resolver';
 
 /**
  * @deprecated

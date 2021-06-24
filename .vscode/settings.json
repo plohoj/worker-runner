@@ -15,5 +15,5 @@
         "inited",
         "preprocessors"
     ],
-    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.preferences.importModuleSpecifier": "project-relative",
 }

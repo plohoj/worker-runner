@@ -1,39 +1,40 @@
-import { RunnerController } from "../../runner/controller/runner.controller";
-import { IRunnerSerializedParameter, RunnerConstructor } from "../../types/constructor";
+import { IRunnerControllerConfig, RunnerController } from "../../runner/controller/runner.controller";
+import { RunnersListController } from "../../runner/runner-bridge/runners-list.controller";
+import { IRunnerSerializedParameter } from "../../types/constructor";
 import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../../types/runner-serialized-argument";
-import { RunnerToken } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, StrictRunnersList } from "../../types/runner-token";
 
-export type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
-    token: RunnerToken,
-    port: MessagePort,
-}) => RunnerController<R>;
-
-export interface IArgumentsDeserializerConfig<R extends RunnerConstructor> {
-    runnerControllerPartFactory: RunnerControllerPartFactory<R>;
+export interface IArgumentsDeserializerConfig<L extends StrictRunnersList> {
+    runnersListController: RunnersListController<L>;
 }
 
-export class ArgumentsDeserializer<R extends RunnerConstructor> {
+export class ArgumentsDeserializer<L extends StrictRunnersList> {
 
-    protected readonly runnerControllerPartFactory: RunnerControllerPartFactory<R>;
+    private readonly runnersListController: RunnersListController<L>;
+    private readonly runnerControllerPartFactory = this.buildRunnerControllerByPartConfig.bind(this);
 
-    constructor(config: Readonly<IArgumentsDeserializerConfig<R>>) {
-        this.runnerControllerPartFactory = config.runnerControllerPartFactory;
+    constructor(config: Readonly<IArgumentsDeserializerConfig<L>>) {
+        this.runnersListController = config.runnersListController;
     }
 
-    public deserializeArguments(args: IRunnerSerializedArgument[]): {
+    public deserializeArguments(config: {
+        args: IRunnerSerializedArgument[],
+        onRunnerControllerDestroyed: (runnerController: RunnerController<AvailableRunnersFromList<L>>) => void,
+    }): {
         args: Array<IRunnerSerializedParameter>,
-        controllers: Array<RunnerController<R>>,
+        controllers: Array<RunnerController<AvailableRunnersFromList<L>>>,
     } {
         const result = {
             args: new Array<IRunnerSerializedParameter>(),
-            controllers: new Array<RunnerController<R>>(),
+            controllers: new Array<RunnerController<AvailableRunnersFromList<L>>>(),
         };
-        for (const argument of args) {
+        for (const argument of config.args) {
             switch (argument.type) {
                 case RunnerSerializedArgumentType.RUNNER_INSTANCE: {
-                    const controller = this.runnerControllerPartFactory({
+                    const controller = this.buildRunnerControllerByPartConfig({
                         port: argument.port,
                         token: argument.token,
+                        onDestroyed: config.onRunnerControllerDestroyed,
                     });
                     result.controllers.push(controller);
                     result.args.push(controller.resolvedRunner);
@@ -45,4 +46,29 @@ export class ArgumentsDeserializer<R extends RunnerConstructor> {
         }
         return result;
     }
+
+    protected buildRunnerController(
+        config: IRunnerControllerConfig<AvailableRunnersFromList<L>>
+    ): RunnerController<AvailableRunnersFromList<L>> {
+        return new RunnerController(config);
+    }
+
+    private buildRunnerControllerByPartConfig(config: {
+        token: RunnerToken,
+        port: MessagePort,
+        onDestroyed: (runnerController: RunnerController<AvailableRunnersFromList<L>>) => void,
+    }): RunnerController<AvailableRunnersFromList<L>> {
+
+        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
+        const originalRunnerName = this.runnersListController.getRunner(config.token).name;
+
+        const runnerController = this.buildRunnerController({
+            ...config,
+            runnerBridgeConstructor,
+            originalRunnerName,
+            runnerControllerPartFactory: this.runnerControllerPartFactory,
+        });
+        return runnerController;
+    }
+
 }

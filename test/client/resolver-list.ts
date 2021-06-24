@@ -47,3 +47,8 @@ export const clientResolverList = {
     Common: clientRunnerResolver,
     Rx: clientRxRunnerResolver as unknown as typeof clientRunnerResolver,
 };
+
+export const localResolvers = {
+    Local: LocalRunnerResolver,
+    'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
+};

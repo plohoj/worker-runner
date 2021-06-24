@@ -1,7 +1,7 @@
 import { AvailableRunnersFromList, LocalResolverBridge, StrictRunnersList } from '@worker-runner/core';
 import { RxResolvedRunner } from '../runners/resolved-runner';
-import { RxClientRunnerResolver } from './client-runner.resolver';
-import { RxHostRunnerResolver } from './host-runner.resolver';
+import { RxClientRunnerResolver } from './client/client-runner.resolver';
+import { RxHostRunnerResolver } from './host/host-runner.resolver';
 
 interface IRxLocalRunnerResolverConfig<L extends StrictRunnersList> {
     runners: L
@@ -15,7 +15,7 @@ export class RxLocalRunnerResolver<L extends StrictRunnersList> extends RxClient
         super(config);
     }
 
-    protected buildResolverBridge(): void {
+    protected override buildResolverBridge(): void {
         this.resolverBridge = new LocalResolverBridge({
             hostRunnerResolverFactory: config => new RxHostRunnerResolver({
                 ...config,

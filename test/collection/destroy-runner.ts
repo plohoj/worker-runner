@@ -1,7 +1,5 @@
 import { ResolvedRunner, RunnerDestroyError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { LocalRunnerResolver } from '@worker-runner/promise';
-import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from '../client/resolver-list';
+import { localResolvers, resolverList } from '../client/resolver-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
@@ -72,11 +70,8 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each({
-        Local: LocalRunnerResolver,
-        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
-    },
-    (mode, IterateLocalRunnerResolver) => describe(`${mode} destroy runner`, () => {
+each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+    describe(`${mode} destroy runner`, () => {
         it ('with extended method', async () => {
             class DestroyableRunner {
                 public destroy(): void {
@@ -111,9 +106,9 @@ each({
             const runnerEnvironment = runnerEnvironments
                 .find(runnerEnvironment => runnerEnvironment.token === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironment?.['connectedControllers'].length).toBe(1);
+            expect(runnerEnvironment?.['connectedControllers'].size).toBe(1);
             await withOtherInstanceStubRunner.destroy();
-            expect(runnerEnvironment?.['connectedControllers'].length).toBe(0);
+            expect(runnerEnvironment?.['connectedControllers'].size).toBe(0);
 
             await localResolver.destroy();
         });

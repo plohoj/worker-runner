@@ -1,7 +1,7 @@
 import { AnyRunnerFromList, ClientRunnerResolverBase, Constructor, IRunnerControllerConfig, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, SoftRunnersList } from '@worker-runner/core';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
-import { RxRunnerController } from '../runners/controller/runner.controller';
-import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
+import { RxRunnerController } from '../../runners/controller/runner.controller';
+import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../../runners/resolved-runner';
 
 type RxRunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,9 +18,9 @@ export class RxClientRunnerResolver<L extends SoftRunnersList> extends ClientRun
         ...args: RxRunnerArguments<RunnerByIdentifier<L, I>>
     ) => Promise<RxResolvedRunner<InstanceType<RunnerByIdentifier<L, I>>>>;
 
-    protected readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
+    protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
 
-    protected buildRunnerController(
+    protected override buildRunnerController(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RxRunnerController<AnyRunnerFromList<L>> {
         return new RxRunnerController(config);

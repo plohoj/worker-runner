@@ -13,7 +13,8 @@
         "paths": {
             "@worker-runner/*": ["./modules/*"]
         },
-        "importHelpers": true
+        "importHelpers": true,
+        "noImplicitOverride": true
     },
     "exclude": [
         "node_modules",

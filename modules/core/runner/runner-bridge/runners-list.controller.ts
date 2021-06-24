@@ -80,7 +80,9 @@ export class RunnersListController<L extends SoftRunnersList> {
         return runnerData.bridgeConstructor;
     }
 
-    public defineRunnerBridge(token: RunnerToken, methodsNames: string[]): void {
+    public defineRunnerBridge<T extends RunnerToken = RunnerToken>(
+        token: T, methodsNames: string[]
+    ): IRunnerBridgeConstructor<RunnerByToken<L, T>> {
         const ResolvedRunner = this.buildBaseBridgeConstructor('ByToken' + token);
         for (const methodsName of methodsNames) {
             this.attachUndeclaredMethod(ResolvedRunner, methodsName)
@@ -88,6 +90,7 @@ export class RunnersListController<L extends SoftRunnersList> {
         this.runnerByTokenDataRecord[token] = {
             bridgeConstructor: ResolvedRunner,
         };
+        return ResolvedRunner;
     }
 
     public getRunnerList(): IStrictRunnerTokenConfig<AvailableRunnersFromList<L>>[] {
