@@ -1,4 +1,4 @@
-import { IRunnerArgument } from '../../types/runner-argument';
+import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 import { RunnerToken } from "../../types/runner-token";
 
 export enum ClientResolverAction {
@@ -10,14 +10,14 @@ export enum ClientResolverAction {
 export interface IClientResolverInitRunnerAction {
     type: ClientResolverAction.INIT_RUNNER;
     token: RunnerToken;
-    args: IRunnerArgument[];
+    args: IRunnerSerializedArgument[];
     transfer: Transferable[]
 }
 
 export interface IClientResolverInitSoftRunnerAction {
     type: ClientResolverAction.INIT_SOFT_RUNNER;
     token: RunnerToken;
-    args: IRunnerArgument[];
+    args: IRunnerSerializedArgument[];
     transfer: Transferable[]
 }
 

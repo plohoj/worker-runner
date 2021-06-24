@@ -7,7 +7,7 @@ export class RxHostRunnerResolver<L extends StrictRunnersList> extends HostRunne
 
     declare protected runnerEnvironments: Set<RxRunnerEnvironment<AvailableRunnersFromList<L>>>;
 
-    protected buildRunnerResolver(
+    protected buildRunnerEnvironment(
         config: IRunnerEnvironmentConfig<AvailableRunnersFromList<L>>
     ): RxRunnerEnvironment<AvailableRunnersFromList<L>> {
         return new RxRunnerEnvironment(config);

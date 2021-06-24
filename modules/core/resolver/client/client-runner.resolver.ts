@@ -5,17 +5,15 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError, RunnerNotFound } from '../../errors/runner-errors';
 import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
-import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../../runner/runner-bridge/runner.bridge';
+import { RunnerBridge } from '../../runner/runner-bridge/runner.bridge';
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
-import { IRunnerParameter, IRunnerSerializedParameter } from '../../types/constructor';
-import { JsonObject } from '../../types/json-object';
+import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
-import { IRunnerArgument, RunnerArgumentType } from '../../types/runner-argument';
 import { AvailableRunnersFromList, RunnerToken, RunnerIdentifier, SoftRunnersList, AnyRunnerFromList } from "../../types/runner-token";
-import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
 import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
 import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bridge';
+import { serializeArguments } from './arguments-serialize';
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverInitSoftRunnerAction } from './client-resolver.actions';
 
 /**
@@ -86,49 +84,6 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
                 workerPath: config.workerPath,
             };
         }
-    }
-
-    // TODO extract serialize / deserialize arguments to component
-    public static async serializeArguments(
-        args: IRunnerParameter[],
-    ): Promise<{
-        args: IRunnerArgument[]
-        transfer: Transferable[],
-    }> {
-        const serializedArguments = {
-            args: new Array<IRunnerArgument>(),
-            transfer: new Array<Transferable>(),
-        };
-        const argsMap = new Map<number, IRunnerArgument>();
-        await Promise.all(args.map(async (argumentWithTransferData, index) => {
-            let argument: IRunnerSerializedParameter;
-            if (argumentWithTransferData instanceof TransferRunnerData) {
-                serializedArguments.transfer.push(...argumentWithTransferData.transfer);
-                argument = argumentWithTransferData.data;
-            } else {
-                argument = argumentWithTransferData;
-            }
-            if (RunnerBridge.isRunnerBridge(argument)) {
-                const controller = (argument as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
-                // TODO close all connection after throw error 
-                const transferPort = await controller.resolveOrTransferControl();
-                argsMap.set(index, {
-                    type: RunnerArgumentType.RUNNER_INSTANCE,
-                    port: transferPort,
-                    token: controller.token,
-                });
-                serializedArguments.transfer.push(transferPort);
-            } else {
-                argsMap.set(index, {
-                    type: RunnerArgumentType.JSON,
-                    data: argument as JsonObject,
-                });
-            }
-        }));
-        for (let argumentIndex = 0; argumentIndex < args.length; argumentIndex++) {
-            serializedArguments.args.push(argsMap.get(argumentIndex) as IRunnerArgument);
-        }
-        return serializedArguments;
     }
 
     /** Launches and prepares RunnerResolver for work */
@@ -229,7 +184,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
             });
         }
         try {
-            const serializedArguments = await ClientRunnerResolverBase.serializeArguments(args);
+            const serializedArguments = await serializeArguments(args);
             const hasBridgeConstructor = this.runnersListController.hasBridgeConstructor(token);
             const action: IClientResolverInitRunnerAction | IClientResolverInitSoftRunnerAction = {
                 type: hasBridgeConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.INIT_SOFT_RUNNER,

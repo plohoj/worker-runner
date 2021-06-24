@@ -3,18 +3,14 @@ import { ConnectController, IConnectControllerConfig } from '../../connect/contr
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
-import { ClientRunnerResolverBase } from '../../resolver/client/client-runner.resolver';
+import { serializeArguments } from '../../resolver/client/arguments-serialize';
+import { RunnerControllerPartFactory } from '../../resolver/host/arguments-deserializer';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken } from "../../types/runner-token";
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner-bridge/runner.bridge';
 import { IRunnerControllerExecuteAction, RunnerControllerAction } from './runner-controller.actions';
-
-type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
-    token: RunnerToken,
-    port: MessagePort,
-}) => RunnerController<R>;
 
 export interface IRunnerControllerConfig<R extends RunnerConstructor> {
     token: RunnerToken;
@@ -59,7 +55,7 @@ export class RunnerController<R extends RunnerConstructor> {
         methodName: string,
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {
-        const serializedArgumentsData = await ClientRunnerResolverBase.serializeArguments(args);
+        const serializedArgumentsData = await serializeArguments(args);
         const actionResult = await this.connectController
             .sendAction<IRunnerControllerExecuteAction, IRunnerEnvironmentExecuteResultAction>({
                 type: RunnerControllerAction.EXECUTE,

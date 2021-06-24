@@ -1,4 +1,4 @@
-import { IRunnerArgument } from '../../types/runner-argument';
+import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 
 export enum RunnerControllerAction {
     EXECUTE = 'EXECUTE',
@@ -8,7 +8,7 @@ export enum RunnerControllerAction {
 export interface IRunnerControllerExecuteAction {
     type: RunnerControllerAction.EXECUTE;
     method: string;
-    args: IRunnerArgument[];
+    args: IRunnerSerializedArgument[];
     transfer?: Transferable[]
 }
 
