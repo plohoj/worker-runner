@@ -283,7 +283,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
             });
         }
         const token = this.runnersListController.getRunnerTokenByInstance(runnerInstance);
-        // TODO Don't use "any" type. (try to transfer the method to mixin)метод в миксин)
+        // TODO Don't use "any" type. (try to transfer the method to mixin)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const port = (this.resolverBridge as LocalResolverBridge<any>).hostRunnerResolver.wrapRunner(runnerInstance);
         const runnerController = this.buildRunnerControllerByPartConfig({

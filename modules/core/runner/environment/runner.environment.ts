@@ -33,7 +33,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     private hostRunnerResolver: HostRunnerResolverBase<never>;
     private onDestroyed: () => void;
-    private connectedControllers = new Array<RunnerController<RunnerConstructor>>(); // TODO Need disconnect?
+    private connectedControllers = new Array<RunnerController<RunnerConstructor>>();
 
     constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.token = config.token;
@@ -84,6 +84,14 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 await (this.runnerInstance.destroy as () => void | Promise<void>)();
             }
         } finally {
+            await Promise.all(
+                this.connectedControllers
+                    .map(controller => controller
+                        .destroy()
+                        .catch(console.error), // TODO need to combine errors
+                    ),
+            );
+            this.connectedControllers = [];
             this.onDestroyed();
         }
     }
