@@ -103,17 +103,9 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
 
     /** Returns a runner control object that will call the methods of the source instance */
     public async resolve(identifier: RunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
-        let token: RunnerToken;
-        if (typeof identifier === 'string') {
-            token = identifier;
-            if (!this.runnersListController.hasToken(token)) {
-                throw new RunnerNotFound({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
-                });
-            }
-        } else {
-            token = this.runnersListController.getRunnerToken(identifier);
-        }
+        const token = typeof identifier === 'string'
+            ? identifier
+            : this.runnersListController.getRunnerToken(identifier); // TODO if not exist try get token by runner name
         const action = await this.sendInitAction(token, args);
         if (action.type === HostResolverAction.SOFT_RUNNER_INITED) {
             this.runnersListController.defineRunnerBridge(token, action.methodsNames);

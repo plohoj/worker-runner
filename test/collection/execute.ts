@@ -1,12 +1,13 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { ClientRunnerResolver, HostRunnerResolver, LocalRunnerResolver } from '@worker-runner/promise';
-import { clientResolverList, resolverList } from '../client/resolver-list';
+import { LocalRunnerResolver } from '@worker-runner/promise';
+import { apartHostClientResolvers, clientResolverList, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
 import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
+import { createApartClientHostResolvers } from '../utils/apart-client-host-resolvers';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
@@ -174,39 +175,36 @@ each(clientResolverList, (mode, resolver) =>
     }),
 );
 
-describe(`Local execute`, () => {
-    it ('with soft runner argument', async () => {
-        const messageChanel = new MessageChannel();
-        messageChanel.port1.start();
-        messageChanel.port2.start();
-        const clientResolver = new ClientRunnerResolver({
-            runners: [WithLocalResolverStub],
-            connection: messageChanel.port1,
-        });
-        const hostResolver = new HostRunnerResolver({
-            runners: [
-                {
-                    token: EXECUTABLE_STUB_RUNNER_TOKEN as typeof EXECUTABLE_STUB_RUNNER_TOKEN,
-                    runner: ExecutableStubRunner,
+each(apartHostClientResolvers, (mode, resolvers) => 
+    describe(`${mode} execute`, () => {
+        it ('with soft runner argument', async () => {
+            const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
+                clientConfig: {
+                    runners: [WithLocalResolverStub],
                 },
-                WithLocalResolverStub
-            ],
-            connections: [messageChanel.port2],
-        })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const getRunnerDataSpy = spyOn(HostRunnerResolver.prototype as any, 'getRunnerData').and.callThrough();
-        hostResolver.run();
-        await clientResolver.run();
-        const withLocalResolverStub = await clientResolver.resolve(WithLocalResolverStub);
-        await withLocalResolverStub.run('');
+                hostConfig: {
+                    runners: [
+                        {
+                            token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                            runner: ExecutableStubRunner,
+                        },
+                        WithLocalResolverStub,
+                    ],
+                },
+                clientResolverConstructor: resolvers.client,
+                hostResolverConstructor: resolvers.host,
+            });
+            await apartConfiguredLocalRunnerResolvers.run();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const getRunnerDataSpy = spyOn(resolvers.host.prototype as any, 'getRunnerData').and.callThrough();
+            const withLocalResolverStub = await apartConfiguredLocalRunnerResolvers.client.resolve(WithLocalResolverStub);
+            await withLocalResolverStub.run('');
 
-        expect(getRunnerDataSpy).not.toHaveBeenCalled();
-        await expectAsync(withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()).toBeResolved();
-        expect(getRunnerDataSpy).toHaveBeenCalled();
+            expect(getRunnerDataSpy).not.toHaveBeenCalled();
+            await expectAsync(withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()).toBeResolved();
+            expect(getRunnerDataSpy).toHaveBeenCalled();
 
-        await clientResolver.destroy();
-        await hostResolver.destroy();
-        messageChanel.port1.close();
-        messageChanel.port2.close();
-    });
-});
+            await apartConfiguredLocalRunnerResolvers.destroy();
+        });
+    }),
+);

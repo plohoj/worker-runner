@@ -1,11 +1,12 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { clientResolverList, resolverList } from '../client/resolver-list';
+import { apartHostClientResolvers, clientResolverList, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
+import { createApartClientHostResolvers } from '../utils/apart-client-host-resolvers';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
@@ -136,6 +137,36 @@ each(clientResolverList, (mode, resolver) =>
         it('with soft token configured', async () => {
             const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
+        });
+    }),
+);
+
+each(apartHostClientResolvers, (mode, resolvers) => 
+    describe(`${mode} constructor`, () => {
+        it ('by token without Client configuration', async () => {
+            const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
+                clientConfig: {
+                    runners: [], // TODO optional
+                },
+                hostConfig: {
+                    runners: [
+                        {
+                            token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                            runner: ExecutableStubRunner,
+                        },
+                    ],
+                },
+                clientResolverConstructor: resolvers.client,
+                hostResolverConstructor: resolvers.host,
+            });
+            await apartConfiguredLocalRunnerResolvers.run();
+
+            await expectAsync(
+                 // TODO can be resolved by constructor
+                apartConfiguredLocalRunnerResolvers.client.resolve(EXECUTABLE_STUB_RUNNER_TOKEN)
+            ).toBeResolved();
+
+            await apartConfiguredLocalRunnerResolvers.destroy();
         });
     }),
 );
