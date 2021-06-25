@@ -1,5 +1,5 @@
-import { CODE_TO_ERROR_MAP } from './error-code-map';
 import { WorkerRunnerErrorCode } from './error-code';
+import { CODE_TO_ERROR_MAP } from './error-code-map';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { HostResolverDestroyError } from './runner-errors';
 import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';

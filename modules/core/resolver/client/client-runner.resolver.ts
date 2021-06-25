@@ -2,7 +2,7 @@ import { IConnectControllerErrorDeserializer } from '../../connect/controller/co
 import { ConnectController } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { ConnectionWasClosedError, RunnerNotFound } from '../../errors/runner-errors';
+import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { RunnerControllerPartFactory, IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
 import { IRunnerBridgeConstructor, RunnerBridge } from '../../runner/runner-bridge/runner.bridge';

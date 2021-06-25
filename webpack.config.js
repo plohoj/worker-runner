@@ -58,7 +58,7 @@ module.exports = {
                             }
                         }
                     },
-                    ...!isDebugMode ? [] : [{
+                    ...(!isDebugMode || isCoverage) ? [] : [{
                         loader: 'eslint-loader',
                         options: {
                             emitError: true,
