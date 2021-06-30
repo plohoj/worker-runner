@@ -12,7 +12,7 @@
   },
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
-  "types": "./declarations/index.d.ts",
+  "types": "./declarations/index.ts",
   "main": "./umd/promise.js",
   "module": "./esm/promise.js",
   "keywords": [
