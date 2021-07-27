@@ -1,4 +1,4 @@
-import { StrictRunnersList } from "../../../types/runner-token";
+import { StrictRunnersList } from "../../../types/runner-identifier";
 import { HostRunnerResolverBase } from "../../host/host-runner.resolver";
 import { ClientResolverBridge } from "../client/client-resolver.bridge";
 

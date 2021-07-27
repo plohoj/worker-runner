@@ -105,7 +105,6 @@ each(resolverList, (mode, resolver) =>
         it ('not exist', async () => {
             class AnonymRunner {}
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
             await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
                 name: RunnerNotFound.name,

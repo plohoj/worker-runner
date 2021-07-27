@@ -1,8 +1,8 @@
 import { IRunnerControllerConfig, RunnerController } from "../../runner/controller/runner.controller";
 import { RunnersListController } from "../../runner/runner-bridge/runners-list.controller";
 import { IRunnerSerializedParameter } from "../../types/constructor";
+import { AvailableRunnersFromList, RunnerToken, StrictRunnersList } from "../../types/runner-identifier";
 import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../../types/runner-serialized-argument";
-import { AvailableRunnersFromList, RunnerToken, StrictRunnersList } from "../../types/runner-token";
 
 export interface IArgumentsDeserializerConfig<L extends StrictRunnersList> {
     runnersListController: RunnersListController<L>;

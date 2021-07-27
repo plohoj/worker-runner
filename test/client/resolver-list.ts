@@ -18,9 +18,9 @@ export const rxLocalRunnerResolver = new RxLocalRunnerResolver({ runners });
 
 export const resolverList = {
     Common: runnerResolver,
-    Local: localRunnerResolver,
+    Local: localRunnerResolver as typeof runnerResolver,
     Rx: rxRunnerResolver as typeof runnerResolver,
-    'Rx Local': rxLocalRunnerResolver as unknown as typeof localRunnerResolver,
+    'Rx Local': rxLocalRunnerResolver as unknown  as typeof runnerResolver,
 };
 
 // Resolvers without LocalResolver

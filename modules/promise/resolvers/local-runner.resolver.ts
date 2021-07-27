@@ -1,5 +1,5 @@
-import { AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, StrictRunnersList } from '@worker-runner/core';
-import { ClientRunnerResolver } from './client/client-runner.resolver';
+import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
+import { ClientRunnerResolver, RunnerArguments } from './client/client-runner.resolver';
 import { HostRunnerResolver } from './host/host-runner.resolver';
 
 interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
@@ -7,7 +7,13 @@ interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
 }
 
 export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunnerResolver<L> {
+
     declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
+    
+    declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
+        identifier: I,
+        ...args: RunnerArguments<StrictRunnerByIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceType<StrictRunnerByIdentifier<L, I>>>>;
 
     declare protected resolverBridge?: LocalResolverBridge<L>;
 

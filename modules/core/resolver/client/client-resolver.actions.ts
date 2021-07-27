@@ -1,5 +1,5 @@
+import { RunnerToken } from "../../types/runner-identifier";
 import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
-import { RunnerToken } from "../../types/runner-token";
 
 export enum ClientResolverAction {
     INIT_RUNNER = 'INIT_RUNNER',

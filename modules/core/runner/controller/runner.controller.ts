@@ -5,7 +5,7 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { serializeArguments } from '../../resolver/client/arguments-serialize';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
-import { RunnerToken } from "../../types/runner-token";
+import { RunnerToken } from "../../types/runner-identifier";
 import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
 import { IRunnerBridgeConstructor } from '../runner-bridge/runner.bridge';

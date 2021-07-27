@@ -6,7 +6,7 @@ import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-erro
 import { ArgumentsDeserializer } from '../../resolver/host/arguments-deserializer';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
-import { RunnerToken, StrictRunnersList } from "../../types/runner-token";
+import { RunnerToken, StrictRunnersList } from "../../types/runner-identifier";
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
 import { RunnerController } from '../controller/runner.controller';

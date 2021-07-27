@@ -7,7 +7,7 @@ import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
-import { AvailableRunnersFromList, RunnerToken, StrictRunnersList } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, StrictRunnersList } from "../../types/runner-identifier";
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverInitSoftRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
 import { ArgumentsDeserializer, IArgumentsDeserializerConfig } from './arguments-deserializer';

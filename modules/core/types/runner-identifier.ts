@@ -36,7 +36,8 @@ export type AnyRunnerFromList<L extends SoftRunnersList>
             : TOR
         : never;
 
-export type RunnerIdentifier<L extends SoftRunnersList = SoftRunnersList> = RunnerToken | AvailableRunnersFromList<L>;
+export type AvailableRunnerIdentifier<L extends SoftRunnersList = SoftRunnersList> = RunnerToken | AvailableRunnersFromList<L>;
+export type RunnerIdentifier<R extends RunnerConstructor = RunnerConstructor> = RunnerToken | R;
 
 export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
     = isLiteralString<T> extends true
@@ -51,17 +52,15 @@ export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
             : never
         :never;
 
-type NotTargetRunners<L extends SoftRunnersList, T extends RunnerToken>
-    = isLiteralString<T> extends true
-        ? L extends ArrayLike<infer TOR>
-            ? TOR extends ISoftRunnerTokenConfig
-                ? T extends TOR['token']
-                    ? never
-                    : isLiteralString<TOR['token']> extends true
-                        ? Exclude<TOR['runner'], undefined>
-                        : never
-                : never
-            : never
+type RunnersWithoutLiteralToken<L extends SoftRunnersList>
+    = L extends ArrayLike<infer TOR>
+        ? TOR extends ISoftRunnerTokenConfig
+            ? isLiteralString<TOR['token']> extends true
+                ? never
+                : 'runner' extends keyof TOR 
+                    ? Exclude<TOR['runner'], undefined>
+                    : never
+            : TOR
         : never;
 
 type RunnerConstructorInList<L extends SoftRunnersList, R extends RunnerConstructor>
@@ -77,11 +76,24 @@ type RunnerConstructorInList<L extends SoftRunnersList, R extends RunnerConstruc
                 : never
         : never;
 
-export type RunnerByIdentifier<L extends SoftRunnersList, T extends RunnerIdentifier>
-    = T extends RunnerConstructor
-        ? RunnerConstructorInList<L, T>
-        : T extends RunnerToken
-            ? RunnerByToken<L, T> extends never
-                ? Exclude<AnyRunnerFromList<L>, NotTargetRunners<L, T>>
-                : RunnerByToken<L, T>
+export type StrictRunnerByIdentifier<L extends SoftRunnersList, I extends AvailableRunnerIdentifier<L>>
+    = I extends RunnerConstructor
+        ? RunnerConstructorInList<L, I>
+        : I extends RunnerToken
+            ? RunnerByToken<L, I> extends never
+                ? isLiteralString<I> extends true
+                    ? RunnersWithoutLiteralToken<L>
+                    : AnyRunnerFromList<L>
+                : RunnerByToken<L, I>
             : never;
+
+export type SoftRunnerByIdentifier<L extends SoftRunnersList, I extends RunnerIdentifier>
+    = I extends RunnerConstructor
+        ? I
+        : I extends RunnerToken
+            ? RunnerByToken<L, I> extends never
+                ? isLiteralString<I> extends true
+                    ? RunnersWithoutLiteralToken<L>
+                    : AnyRunnerFromList<L>
+                : RunnerByToken<L, I>
+            : unknown;

@@ -1,5 +1,5 @@
 import { JsonObject } from './json-object';
-import { RunnerToken } from "./runner-token";
+import { RunnerToken } from "./runner-identifier";
 
 export enum RunnerSerializedArgumentType {
     JSON = 'JSON',

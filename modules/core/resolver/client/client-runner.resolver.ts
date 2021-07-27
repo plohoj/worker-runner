@@ -9,7 +9,7 @@ import { IRunnerBridgeConstructor, RunnerBridge } from '../../runner/runner-brid
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
-import { AvailableRunnersFromList, RunnerToken, RunnerIdentifier, SoftRunnersList, AnyRunnerFromList } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, SoftRunnersList, AnyRunnerFromList } from "../../types/runner-identifier";
 import { IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction, IHostResolverRunnerDataResponseAction } from '../host/host-resolver.actions';
 import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
 import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bridge';
@@ -71,6 +71,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     /** Exist only if connection config not have worker / port */
     private worker?: Worker;
 
+    // TODO Optional config (except LocalResolver)
     constructor(config: IClientRunnerResolverConfigBase<L>) {
         this.runnersListController = new RunnersListController({
             runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,
@@ -102,7 +103,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     }
 
     /** Returns a runner control object that will call the methods of the source instance */
-    public async resolve(identifier: RunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
+    public async resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
         const token = typeof identifier === 'string'
             ? identifier
             : this.runnersListController.getRunnerToken(identifier); // TODO if not exist try get token by runner name

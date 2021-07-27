@@ -2,7 +2,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../../errors/error-message";
 import { RunnerNotFound } from "../../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../../types/constructor";
 import { JsonObject } from "../../types/json-object";
-import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList, RunnerByToken } from "../../types/runner-token";
+import { AvailableRunnersFromList, RunnerToken, StrictRunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList, RunnerByToken } from "../../types/runner-identifier";
 import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
 
 interface IRunnerBridgeCollectionConfig<M extends SoftRunnersList> {
@@ -42,11 +42,11 @@ export class RunnersListController<L extends SoftRunnersList> {
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
-    public getRunnerSoft<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> | undefined {
-        return this.runnerByTokenDataRecord[token]?.runnerConstructor as RunnerByIdentifier<L, T> | undefined;
+    public getRunnerSoft<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> | undefined {
+        return this.runnerByTokenDataRecord[token]?.runnerConstructor as StrictRunnerByIdentifier<L, T> | undefined;
     }
 
-    public getRunner<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> {
+    public getRunner<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> {
         const runnerConstructor = this.getRunnerSoft(token);
         if (!runnerConstructor) {
             throw new RunnerNotFound({

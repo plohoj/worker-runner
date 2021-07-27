@@ -1,6 +1,6 @@
-import { AvailableRunnersFromList, LocalResolverBridge, StrictRunnersList } from '@worker-runner/core';
+import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
 import { RxResolvedRunner } from '../runners/resolved-runner';
-import { RxClientRunnerResolver } from './client/client-runner.resolver';
+import { RxClientRunnerResolver, RxRunnerArguments } from './client/client-runner.resolver';
 import { RxHostRunnerResolver } from './host/host-runner.resolver';
 
 interface IRxLocalRunnerResolverConfig<L extends StrictRunnersList> {
@@ -8,7 +8,13 @@ interface IRxLocalRunnerResolverConfig<L extends StrictRunnersList> {
 }
 
 export class RxLocalRunnerResolver<L extends StrictRunnersList> extends RxClientRunnerResolver<L> {
+
     declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => RxResolvedRunner<R>;
+    declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
+        identifier: I,
+        ...args: RxRunnerArguments<StrictRunnerByIdentifier<L, I>>
+    ) => Promise<RxResolvedRunner<InstanceType<StrictRunnerByIdentifier<L, I>>>>;
+
     declare protected resolverBridge?: LocalResolverBridge<L>;
 
     constructor(config: IRxLocalRunnerResolverConfig<L>) {

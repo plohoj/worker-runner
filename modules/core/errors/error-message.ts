@@ -1,4 +1,4 @@
-import { RunnerToken } from "../types/runner-token";
+import { RunnerToken } from "../types/runner-identifier";
 
 export interface IRunnerMessageConfig {
     token?: RunnerToken;

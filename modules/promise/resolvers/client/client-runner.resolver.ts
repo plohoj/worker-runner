@@ -1,6 +1,7 @@
-import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerByIdentifier, RunnerConstructor, RunnerIdentifier, SoftRunnersList } from '@worker-runner/core';
+import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, SoftRunnersList, RunnerIdentifier, SoftRunnerByIdentifier } from '@worker-runner/core';
 
-type RunnerArguments<R extends RunnerConstructor>
+// TODO Extract?
+export type RunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     = R extends RunnerConstructor<any, infer A>
         ? A extends ArrayLike<IRunnerSerializedParameter>
@@ -10,8 +11,8 @@ type RunnerArguments<R extends RunnerConstructor>
 
 export class ClientRunnerResolver<L extends SoftRunnersList> extends ClientRunnerResolverBase<L> {
 
-    declare public resolve: <I extends RunnerIdentifier<L>>(
+    declare public resolve: <I extends RunnerIdentifier>(
         identifier: I,
-        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
-    ) => Promise<ResolvedRunner<InstanceType<RunnerByIdentifier<L, I>>>>;
+        ...args: RunnerArguments<SoftRunnerByIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceType<SoftRunnerByIdentifier<L, I>>>>;
 }

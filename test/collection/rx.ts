@@ -10,7 +10,7 @@ import { isIE } from '../utils/is-internet-explorer';
 
 each({
     Rx: rxRunnerResolver,
-    'Local Rx': rxLocalRunnerResolver,
+    'Local Rx': rxLocalRunnerResolver as typeof rxRunnerResolver,
 }, (mode, resolver) => describe(mode, () => {
 
     beforeAll(async () => {
