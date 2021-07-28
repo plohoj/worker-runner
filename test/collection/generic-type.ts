@@ -221,19 +221,25 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // soft token
     async () => {
-        const check0 = await new ClientRunnerResolver({runners: [
-            {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1>,
-            Runner2,
-        ]}).resolve(Runner1);
+        const check0 = await new ClientRunnerResolver({
+            connection: self,
+            runners: [
+                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1>,
+                Runner2,
+            ]}
+        ).resolve(Runner1);
         check0.method1();
         // @ts-expect-error
         check0.method2();
         check0.method12();
 
-        const check1 = await new ClientRunnerResolver({runners: [
-            {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1, 'Runner1'>,
-            Runner2,
-        ]}).resolve('Runner1');
+        const check1 = await new ClientRunnerResolver({
+            connection: self,
+            runners: [
+                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1, 'Runner1'>,
+                Runner2,
+            ]
+        }).resolve('Runner1');
         check1.method1();
         // @ts-expect-error
         check1.method2();
@@ -243,25 +249,34 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
     // soft identifier
     async () => {
         const identifier = 'Runner1' as RunnerIdentifier<typeof Runner1>;
-        const check0 = await new ClientRunnerResolver({runners: []}).resolve(identifier);
+        const check0 = await new ClientRunnerResolver({
+            connection: self,
+            runners: []
+        }).resolve(identifier);
         check0.method1();
         // @ts-expect-error
         check0.method2();
         check0.method12();
 
-        const check1 = await new ClientRunnerResolver({runners: [
-            {token: 'Runner1'},
-            Runner2,
-        ]}).resolve('Runner3');
+        const check1 = await new ClientRunnerResolver({
+            connection: self,
+            runners: [
+                {token: 'Runner1'},
+                Runner2,
+            ]
+        }).resolve('Runner3');
         // @ts-expect-error
         check1.method1();
         check1.method2();
         check1.method12();
 
-        const check2 = await new ClientRunnerResolver({runners: [
-            {token: 'Runner1' as const},
-            Runner2,
-        ]}).resolve('Runner1');
+        const check2 = await new ClientRunnerResolver({
+            connection: self,
+            runners: [
+                {token: 'Runner1' as const},
+                Runner2,
+            ]
+        }).resolve('Runner1');
         // @ts-expect-error
         check2.method1();
         // @ts-expect-error

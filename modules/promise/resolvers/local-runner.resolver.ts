@@ -1,6 +1,6 @@
 import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
-import { ClientRunnerResolver, RunnerArguments } from './client/client-runner.resolver';
-import { HostRunnerResolver } from './host/host-runner.resolver';
+import { ClientRunnerResolver, RunnerArguments } from './client-runner.resolver';
+import { HostRunnerResolver } from './host-runner.resolver';
 
 interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
     runners: L
@@ -18,7 +18,10 @@ export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunn
     declare protected resolverBridge?: LocalResolverBridge<L>;
 
     constructor(config: ILocalRunnerResolverConfig<L>) {
-        super(config);
+        super({
+            connection: self,
+            ...config,
+        });
     }
 
     protected override buildResolverBridge(): void {

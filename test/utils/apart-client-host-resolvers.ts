@@ -15,7 +15,7 @@ export function createApartClientHostResolvers<
     CL extends SoftRunnersList,
     HL extends StrictRunnersList,
 >(config: {
-    clientConfig?: IClientRunnerResolverConfigBase<CL>,
+    clientConfig?: Omit<IClientRunnerResolverConfigBase<CL>, 'connection'>,
     hostConfig: IHostRunnerResolverConfigBase<HL>,
     clientResolverConstructor: typeof ClientRunnerResolver,
     hostResolverConstructor: typeof HostRunnerResolver,

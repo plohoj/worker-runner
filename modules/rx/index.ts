@@ -1,12 +1,9 @@
 export { RxWorkerRunnerErrorCode } from './errors/error-code';
 export { RxRunnerEmitError, RxSubscriptionNotFoundError } from './errors/runner-errors';
-export { RxClientRunnerResolver } from './resolvers/client/client-runner.resolver';
+export { RxClientRunnerResolver } from './resolvers/client-runner.resolver';
 export { RxHostRunnerResolver } from './resolvers/host/host-runner.resolver';
 export { RxLocalRunnerResolver } from './resolvers/local-runner.resolver';
-export { RxNodeRunnerResolver } from './resolvers/client/node-runner.resolver';
-export { RxRunnerResolver } from './resolvers/runner.resolver';
-export { RxWorkerRunnerResolver } from './resolvers/host/worker-runner.resolver';
 export { RxRunnerController } from './runners/controller/runner.controller';
 export { RxRunnerEnvironmentAction } from './runners/environment/runner-environment.actions';
 export { RxRunnerEnvironment } from './runners/environment/runner.environment';
-export { RxResolvedRunner, RxResolvedRunnerMethod, RxResolveRunner } from './runners/resolved-runner';
+export { RxResolvedRunner, RxResolvedRunnerMethod } from './runners/resolved-runner';

@@ -16,45 +16,11 @@ import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bri
 import { serializeArguments } from './arguments-serialize';
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverInitSoftRunnerAction, IClientResolverRunnerDataRequestAction } from './client-resolver.actions';
 
-/**
- * @deprecated
- * @see IClientRunnerResolverPossibleConnectionConfigBase
- * @see IClientRunnerResolverConfigBase
- */
-export interface INodeRunnerResolverWorkerConfigBase {
-    /**
-     * @default 'Worker Runner'
-     * @deprecated
-     * @see IClientRunnerResolverPossibleConnectionConfigBase
-     */
-    workerName?: string;
-    /**
-     * @default 'worker.js'
-     * @deprecated
-     * @see IClientRunnerResolverPossibleConnectionConfigBase
-     */
-    workerPath?: string; 
-}
 
-export interface IClientRunnerResolverPossibleConnectionConfigBase {
+export type IClientRunnerResolverConfigBase<L extends SoftRunnersList> = {
     connection: RunnerResolverPossibleConnection;
+    runners?: L;
 }
-
-export type IClientRunnerResolverConnectionConfigBase
-    = INodeRunnerResolverWorkerConfigBase | IClientRunnerResolverPossibleConnectionConfigBase;
-
-export type IClientRunnerResolverConfigBase<L extends SoftRunnersList>
-    = IClientRunnerResolverConnectionConfigBase & {
-        runners?: L;
-    }
-
-const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<
-    IClientRunnerResolverConfigBase<never[]> & INodeRunnerResolverWorkerConfigBase
-> = {
-    workerName: 'Worker Runner',
-    runners: [],
-    workerPath: 'worker.js',
-};
 
 export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
 
@@ -65,27 +31,15 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly runnersListController: RunnersListController<L>;
 
-    private readonly connectionConfig: IClientRunnerResolverConnectionConfigBase;
+    private readonly connection: RunnerResolverPossibleConnection;
     private readonly runnerControllerPartFactory: RunnerControllerPartFactory<AnyRunnerFromList<L>>
         = this.buildSoftRunnerControllerByPartConfig.bind(this);
-    /** Exist only if connection config not have worker / port */
-    private worker?: Worker;
 
     constructor(config: IClientRunnerResolverConfigBase<L>) {
         this.runnersListController = new RunnersListController({
-            runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,
+            runners: config.runners || [],
         });
-        // eslint-disable-next-line unicorn/prefer-ternary
-        if ('connection' in config) {
-            this.connectionConfig = {
-                connection: config.connection
-            };
-        } else {
-            this.connectionConfig = {
-                workerName: config.workerName,
-                workerPath: config.workerPath,
-            };
-        }
+        this.connection = config.connection || self;
     }
 
     /** Launches and prepares RunnerResolver for work */
@@ -131,8 +85,6 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
         if (this.connectController) {
             await this.connectController.destroy();
             this.destroyRunnerControllers();
-            this.worker?.terminate();
-            this.worker = undefined;
             this.connectController = undefined;
             this.resolverBridge = undefined;
         } else {
@@ -143,17 +95,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     }
 
     protected buildResolverBridge(): void {
-        let connection: RunnerResolverPossibleConnection;
-        if ('connection' in this.connectionConfig) {
-            connection = this.connectionConfig.connection;
-        } else {
-            connection = new Worker(
-                this.connectionConfig.workerPath || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerPath,
-                { name: this.connectionConfig.workerName || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.workerName },
-            );
-            this.worker = connection;
-        }
-        this.resolverBridge = new ClientResolverBridge({ connection });
+        this.resolverBridge = new ClientResolverBridge({ connection: this.connection });
     }
 
     protected async buildSoftRunnerControllerByPartConfig(config: {

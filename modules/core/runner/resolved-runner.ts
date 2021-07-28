@@ -34,6 +34,3 @@ type ResolvedRunnerMethods<T> = {
 };
 
 export type ResolvedRunner<T> = ResolvedRunnerMethods<T> & RunnerBridge;
-
-/** @deprecated use ResolvedRunner */
-export type ResolveRunner<T> = ResolvedRunner<T>;

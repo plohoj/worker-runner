@@ -1,6 +1,6 @@
 import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
 import { RxResolvedRunner } from '../runners/resolved-runner';
-import { RxClientRunnerResolver, RxRunnerArguments } from './client/client-runner.resolver';
+import { RxClientRunnerResolver, RxRunnerArguments } from './client-runner.resolver';
 import { RxHostRunnerResolver } from './host/host-runner.resolver';
 
 interface IRxLocalRunnerResolverConfig<L extends StrictRunnersList> {
@@ -18,7 +18,10 @@ export class RxLocalRunnerResolver<L extends StrictRunnersList> extends RxClient
     declare protected resolverBridge?: LocalResolverBridge<L>;
 
     constructor(config: IRxLocalRunnerResolverConfig<L>) {
-        super(config);
+        super({
+            connection: self,
+            ...config,
+        });
     }
 
     protected override buildResolverBridge(): void {

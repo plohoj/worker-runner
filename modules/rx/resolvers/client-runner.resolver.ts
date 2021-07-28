@@ -1,7 +1,7 @@
 import { AnyRunnerFromList, ClientRunnerResolverBase, Constructor, IRunnerControllerConfig, RunnerConstructor, SoftRunnersList, RunnerIdentifier, SoftRunnerByIdentifier, InstanceTypeOrUnknown } from '@worker-runner/core';
-import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RxRunnerController } from '../../runners/controller/runner.controller';
-import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../../runners/resolved-runner';
+import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RxRunnerController } from '../runners/controller/runner.controller';
+import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
 
 export type RxRunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
