@@ -7,9 +7,6 @@ each(apartHostClientResolvers, (mode, resolvers) =>
     describe(mode, () => {
         it ('delayed connection', async () => {
             const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
-                clientConfig: {
-                    runners: [], // TODO optional
-                },
                 hostConfig: { runners: [] },
                 clientResolverConstructor: resolvers.client,
                 hostResolverConstructor: resolvers.host,

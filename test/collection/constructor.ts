@@ -106,7 +106,7 @@ each(resolverList, (mode, resolver) =>
             class AnonymRunner {}
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({runnerName: AnonymRunner.name}),
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({token: AnonymRunner.name}),
                 name: RunnerNotFound.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -144,9 +144,6 @@ each(apartHostClientResolvers, (mode, resolvers) =>
     describe(`${mode} constructor`, () => {
         it ('by token without Client configuration', async () => {
             const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
-                clientConfig: {
-                    runners: [], // TODO optional
-                },
                 hostConfig: {
                     runners: [
                         {
@@ -161,8 +158,24 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             await apartConfiguredLocalRunnerResolvers.run();
 
             await expectAsync(
-                 // TODO can be resolved by constructor
                 apartConfiguredLocalRunnerResolvers.client.resolve(EXECUTABLE_STUB_RUNNER_TOKEN)
+            ).toBeResolved();
+
+            await apartConfiguredLocalRunnerResolvers.destroy();
+        });
+
+        it ('by runner constructor without Client configuration', async () => {
+            const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
+                hostConfig: {
+                    runners: [ExecutableStubRunner],
+                },
+                clientResolverConstructor: resolvers.client,
+                hostResolverConstructor: resolvers.host,
+            });
+            await apartConfiguredLocalRunnerResolvers.run();
+
+            await expectAsync(
+                apartConfiguredLocalRunnerResolvers.client.resolve(ExecutableStubRunner)
             ).toBeResolved();
 
             await apartConfiguredLocalRunnerResolvers.destroy();
