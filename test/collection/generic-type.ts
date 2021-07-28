@@ -261,10 +261,12 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         const check2 = await new ClientRunnerResolver({runners: [
             {token: 'Runner1' as const},
             Runner2,
-        // TODO to be resolved unknown
         ]}).resolve('Runner1');
+        // @ts-expect-error
         check2.method1();
+        // @ts-expect-error
         check2.method2();
+        // @ts-expect-error
         check2.method12();
     }
 }

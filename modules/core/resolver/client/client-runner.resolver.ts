@@ -45,7 +45,7 @@ export type IClientRunnerResolverConnectionConfigBase
 
 export type IClientRunnerResolverConfigBase<L extends SoftRunnersList>
     = IClientRunnerResolverConnectionConfigBase & {
-        runners: L;
+        runners?: L;
     }
 
 const DEFAULT_RUNNER_RESOLVER_BASE_CONFIG: Required<
@@ -71,7 +71,6 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     /** Exist only if connection config not have worker / port */
     private worker?: Worker;
 
-    // TODO Optional config (except LocalResolver)
     constructor(config: IClientRunnerResolverConfigBase<L>) {
         this.runnersListController = new RunnersListController({
             runners: config.runners || DEFAULT_RUNNER_RESOLVER_BASE_CONFIG.runners,

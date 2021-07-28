@@ -12,7 +12,10 @@ export class RunnerResolver<L extends StrictRunnersList> extends ClientRunnerRes
 
     constructor(config: IClientRunnerResolverConfigBase<L>) {
         super(config);
-        this.hostRunnerResolver = new HostRunnerResolver(config);
+        this.hostRunnerResolver = new HostRunnerResolver({
+            runners: [],
+            ...config
+        });
     }
 
     public runInWorker(): void {
