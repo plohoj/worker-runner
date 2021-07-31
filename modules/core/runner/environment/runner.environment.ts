@@ -2,7 +2,7 @@ import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/con
 import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
-import { RunnerDestroyError, RunnerExecuteError } from '../../errors/runner-errors';
+import { RunnerDestroyError, RunnerExecuteError, RunnerNotFound } from '../../errors/runner-errors';
 import { ArgumentsDeserializer } from '../../resolver/host/arguments-deserializer';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
@@ -11,14 +11,16 @@ import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
 import { RunnerController } from '../controller/runner.controller';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner-bridge/runner.bridge';
-import { IRunnerEnvironmentAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from './runner-environment.actions';
+import { RunnersListController } from '../runner-bridge/runners-list.controller';
+import { IRunnerEnvironmentAction, IRunnerEnvironmentOwnDataResponseAction, IRunnerEnvironmentOwnDataResponseErrorAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from './runner-environment.actions';
 
 export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
     token: RunnerToken;
-    runner: InstanceType<R>;
+    port: MessagePort;
+    runnerInstance: InstanceType<R>;
     errorSerializer: WorkerRunnerErrorSerializer;
     argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>,
-    port: MessagePort;
+    runnersListController: RunnersListController<StrictRunnersList>;
     onDestroyed: () => void;
 }
 
@@ -32,6 +34,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
     protected readonly connectEnvironment: ConnectEnvironment;
 
+    private readonly runnersListController: RunnersListController<StrictRunnersList>;
+
     private onDestroyed: () => void;
     private connectedControllers = new Set<RunnerController<RunnerConstructor>>();
     private argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>;
@@ -39,7 +43,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
         this.token = config.token;
         this.errorSerializer = config.errorSerializer
-        this.runnerInstance = config.runner;
+        this.runnerInstance = config.runnerInstance;
+        this.runnersListController = config.runnersListController;
         this.onDestroyed = config.onDestroyed;
         this.argumentsDeserializer = config.argumentsDeserializer;
         this.connectEnvironment = this.buildConnectEnvironment({
@@ -127,6 +132,8 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 }
             case RunnerControllerAction.RESOLVE:
                 return await this.resolve();
+            case RunnerControllerAction.REQUEST_RUNNER_OWN_DATA:
+                return this.getRunnerOwnData();
         }
     }
 
@@ -185,5 +192,27 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     private onRunnerControllerDestroyed(runnerController: RunnerController<RunnerConstructor>): void {
         this.connectedControllers.delete(runnerController);
+    }
+
+    private getRunnerOwnData(): IRunnerEnvironmentOwnDataResponseAction | IRunnerEnvironmentOwnDataResponseErrorAction {
+        let responseAction: IRunnerEnvironmentOwnDataResponseAction;
+        try {
+            responseAction = {
+                type: RunnerEnvironmentAction.RUNNER_OWN_DATA_RESPONSE,
+                methodsNames: this.runnersListController.getRunnerMethodsNames(this.token),
+            };
+        } catch (error) { // TODO Need test
+            const responseErrorAction: IRunnerEnvironmentOwnDataResponseErrorAction = {
+                type: RunnerEnvironmentAction.RUNNER_OWN_DATA_RESPONSE_ERROR,
+                ... this.errorSerializer.serialize(error, new RunnerNotFound({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({
+                        token: this.token,
+                        runnerName: this.runnersListController.getRunnerConstructorSoft(this.token)?.name,
+                    }),
+                })),
+            };
+            return responseErrorAction;
+        }
+        return responseAction;
     }
 }

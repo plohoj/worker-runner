@@ -46,12 +46,12 @@ export class RunnersListController<L extends SoftRunnersList> {
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
-    public getRunnerSoft<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> | undefined {
+    public getRunnerConstructorSoft<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> | undefined {
         return this.runnerByTokenDataRecord[token]?.runnerConstructor as StrictRunnerByIdentifier<L, T> | undefined;
     }
 
-    public getRunner<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> {
-        const runnerConstructor = this.getRunnerSoft(token);
+    public getRunnerConstructor<T extends RunnerToken = RunnerToken>(token: T): StrictRunnerByIdentifier<L, T> {
+        const runnerConstructor = this.getRunnerConstructorSoft(token);
         if (!runnerConstructor) {
             throw new RunnerNotFound({
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
@@ -78,7 +78,10 @@ export class RunnersListController<L extends SoftRunnersList> {
         const runnerData = this.runnerByTokenDataRecord[token];
         if (!runnerData) {
             throw new RunnerNotFound({
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token: token })
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({
+                    token: token,
+                    runnerName: this.getRunnerConstructorSoft(token)?.name,
+                }),
             });
         }
         return runnerData.bridgeConstructor;

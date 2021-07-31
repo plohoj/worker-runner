@@ -75,10 +75,10 @@ export class ConnectController {
     }
 
     /** Stop listening on the port without notifying *ConnectEnvironment* */
-    public stopListen(isClosePort = true): void {
-        this.disconnectStatus ||= this.disconnectErrorFactory(new  ConnectionWasClosedError());
+    public stopListen(isClosingPort = true): void {
+        this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
         this.port.removeEventListener('message', this.messageHandler);
-        if (isClosePort) {
+        if (isClosingPort) {
             this.port.close();
         } else {
             const interruptListeningAction: IConnectControllerInterruptListeningAction = {

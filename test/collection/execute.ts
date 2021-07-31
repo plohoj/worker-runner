@@ -196,13 +196,12 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             });
             await apartConfiguredLocalRunnerResolvers.run();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const getRunnerDataSpy = spyOn(resolvers.host.prototype as any, 'getRunnerData').and.callThrough();
             const withLocalResolverStub = await apartConfiguredLocalRunnerResolvers.client.resolve(WithLocalResolverStub);
             await withLocalResolverStub.run('');
 
-            expect(getRunnerDataSpy).not.toHaveBeenCalled();
-            await expectAsync(withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()).toBeResolved();
-            expect(getRunnerDataSpy).toHaveBeenCalled();
+            await expectAsync(
+                withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()
+            ).toBeResolved();
 
             await apartConfiguredLocalRunnerResolvers.destroy();
         });

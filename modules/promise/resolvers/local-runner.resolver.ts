@@ -3,13 +3,15 @@ import { ClientRunnerResolver, RunnerArguments } from './client-runner.resolver'
 import { HostRunnerResolver } from './host-runner.resolver';
 
 interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
-    runners: L
+    runners: L // TODO optional.
 }
 
 export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunnerResolver<L> {
 
+    // TODO Can wrap constructors that have not been configured
     declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
     
+    // TODO Can resolve constructors that have not been configured
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
         ...args: RunnerArguments<StrictRunnerByIdentifier<L, I>>

@@ -58,17 +58,11 @@ export class ArgumentsDeserializer<L extends StrictRunnersList> {
         port: MessagePort,
         onDestroyed: (runnerController: RunnerController<AvailableRunnersFromList<L>>) => void,
     }): RunnerController<AvailableRunnersFromList<L>> {
-
-        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(config.token);
-        const originalRunnerName = this.runnersListController.getRunner(config.token).name;
-
         const runnerController = this.buildRunnerController({
             ...config,
-            runnerBridgeConstructor,
-            originalRunnerName,
+            runnersListController: this.runnersListController,
             runnerControllerPartFactory: this.runnerControllerPartFactory,
         });
         return runnerController;
     }
-
 }

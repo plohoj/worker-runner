@@ -5,32 +5,30 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { serializeArguments } from '../../resolver/client/arguments-serialize';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
-import { RunnerToken } from "../../types/runner-identifier";
-import { IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
+import { RunnerToken, SoftRunnersList } from "../../types/runner-identifier";
+import { IRunnerEnvironmentOwnDataResponseAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
-import { IRunnerBridgeConstructor } from '../runner-bridge/runner.bridge';
-import { IRunnerControllerExecuteAction, RunnerControllerAction } from './runner-controller.actions';
+import { RunnersListController } from '../runner-bridge/runners-list.controller';
+import { IRunnerControllerExecuteAction, IRunnerControllerRequestRunnerOwnDataAction, RunnerControllerAction } from './runner-controller.actions';
 
-export type RunnerControllerPartFactory<R extends RunnerConstructor> = (config: {
+interface IRunnerControllerPartFactoryConfig<R extends RunnerConstructor> {
     token: RunnerToken,
     port: MessagePort,
     onDestroyed: (runnerController: RunnerController<R>) => void;
-}) => Promise<RunnerController<R>> | RunnerController<R>;
+}
 
-export interface IRunnerControllerConfig<R extends RunnerConstructor> {
-    token: RunnerToken;
-    originalRunnerName?: string;
-    port: MessagePort;
-    runnerBridgeConstructor: IRunnerBridgeConstructor<R>;
-    onDestroyed: (runnerController: RunnerController<R>) => void;
+export type RunnerControllerPartFactory<R extends RunnerConstructor>
+    = (config: IRunnerControllerPartFactoryConfig<R>) => RunnerController<R>;
+
+export interface IRunnerControllerConfig<R extends RunnerConstructor> extends IRunnerControllerPartFactoryConfig<R> {
+    runnersListController: RunnersListController<SoftRunnersList>;
     runnerControllerPartFactory: RunnerControllerPartFactory<R>;
 }
 
 export class RunnerController<R extends RunnerConstructor> {
     public readonly token: RunnerToken;
-    public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
-    public readonly originalRunnerName?: string;
+    public resolvedRunner: ResolvedRunner<InstanceType<R>>;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
     protected readonly connectController: ConnectController;
@@ -38,23 +36,18 @@ export class RunnerController<R extends RunnerConstructor> {
 
     protected onDestroyed: (runnerController: RunnerController<R>) => void;
 
+    private readonly runnersListController: RunnersListController<SoftRunnersList>;
+
     private isMarkedForTransfer = false;
-    private readonly runnerBridgeConstructor: IRunnerBridgeConstructor<R>;
 
     constructor(config: Readonly<IRunnerControllerConfig<R>>) {
-        this.originalRunnerName = config.originalRunnerName;
-        this.runnerBridgeConstructor = config.runnerBridgeConstructor;
-        this.resolvedRunner = new this.runnerBridgeConstructor(this);
         this.token = config.token;
+        this.runnersListController = config.runnersListController;
+        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(this.token);
+        this.resolvedRunner = new runnerBridgeConstructor(this);
         this.onDestroyed = config.onDestroyed;
         this.runnerControllerPartFactory = config.runnerControllerPartFactory;
-        this.connectController = this.buildConnectController({
-            port: config.port,
-            destroyErrorDeserializer: this.errorSerializer
-                .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
-            forceDestroyHandler: () => this.onDestroyed(this),
-            disconnectErrorFactory: this.disconnectErrorFactory.bind(this),
-        });
+        this.connectController = this.buildConnectControllerByPartConfig({ port: config.port });
     }
 
     public async execute(
@@ -88,14 +81,11 @@ export class RunnerController<R extends RunnerConstructor> {
         }
     }
 
-    public async cloneControl(): Promise<this> { // TODO Need add to controls list
-        return new (this.constructor as typeof RunnerController)({
+    public async cloneControl(): Promise<this> {
+        return this.runnerControllerPartFactory({
             token: this.token,
-            runnerBridgeConstructor: this.runnerBridgeConstructor,
             port: await this.resolveControl(),
-            originalRunnerName: this.originalRunnerName,
-            runnerControllerPartFactory: this.runnerControllerPartFactory,
-            onDestroyed: this.onDestroyed
+            onDestroyed: this.onDestroyed,
         }) as this;
     }
 
@@ -129,20 +119,15 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     protected async handleExecuteResult(
-        actionResult: IRunnerEnvironmentExecuteResultAction
+        action: IRunnerEnvironmentExecuteResultAction
     ): Promise<IRunnerSerializedMethodResult> {
-        switch (actionResult.type) {
+        switch (action.type) {
             case RunnerEnvironmentAction.EXECUTE_ERROR:
-                throw this.errorSerializer.deserialize(actionResult);
-            // TODO Result can soft token and bridgeConstructor not available (not received yet)
+                throw this.errorSerializer.deserialize(action);
             case RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT:
-                return (await this.runnerControllerPartFactory({
-                    token: actionResult.token,
-                    port: actionResult.port,
-                    onDestroyed: this.onDestroyed,
-                })).resolvedRunner;
+                return this.handleExecuteWithRunnerResult(action);
             default:
-                return actionResult.response;
+                return action.response;
         }
     }
 
@@ -152,7 +137,46 @@ export class RunnerController<R extends RunnerConstructor> {
         return new ConnectController(config);
     }
 
+    private buildConnectControllerByPartConfig(
+        config: Pick<IConnectControllerConfig, 'port'>,
+    ): ConnectController {
+        return this.buildConnectController({
+            destroyErrorDeserializer: this.errorSerializer
+                .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
+            forceDestroyHandler: () => this.onDestroyed(this),
+            disconnectErrorFactory: this.disconnectErrorFactory.bind(this),
+            ...config,
+        });
+    }
+
+    private async handleExecuteWithRunnerResult(
+        action: IRunnerEnvironmentExecutedWithRunnerResultAction,
+    ): Promise<ResolvedRunner<InstanceType<R>>> {
+        if (!this.runnersListController.hasBridgeConstructor(action.token)) {
+            const responseAction = await this.requestRunnerOwnData(action.port);
+            this.runnersListController.defineRunnerBridge(action.token, responseAction.methodsNames);
+        }
+        const runnerController = this.runnerControllerPartFactory({
+            token: action.token,
+            port: action.port,
+            onDestroyed: this.onDestroyed,
+        });
+        return runnerController.resolvedRunner;
+    }
+
+    private async requestRunnerOwnData(port: MessagePort): Promise<IRunnerEnvironmentOwnDataResponseAction> {
+        const connectionController = this.buildConnectControllerByPartConfig({ port });
+        const action: IRunnerControllerRequestRunnerOwnDataAction = {
+            type: RunnerControllerAction.REQUEST_RUNNER_OWN_DATA,
+        }
+        const environmentData = await connectionController
+            .sendAction<IRunnerControllerRequestRunnerOwnDataAction, IRunnerEnvironmentOwnDataResponseAction>(action);
+        connectionController.stopListen(false);
+        return environmentData;
+    }
+
     private transferControl(): MessagePort {
+        // TODO remove this Controller from ClientResolver controllers list
         this.stopListen(false);
         return this.connectController.port;
     }
@@ -163,7 +187,7 @@ export class RunnerController<R extends RunnerConstructor> {
             ...error,
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                 token: this.token,
-                runnerName: this.originalRunnerName,
+                runnerName: this.runnersListController.getRunnerConstructorSoft(this.token)?.name,
             })
         });
     }
