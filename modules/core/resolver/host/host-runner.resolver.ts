@@ -13,10 +13,9 @@ import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge
 import { ArgumentsDeserializer, IArgumentsDeserializerConfig } from './arguments-deserializer';
 import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
 
-export interface IHostRunnerResolverConfigBase<L extends StrictRunnersList> {
-    runners: L;
+export type IHostRunnerResolverConfigBase<L extends StrictRunnersList> = {
     connections?: RunnerResolverPossibleConnection[];
-}
+} & ({runners: L} | {runnersListController: RunnersListController<L>})
 
 export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     
@@ -35,7 +34,9 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     protected readonly argumentsDeserializer: ArgumentsDeserializer<L>;
 
     constructor(config: IHostRunnerResolverConfigBase<L>) {
-        this.runnersListController = new RunnersListController({ runners: config.runners });
+        this.runnersListController = 'runners' in config
+            ? new RunnersListController({ runners: config.runners })
+            : config.runnersListController;
         this.argumentsDeserializer = this.buildArgumentsDeserializer({
             runnersListController: this.runnersListController,
         });

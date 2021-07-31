@@ -49,5 +49,21 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
             expect(destroySpy).toHaveBeenCalled();
             await localResolver.destroy();
         });
+
+        it ('without configuration', async () => {
+            const helloMessage = 'Hello';
+            const runnerSub = new class RunnerStub {
+                public getHelloMessage() {
+                    return helloMessage;
+                }
+            }
+            const localResolver = new IterateLocalRunnerResolver();
+            await localResolver.run();
+
+            const resolvedRunnerSub = await localResolver.wrapRunner(runnerSub);
+            await expectAsync(resolvedRunnerSub.getHelloMessage()).toBeResolvedTo(helloMessage)
+
+            await localResolver.destroy();
+        });
     }),
 );

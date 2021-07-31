@@ -1,6 +1,6 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { LocalRunnerResolver } from '@worker-runner/promise';
-import { apartHostClientResolvers, clientResolverList, resolverList } from '../client/resolver-list';
+import { apartHostClientResolvers, clientResolverList, localResolvers, resolverList } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -102,16 +102,6 @@ each(resolverList, (mode, resolver) =>
                 }));
         });
 
-        it ('not exist', async () => {
-            class AnonymRunner {}
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({token: AnonymRunner.name}),
-                name: RunnerNotFound.name,
-                stack: jasmine.stringMatching(/.+/),
-            }));
-        });
-
         it ('not exist by token', async () => {
             const token = 'NotExistRunnerToken';
             await expectAsync(resolver.resolve(token)).toBeRejectedWith(errorContaining(RunnerNotFound, {
@@ -136,6 +126,30 @@ each(clientResolverList, (mode, resolver) =>
         it('with soft token configured', async () => {
             const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
+        });
+
+        it ('not exist', async () => {
+            class AnonymRunner {}
+            await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({token: AnonymRunner.name}),
+                name: RunnerNotFound.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
+        });
+    }),
+);
+
+each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+    describe(`${mode} constructor`, () => {
+        it ('resolving without configuration', async () => {
+            class RunnerStub {}
+            const localResolver = new IterateLocalRunnerResolver();
+            await localResolver.run();
+
+            await localResolver.resolve(RunnerStub)
+            await expectAsync(localResolver.resolve(RunnerStub)).toBeResolved();
+
+            await localResolver.destroy();
         });
     }),
 );

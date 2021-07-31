@@ -3,15 +3,12 @@ import { ClientRunnerResolver, RunnerArguments } from './client-runner.resolver'
 import { HostRunnerResolver } from './host-runner.resolver';
 
 interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
-    runners: L // TODO optional.
+    runners?: L
 }
 
 export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunnerResolver<L> {
 
-    // TODO Can wrap constructors that have not been configured
     declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
-    
-    // TODO Can resolve constructors that have not been configured
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
         ...args: RunnerArguments<StrictRunnerByIdentifier<L, I>>
@@ -19,7 +16,7 @@ export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunn
 
     declare protected resolverBridge?: LocalResolverBridge<L>;
 
-    constructor(config: ILocalRunnerResolverConfig<L>) {
+    constructor(config?: ILocalRunnerResolverConfig<L>) {
         super({
             connection: self,
             ...config,
@@ -30,7 +27,7 @@ export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunn
         this.resolverBridge = new LocalResolverBridge({
             hostRunnerResolverFactory: config => new HostRunnerResolver({
                 ...config,
-                runners: this.runnersListController.getRunnerList() as unknown as L,
+                runnersListController: this.runnersListController,
             }),
         });
     }

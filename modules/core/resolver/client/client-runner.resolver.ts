@@ -179,7 +179,12 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
                 message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
             });
         }
-        const token = this.runnersListController.getRunnerTokenByInstance(runnerInstance);
+        const runnerConstructor: AvailableRunnersFromList<L> = Object.getPrototypeOf(runnerInstance).constructor;
+        let token = this.runnersListController.getRunnerTokenSoft(runnerConstructor);
+        if (!token) {
+            token = this.runnersListController.generateTokenNameByRunnerConstructor(runnerConstructor);
+            this.runnersListController.defineRunnerConstructor(token, runnerConstructor);
+        }
         // TODO Don't use "any" type. (try to transfer the method to mixin)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const port = (this.resolverBridge as LocalResolverBridge<any>).hostRunnerResolver.wrapRunner(runnerInstance);
