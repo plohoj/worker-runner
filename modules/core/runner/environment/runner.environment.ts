@@ -99,7 +99,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 [...this.connectedControllers]
                     .map(controller => controller
                         .destroy()
-                        .catch(console.error), // TODO need to combine errors
+                        .catch(error => console.error(error)), // TODO need to combine errors
                     ),
             );
             this.connectedControllers.clear();
