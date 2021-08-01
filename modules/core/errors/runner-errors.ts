@@ -7,7 +7,7 @@ export class ConnectionWasClosedError extends WorkerRunnerError {
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super({
             name: config.name || ConnectionWasClosedError.name,
-            message: config.message ||  WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
             stack: (config as IRunnerErrorConfigStack).stack,
             captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || ConnectionWasClosedError,
         });

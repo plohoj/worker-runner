@@ -177,46 +177,50 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         const check0 = await new LocalRunnerResolver({runners: [
             Runner1,
             Runner2,
-        // @ts-expect-error
         ]}).resolve(Runner3);
         // @ts-expect-error
         check0.method1();
         // @ts-expect-error
         check0.method2();
+        // @ts-expect-error
         check0.method12();
+        check0.method3();
 
         const check1 = await new LocalRunnerResolver({runners: [
             {token: 'Runner1', runner: Runner1},
             Runner2,
-        // @ts-expect-error
         ]}).resolve(Runner3);
         // @ts-expect-error
         check1.method1();
         // @ts-expect-error
         check1.method2();
+        // @ts-expect-error
         check1.method12();
+        check1.method3();
 
         const check2 = await new LocalRunnerResolver({runners: [
             Runner1,
             {token: 'Runner2', runner: Runner2},
-        // @ts-expect-error
         ]}).resolve(Runner3);
         // @ts-expect-error
         check2.method1();
         // @ts-expect-error
         check2.method2();
+        // @ts-expect-error
         check2.method12();
+        check2.method3();
 
         const check3 = await new LocalRunnerResolver({runners: [
             {token: 'Runner1', runner: Runner1},
             {token: 'Runner2', runner: Runner2},
-        // @ts-expect-error
         ]}).resolve(Runner3);
         // @ts-expect-error
         check3.method1();
         // @ts-expect-error
         check3.method2();
+        // @ts-expect-error
         check3.method12();
+        check3.method3();
     }
 
     // soft token

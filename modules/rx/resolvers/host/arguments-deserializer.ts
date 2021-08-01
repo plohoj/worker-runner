@@ -2,7 +2,7 @@ import { ArgumentsDeserializer, AvailableRunnersFromList, IRunnerControllerConfi
 import { RxRunnerController } from "../../runners/controller/runner.controller";
 
 export class RxArgumentsDeserializer<L extends StrictRunnersList> extends ArgumentsDeserializer<L> {
-    protected override buildRunnerController(
+    protected override buildRunnerControllerWithoutInit(
         config: IRunnerControllerConfig<AvailableRunnersFromList<L>>
     ): RunnerController<AvailableRunnersFromList<L>> {
         return new RxRunnerController(config);

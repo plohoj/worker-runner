@@ -194,5 +194,32 @@ each(apartHostClientResolvers, (mode, resolvers) =>
 
             await apartConfiguredLocalRunnerResolvers.destroy();
         });
+
+        it ('with Resolved Runner in arguments and without Client/Host configuration', async () => {
+            const apartConfiguredLocalRunnerResolvers = createApartClientHostResolvers({
+                clientConfig: {
+                    runners: [WithOtherInstanceStubRunner],
+                },
+                hostConfig: {
+                    runners: [
+                        WithOtherInstanceStubRunner,
+                    ],
+                },
+                clientResolverConstructor: resolvers.client,
+                hostResolverConstructor: resolvers.host,
+            });
+
+            const localResolver = new LocalRunnerResolver();
+            await localResolver.run();
+            const resolvedExecutableStubRunner = await localResolver.resolve(ExecutableStubRunner);
+            
+            await apartConfiguredLocalRunnerResolvers.run();
+            await expectAsync(
+                apartConfiguredLocalRunnerResolvers.client
+                    .resolve(WithOtherInstanceStubRunner, resolvedExecutableStubRunner)
+            ).toBeResolved();
+
+            await apartConfiguredLocalRunnerResolvers.destroy();
+        });
     }),
 );

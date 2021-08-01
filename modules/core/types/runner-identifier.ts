@@ -36,7 +36,8 @@ export type AnyRunnerFromList<L extends SoftRunnersList>
             : TOR
         : never;
 
-export type AvailableRunnerIdentifier<L extends SoftRunnersList = SoftRunnersList> = RunnerToken | AvailableRunnersFromList<L>;
+export type AvailableRunnerIdentifier<L extends SoftRunnersList = SoftRunnersList>
+     = RunnerToken | AvailableRunnersFromList<L> | RunnerConstructor;
 export type RunnerIdentifier<R extends RunnerConstructor = RunnerConstructor> = RunnerToken | R;
 
 export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
@@ -63,22 +64,9 @@ type RunnersWithoutLiteralToken<L extends SoftRunnersList>
             : TOR
         : never;
 
-type RunnerConstructorInList<L extends SoftRunnersList, R extends RunnerConstructor>
-    = L extends ArrayLike<infer TOR>
-        ? TOR extends R 
-            ? R
-            : TOR extends ISoftRunnerTokenConfig
-                ? TOR['runner'] extends R
-                    ? undefined extends TOR['runner']
-                        ? never
-                        : TOR['runner']
-                    : never
-                : never
-        : never;
-
 export type StrictRunnerByIdentifier<L extends SoftRunnersList, I extends AvailableRunnerIdentifier<L>>
     = I extends RunnerConstructor
-        ? RunnerConstructorInList<L, I>
+        ? I
         : I extends RunnerToken
             ? RunnerByToken<L, I> extends never
                 ? isLiteralString<I> extends true

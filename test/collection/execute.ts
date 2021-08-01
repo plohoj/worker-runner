@@ -195,7 +195,6 @@ each(apartHostClientResolvers, (mode, resolvers) =>
                 hostResolverConstructor: resolvers.host,
             });
             await apartConfiguredLocalRunnerResolvers.run();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const withLocalResolverStub = await apartConfiguredLocalRunnerResolvers.client.resolve(WithLocalResolverStub);
             await withLocalResolverStub.run('');
 

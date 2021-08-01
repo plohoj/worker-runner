@@ -1,3 +1,4 @@
+import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { IRunnerControllerConfig, RunnerController } from "../../runner/controller/runner.controller";
 import { RunnersListController } from "../../runner/runner-bridge/runners-list.controller";
 import { IRunnerSerializedParameter } from "../../types/constructor";
@@ -6,24 +7,27 @@ import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../../t
 
 export interface IArgumentsDeserializerConfig<L extends StrictRunnersList> {
     runnersListController: RunnersListController<L>;
+    errorSerializer: WorkerRunnerErrorSerializer,
 }
 
 export class ArgumentsDeserializer<L extends StrictRunnersList> {
 
+    private readonly errorSerializer: WorkerRunnerErrorSerializer;
     private readonly runnersListController: RunnersListController<L>;
     private readonly runnerControllerPartFactory = this.buildRunnerControllerByPartConfig.bind(this);
 
     constructor(config: Readonly<IArgumentsDeserializerConfig<L>>) {
         this.runnersListController = config.runnersListController;
+        this.errorSerializer = config.errorSerializer;
     }
 
-    public deserializeArguments(config: {
+    public async deserializeArguments(config: {
         args: IRunnerSerializedArgument[],
         onRunnerControllerDestroyed: (runnerController: RunnerController<AvailableRunnersFromList<L>>) => void,
-    }): {
+    }): Promise<{
         args: Array<IRunnerSerializedParameter>,
         controllers: Array<RunnerController<AvailableRunnersFromList<L>>>,
-    } {
+    }> {
         const result = {
             args: new Array<IRunnerSerializedParameter>(),
             controllers: new Array<RunnerController<AvailableRunnersFromList<L>>>(),
@@ -31,7 +35,7 @@ export class ArgumentsDeserializer<L extends StrictRunnersList> {
         for (const argument of config.args) {
             switch (argument.type) {
                 case RunnerSerializedArgumentType.RUNNER_INSTANCE: {
-                    const controller = this.buildRunnerControllerByPartConfig({
+                    const controller = await this.buildRunnerControllerByPartConfig({
                         port: argument.port,
                         token: argument.token,
                         onDestroyed: config.onRunnerControllerDestroyed,
@@ -47,22 +51,24 @@ export class ArgumentsDeserializer<L extends StrictRunnersList> {
         return result;
     }
 
-    protected buildRunnerController(
+    protected buildRunnerControllerWithoutInit(
         config: IRunnerControllerConfig<AvailableRunnersFromList<L>>
     ): RunnerController<AvailableRunnersFromList<L>> {
         return new RunnerController(config);
     }
 
-    private buildRunnerControllerByPartConfig(config: {
+    private async buildRunnerControllerByPartConfig(config: {
         token: RunnerToken,
         port: MessagePort,
         onDestroyed: (runnerController: RunnerController<AvailableRunnersFromList<L>>) => void,
-    }): RunnerController<AvailableRunnersFromList<L>> {
-        const runnerController = this.buildRunnerController({
+    }): Promise<RunnerController<AvailableRunnersFromList<L>>> {
+        const runnerController = this.buildRunnerControllerWithoutInit({
             ...config,
             runnersListController: this.runnersListController,
             runnerControllerPartFactory: this.runnerControllerPartFactory,
+            errorSerializer: this.errorSerializer,
         });
+        await runnerController.init();
         return runnerController;
     }
 }

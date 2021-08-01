@@ -59,7 +59,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         action: IRunnerControllerExecuteAction,
     ): Promise<IRunnerEnvironmentExecuteResultAction> {
         let response: IRunnerMethodResult;
-        const deserializedArgumentsData = this.argumentsDeserializer.deserializeArguments({
+        const deserializedArgumentsData = await this.argumentsDeserializer.deserializeArguments({
             args: action.args,
             onRunnerControllerDestroyed: this.runnerControllerDestroyedHandler, // TODO Need test
         });

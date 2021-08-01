@@ -9,7 +9,7 @@ export type RunnerArguments<R extends RunnerConstructor>
             : never
         : never;
 
-export class ClientRunnerResolver<L extends SoftRunnersList> extends ClientRunnerResolverBase<L> {
+export class ClientRunnerResolver<L extends SoftRunnersList = []> extends ClientRunnerResolverBase<L> {
 
     declare public resolve: <I extends RunnerIdentifier>(
         identifier: I,

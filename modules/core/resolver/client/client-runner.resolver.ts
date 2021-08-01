@@ -5,16 +5,16 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { RunnerControllerPartFactory, IRunnerControllerConfig, RunnerController } from '../../runner/controller/runner.controller';
-import { RunnerBridge } from '../../runner/runner-bridge/runner.bridge';
+import { IRunnerBridgeConstructor, RunnerBridge } from '../../runner/runner-bridge/runner.bridge';
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
 import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
-import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, SoftRunnersList, AnyRunnerFromList } from "../../types/runner-identifier";
+import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, SoftRunnersList, AnyRunnerFromList, StrictRunnersList } from "../../types/runner-identifier";
 import { IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
 import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
 import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bridge';
 import { serializeArguments } from './arguments-serialize';
-import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverInitSoftRunnerAction } from './client-resolver.actions';
+import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverSoftInitRunnerAction } from './client-resolver.actions';
 
 
 export type IClientRunnerResolverConfigBase<L extends SoftRunnersList> = {
@@ -28,7 +28,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
     protected resolverBridge?: ClientResolverBridge;
     protected connectController?: ConnectController;
 
-    protected readonly errorSerializer: WorkerRunnerErrorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer = this.buildErrorSerializer();
     protected readonly runnersListController: RunnersListController<L>;
 
     private readonly connection: RunnerResolverPossibleConnection;
@@ -98,22 +98,27 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
         this.resolverBridge = new ClientResolverBridge({ connection: this.connection });
     }
 
-    protected buildRunnerControllerByPartConfig(config: {
+    protected async buildRunnerControllerByPartConfig(config: {
         token: RunnerToken,
         port: MessagePort,
-    }): RunnerController<AnyRunnerFromList<L>> {
-        const runnerController: RunnerController<AnyRunnerFromList<L>> = this.buildRunnerControllerAndAttachToList({
+    }): Promise<RunnerController<AnyRunnerFromList<L>>> {
+        const runnerController: RunnerController<AnyRunnerFromList<L>> = await this.buildRunnerControllerAndAttachToList({
             ...config,
             runnersListController: this.runnersListController,
             runnerControllerPartFactory: this.runnerControllerPartFactory,
+            errorSerializer: this.errorSerializer,
         });
         return runnerController;
     }
 
-    protected buildRunnerController(
+    protected buildRunnerControllerWithoutInit(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RunnerController<AnyRunnerFromList<L>> {
         return new RunnerController(config);
+    }
+
+    protected buildErrorSerializer(): WorkerRunnerErrorSerializer {
+        return WORKER_RUNNER_ERROR_SERIALIZER;
     }
 
     protected async sendInitAction(
@@ -128,8 +133,8 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
         try {
             const serializedArguments = await serializeArguments(args);
             const hasBridgeConstructor = this.runnersListController.hasBridgeConstructor(token);
-            const action: IClientResolverInitRunnerAction | IClientResolverInitSoftRunnerAction = {
-                type: hasBridgeConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.INIT_SOFT_RUNNER,
+            const action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction = {
+                type: hasBridgeConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.SOFT_INIT_RUNNER,
                 token: token,
                 args: serializedArguments.args,
                 transfer: serializedArguments.transfer,
@@ -173,6 +178,7 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
+    // TODO try to transfer the method to mixin
     protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerBridge {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
@@ -185,24 +191,45 @@ export class ClientRunnerResolverBase<L extends SoftRunnersList>  {
             token = this.runnersListController.generateTokenNameByRunnerConstructor(runnerConstructor);
             this.runnersListController.defineRunnerConstructor(token, runnerConstructor);
         }
-        // TODO Don't use "any" type. (try to transfer the method to mixin)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const port = (this.resolverBridge as LocalResolverBridge<any>).hostRunnerResolver.wrapRunner(runnerInstance);
-        const runnerController = this.buildRunnerControllerByPartConfig({
+        const runnerBridgeConstructor = this.runnersListController.getRunnerBridgeConstructor(token);
+        const port = (this.resolverBridge as LocalResolverBridge<StrictRunnersList>).hostRunnerResolver.wrapRunner(runnerInstance);
+        const runnerController = this.buildRunnerControllerAndAttachToList({
             token,
             port,
-        });
+            runnersListController: this.runnersListController,
+            runnerControllerPartFactory: this.runnerControllerPartFactory,
+            errorSerializer: this.errorSerializer,
+        }, runnerBridgeConstructor);
         return runnerController.resolvedRunner;
     }
 
      
     private buildRunnerControllerAndAttachToList(
+        config: Omit<IRunnerControllerConfig<AnyRunnerFromList<L>>, 'onDestroyed'>,
+        runnerBridgeConstructor: IRunnerBridgeConstructor
+    ): RunnerController<AnyRunnerFromList<L>>;
+    private buildRunnerControllerAndAttachToList(
         config: Omit<IRunnerControllerConfig<AnyRunnerFromList<L>>, 'onDestroyed'>
-    ): RunnerController<AnyRunnerFromList<L>> {
-        const runnerController = this.buildRunnerController({
+    ): Promise<RunnerController<AnyRunnerFromList<L>>> | RunnerController<AnyRunnerFromList<L>>;
+    private buildRunnerControllerAndAttachToList(
+        config: Omit<IRunnerControllerConfig<AnyRunnerFromList<L>>, 'onDestroyed'>,
+        runnerBridgeConstructor?: IRunnerBridgeConstructor
+    ): Promise<RunnerController<AnyRunnerFromList<L>>> | RunnerController<AnyRunnerFromList<L>> {
+        const runnerController = this.buildRunnerControllerWithoutInit({
             ...config,
             onDestroyed: () => this.runnerControllers.delete(runnerController),
         });
+        if (runnerBridgeConstructor) {
+            runnerController.init({runnerBridgeConstructor});
+        } else {
+            const initResult$ = runnerController.init();
+            if (initResult$) {
+                return initResult$.then(() => {
+                    this.runnerControllers.add(runnerController);
+                    return runnerController;
+                })
+            }
+        }
         this.runnerControllers.add(runnerController);
         return runnerController;
     }

@@ -1,4 +1,4 @@
-import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
+import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, RunnerConstructor, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
 import { ClientRunnerResolver, RunnerArguments } from './client-runner.resolver';
 import { HostRunnerResolver } from './host-runner.resolver';
 
@@ -6,9 +6,11 @@ interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
     runners?: L
 }
 
-export class LocalRunnerResolver<L extends StrictRunnersList> extends ClientRunnerResolver<L> {
+export class LocalRunnerResolver<L extends StrictRunnersList = []> extends ClientRunnerResolver<L> {
 
-    declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L>>>(runnerInstance: R) => ResolvedRunner<R>;
+    declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>>(
+        runnerInstance: R
+    ) => ResolvedRunner<R>;
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
         ...args: RunnerArguments<StrictRunnerByIdentifier<L, I>>

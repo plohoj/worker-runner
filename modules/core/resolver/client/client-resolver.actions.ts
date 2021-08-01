@@ -3,8 +3,8 @@ import { IRunnerSerializedArgument } from '../../types/runner-serialized-argumen
 
 export enum ClientResolverAction {
     INIT_RUNNER = 'INIT_RUNNER',
-    /** Installing a runner whose methods are not yet known. (Configuration only by token without class constructor) */
-    INIT_SOFT_RUNNER = 'INIT_SOFT_RUNNER',
+    /** Installing a runner whose methods are not yet known. */
+    SOFT_INIT_RUNNER = 'SOFT_INIT_RUNNER',
 }
 
 export interface IClientResolverInitRunnerAction {
@@ -14,8 +14,8 @@ export interface IClientResolverInitRunnerAction {
     transfer: Transferable[]
 }
 
-export interface IClientResolverInitSoftRunnerAction {
-    type: ClientResolverAction.INIT_SOFT_RUNNER;
+export interface IClientResolverSoftInitRunnerAction {
+    type: ClientResolverAction.SOFT_INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
     transfer: Transferable[]
@@ -24,4 +24,4 @@ export interface IClientResolverInitSoftRunnerAction {
 
 export type IClientResolverAction
     = IClientResolverInitRunnerAction
-    | IClientResolverInitSoftRunnerAction;
+    | IClientResolverSoftInitRunnerAction;

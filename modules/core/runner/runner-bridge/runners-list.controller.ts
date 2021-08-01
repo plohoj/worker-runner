@@ -2,7 +2,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../../errors/error-message";
 import { RunnerNotFound } from "../../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../../types/constructor";
 import { JsonObject } from "../../types/json-object";
-import { AvailableRunnersFromList, RunnerToken, StrictRunnerByIdentifier, IStrictRunnerTokenConfig, SoftRunnersList, RunnerByToken } from "../../types/runner-identifier";
+import { AvailableRunnersFromList, RunnerToken, StrictRunnerByIdentifier, SoftRunnersList, RunnerByToken } from "../../types/runner-identifier";
 import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
 
 interface IRunnerBridgeCollectionConfig<M extends SoftRunnersList> {
@@ -20,13 +20,13 @@ interface IRunnerByTokenDataRecord {
 
 export class RunnersListController<L extends SoftRunnersList> {
     public readonly runnerByTokenDataRecord: IRunnerByTokenDataRecord = {};
-    public readonly runnerTokenMap = new Map<AvailableRunnersFromList<L>, RunnerToken>();
+    public readonly runnerTokenMap = new Map<RunnerConstructor, RunnerToken>();
 
     constructor(config: IRunnerBridgeCollectionConfig<L>) {
         this.applyRunnerMap(config.runners);
     }
 
-    public getRunnerTokenSoft<R extends AvailableRunnersFromList<L>>(runner: R): RunnerToken | undefined {
+    public getRunnerTokenSoft<R extends RunnerConstructor>(runner: R): RunnerToken | undefined {
         return this.runnerTokenMap.get(runner);
     }
 
@@ -108,14 +108,6 @@ export class RunnersListController<L extends SoftRunnersList> {
         return ResolvedRunner;
     }
 
-    public getRunnerList(): IStrictRunnerTokenConfig<AvailableRunnersFromList<L>>[] {
-        const runnersList = new Array<IStrictRunnerTokenConfig<AvailableRunnersFromList<L>>>();
-        for (const [runner, token] of this.runnerTokenMap) {
-            runnersList.push({ runner, token });
-        }
-        return runnersList;
-    }
-
     public getRunnerMethodsNames(token: RunnerToken): string[] {
         const runnerBridgeConstructor = this.getRunnerBridgeConstructor(token);
         const allMethodsNames = Object.keys(runnerBridgeConstructor.prototype);
@@ -131,10 +123,10 @@ export class RunnersListController<L extends SoftRunnersList> {
     private applyRunnerMap(runnersMap: L): void {
         for (const runner of runnersMap) {
             let token: RunnerToken;
-            let runnerConstructor: AvailableRunnersFromList<L>;
+            let runnerConstructor: AvailableRunnersFromList<L> | undefined;
             if ('token' in runner) {
                 token = runner.token;
-                runnerConstructor = runner.runner as AvailableRunnersFromList<L>;
+                runnerConstructor = runner.runner as AvailableRunnersFromList<L> | undefined;
             } else {
                 token = this.generateTokenNameByRunnerConstructor(runner);
                 runnerConstructor = runner as AvailableRunnersFromList<L>;

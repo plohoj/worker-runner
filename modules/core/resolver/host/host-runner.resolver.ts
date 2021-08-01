@@ -8,7 +8,7 @@ import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/enviro
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, StrictRunnersList } from "../../types/runner-identifier";
-import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverInitSoftRunnerAction } from '../client/client-resolver.actions';
+import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverSoftInitRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
 import { ArgumentsDeserializer, IArgumentsDeserializerConfig } from './arguments-deserializer';
 import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
@@ -39,6 +39,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
             : config.runnersListController;
         this.argumentsDeserializer = this.buildArgumentsDeserializer({
             runnersListController: this.runnersListController,
+            errorSerializer: this.errorSerializer,
         });
         this.resolverBridge = new HostResolverBridge({
             newConnectionHandler: this.newConnectionHandler,
@@ -63,7 +64,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     public async handleAction(action: IClientResolverAction): Promise<IHostResolverAction> {
         switch (action.type) {
             case ClientResolverAction.INIT_RUNNER:
-            case ClientResolverAction.INIT_SOFT_RUNNER:
+            case ClientResolverAction.SOFT_INIT_RUNNER:
                 try {
                     return await this.initRunnerInstance(action);
                 } catch (error) {
@@ -159,7 +160,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     }
     
     private async initRunnerInstance(
-        action: IClientResolverInitRunnerAction | IClientResolverInitSoftRunnerAction,
+        action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction,
     ): Promise<
         | IHostResolverRunnerInitErrorAction
         | IHostResolverSoftRunnerInitedAction
@@ -168,12 +169,13 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
         const runnerConstructor = this.runnersListController.getRunnerConstructor(action.token);
         const messageChanel = new MessageChannel();
         // eslint-disable-next-line prefer-const
-        let runnerEnvironment: RunnerEnvironment<AvailableRunnersFromList<L>>;
-        const deserializeArgumentsData = this.argumentsDeserializer.deserializeArguments({
+        let runnerEnvironment: RunnerEnvironment<AvailableRunnersFromList<L>> | undefined;
+        // TODO move deserialize to Environment
+        const deserializeArgumentsData = await this.argumentsDeserializer.deserializeArguments({
             args: action.args,
             // TODO Need test
             onRunnerControllerDestroyed:
-                runnerController => runnerEnvironment.runnerControllerDestroyedHandler(runnerController),
+                runnerController => runnerEnvironment?.runnerControllerDestroyedHandler(runnerController),
         });
         let runnerInstance: InstanceType<AvailableRunnersFromList<L>>;
         try {
@@ -201,7 +203,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
             port: messageChanel.port2,
             transfer: [messageChanel.port2],
         }
-        const responseAction = action.type === ClientResolverAction.INIT_SOFT_RUNNER
+        const responseAction = action.type === ClientResolverAction.SOFT_INIT_RUNNER
             ? {
                 ...partOfResponseAction,
                 type: HostResolverAction.SOFT_RUNNER_INITED,
