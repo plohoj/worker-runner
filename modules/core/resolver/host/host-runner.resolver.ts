@@ -2,7 +2,7 @@ import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/con
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerDestroyError, RunnerInitError, RunnerNotFound, HostResolverDestroyError } from '../../errors/runner-errors';
+import { RunnerDestroyError, RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { RunnersListController } from '../../runner/runner-bridge/runners-list.controller';
@@ -10,7 +10,6 @@ import { RunnerResolverPossibleConnection } from '../../types/possible-connectio
 import { AvailableRunnersFromList, StrictRunnersList } from "../../types/runner-identifier";
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverSoftInitRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
-import { ArgumentsDeserializer, IArgumentsDeserializerConfig } from './arguments-deserializer';
 import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
 
 export type IHostRunnerResolverConfigBase<L extends StrictRunnersList> = {
@@ -31,16 +30,10 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
         destroyHandler: this.onAllDisconnect.bind(this),
     });
 
-    protected readonly argumentsDeserializer: ArgumentsDeserializer<L>;
-
     constructor(config: IHostRunnerResolverConfigBase<L>) {
         this.runnersListController = 'runners' in config
             ? new RunnersListController({ runners: config.runners })
             : config.runnersListController;
-        this.argumentsDeserializer = this.buildArgumentsDeserializer({
-            runnersListController: this.runnersListController,
-            errorSerializer: this.errorSerializer,
-        });
         this.resolverBridge = new HostResolverBridge({
             newConnectionHandler: this.newConnectionHandler,
             connections: config.connections
@@ -70,7 +63,7 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
                 } catch (error) {
                     const errorAction: IHostResolverRunnerInitErrorAction = {
                         type: HostResolverAction.RUNNER_INIT_ERROR,
-                        ... this.errorSerializer.serialize(error, new RunnerNotFound({
+                        ... this.errorSerializer.serialize(error, new RunnerInitError({
                             message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                                 token: action.token,
                                 runnerName: this.runnersListController.getRunnerConstructorSoft(action.token)?.name,
@@ -101,26 +94,22 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
 
         const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
             token: this.runnersListController.getRunnerTokenByInstance(runnerInstance),
-            runnerInstance,
             port: messageChanel.port1,
         });
+        runnerEnvironment.initSync({ runnerInstance });
 
         this.runnerEnvironments.add(runnerEnvironment);
         return messageChanel.port2;
     }
 
     protected buildRunnerEnvironment(
-        config: IRunnerEnvironmentConfig<AvailableRunnersFromList<L>>
+        config: IRunnerEnvironmentConfig
     ): RunnerEnvironment<AvailableRunnersFromList<L>> {
         return new RunnerEnvironment(config);
     }
 
     protected buildWorkerErrorSerializer(): WorkerRunnerErrorSerializer {
         return WORKER_RUNNER_ERROR_SERIALIZER;
-    }
-
-    protected buildArgumentsDeserializer(config: IArgumentsDeserializerConfig<L>): ArgumentsDeserializer<L> {
-        return new ArgumentsDeserializer<L>(config);
     }
 
     private async onAllDisconnect(): Promise<void> {
@@ -166,39 +155,14 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
         | IHostResolverSoftRunnerInitedAction
         | IHostResolverRunnerInitedAction
     > {
-        const runnerConstructor = this.runnersListController.getRunnerConstructor(action.token);
         const messageChanel = new MessageChannel();
-        // eslint-disable-next-line prefer-const
-        let runnerEnvironment: RunnerEnvironment<AvailableRunnersFromList<L>> | undefined;
-        // TODO move deserialize to Environment
-        const deserializeArgumentsData = await this.argumentsDeserializer.deserializeArguments({
-            args: action.args,
-            // TODO Need test
-            onRunnerControllerDestroyed:
-                runnerController => runnerEnvironment?.runnerControllerDestroyedHandler(runnerController),
-        });
-        let runnerInstance: InstanceType<AvailableRunnersFromList<L>>;
-        try {
-            runnerInstance = new runnerConstructor(...deserializeArgumentsData.args) as InstanceType<AvailableRunnersFromList<L>>;
-        } catch (error) {
-            await Promise.all(deserializeArgumentsData.controllers
-                .map(controller => controller.disconnect()));
-            throw this.errorSerializer.deserialize(this.errorSerializer.serialize(error, new RunnerInitError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                    token: action.token,
-                    runnerName: runnerConstructor.name,
-                }),
-            })));
-        }
-
-        runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
+        const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
             token: action.token,
-            runnerInstance,
             port: messageChanel.port1,
         });
-
+        await runnerEnvironment.initAsync({ arguments: action.args });
         this.runnerEnvironments.add(runnerEnvironment);
-        runnerEnvironment.addConnectedControllers(deserializeArgumentsData.controllers);
+
         const partOfResponseAction = {
             port: messageChanel.port2,
             transfer: [messageChanel.port2],
@@ -217,10 +181,9 @@ export abstract class HostRunnerResolverBase<L extends StrictRunnersList> {
     }
 
     private buildRunnerEnvironmentByPartConfig(
-        config: Pick<IRunnerEnvironmentConfig<AvailableRunnersFromList<L>>, 'token' | 'port' | 'runnerInstance'>
+        config: Pick<IRunnerEnvironmentConfig, 'token' | 'port'>
     ): RunnerEnvironment<AvailableRunnersFromList<L>> {
         const runnerEnvironment = this.buildRunnerEnvironment({
-            argumentsDeserializer: this.argumentsDeserializer,
             errorSerializer: this.errorSerializer,
             runnersListController: this.runnersListController,
             onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),

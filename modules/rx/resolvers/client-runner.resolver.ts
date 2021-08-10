@@ -18,7 +18,7 @@ export class RxClientRunnerResolver<L extends SoftRunnersList = []> extends Clie
         ...args: RxRunnerArguments<SoftRunnerByIdentifier<L, I>>
     ) => Promise<RxResolvedRunner<InstanceTypeOrUnknown<SoftRunnerByIdentifier<L, I>>>>;
 
-    protected override buildRunnerControllerWithoutInit(
+    protected override buildRunnerController(
         config: IRunnerControllerConfig<AnyRunnerFromList<L>>
     ): RxRunnerController<AnyRunnerFromList<L>> {
         return new RxRunnerController(config);

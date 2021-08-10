@@ -1,25 +1,31 @@
+import { deserializeArguments } from '../../arguments-serialization/deserialize-arguments';
 import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
-import { RunnerDestroyError, RunnerExecuteError, RunnerNotFound } from '../../errors/runner-errors';
-import { ArgumentsDeserializer } from '../../resolver/host/arguments-deserializer';
+import { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, RunnerNotFound } from '../../errors/runner-errors';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
 import { RunnerToken, StrictRunnersList } from "../../types/runner-identifier";
+import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
-import { RunnerController } from '../controller/runner.controller';
+import { IRunnerControllerConfig, RunnerController, RunnerControllerPartFactory } from '../controller/runner.controller';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner-bridge/runner.bridge';
 import { RunnersListController } from '../runner-bridge/runners-list.controller';
 import { IRunnerEnvironmentAction, IRunnerEnvironmentOwnDataResponseAction, IRunnerEnvironmentOwnDataResponseErrorAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from './runner-environment.actions';
 
-export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
+interface IRunnerEnvironmentSyncInitConfig<R extends RunnerConstructor> {
+    runnerInstance: InstanceType<R>,
+}
+
+interface IRunnerEnvironmentAsyncInitConfig {
+    arguments: IRunnerSerializedArgument[],
+}
+export interface IRunnerEnvironmentConfig {
     token: RunnerToken;
     port: MessagePort;
-    runnerInstance: InstanceType<R>;
     errorSerializer: WorkerRunnerErrorSerializer;
-    argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>,
     runnersListController: RunnersListController<StrictRunnersList>;
     onDestroyed: () => void;
 }
@@ -27,26 +33,23 @@ export interface IRunnerEnvironmentConfig<R extends RunnerConstructor> {
 export class RunnerEnvironment<R extends RunnerConstructor> {
 
     public readonly token: RunnerToken;
-    public readonly runnerControllerDestroyedHandler = this.onRunnerControllerDestroyed.bind(this);
-
-    public runnerInstance: InstanceType<R>;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
     protected readonly connectEnvironment: ConnectEnvironment;
 
     private readonly runnersListController: RunnersListController<StrictRunnersList>;
 
+    private _runnerInstance?: InstanceType<R>;
     private onDestroyed: () => void;
     private connectedControllers = new Set<RunnerController<RunnerConstructor>>();
-    private argumentsDeserializer: ArgumentsDeserializer<StrictRunnersList>;
+    private readonly runnerControllerPartFactory: RunnerControllerPartFactory<RunnerConstructor>
+        = this.initRunnerControllerByPartConfigAndAttachToList.bind(this);
 
-    constructor(config: Readonly<IRunnerEnvironmentConfig<R>>) {
+    constructor(config: Readonly<IRunnerEnvironmentConfig>) {
         this.token = config.token;
-        this.errorSerializer = config.errorSerializer
-        this.runnerInstance = config.runnerInstance;
+        this.errorSerializer = config.errorSerializer;
         this.runnersListController = config.runnersListController;
         this.onDestroyed = config.onDestroyed;
-        this.argumentsDeserializer = config.argumentsDeserializer;
         this.connectEnvironment = this.buildConnectEnvironment({
             destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
             actionsHandler: this.handleAction.bind(this),
@@ -55,29 +58,57 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         this.connectEnvironment.addPort(config.port);
     }
 
+    public get runnerInstance(): InstanceType<R> {
+        if (!this._runnerInstance) {
+            throw new ConnectionWasClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    token: this.token,
+                    runnerName: this.runnersListController.getRunnerConstructorSoft(this.token)?.name,
+                }),
+            });
+        }
+        return this._runnerInstance;
+    }
+    public set runnerInstance(value: InstanceType<R>) {
+        this._runnerInstance = value;
+    }
+
+    public initSync(config: IRunnerEnvironmentSyncInitConfig<R>): void {
+        this.runnerInstance = config.runnerInstance
+    }
+
+    public async initAsync(config: IRunnerEnvironmentAsyncInitConfig): Promise<void> {
+        let runnerInstance: InstanceType<R>;
+        const runnerConstructor = this.runnersListController.getRunnerConstructor(this.token);
+        const deserializeArgumentsData = await deserializeArguments({
+            arguments: config.arguments,
+            runnerControllerPartFactory: this.runnerControllerPartFactory,
+        });
+        try {
+            runnerInstance = new runnerConstructor(...deserializeArgumentsData.arguments) as InstanceType<R>;
+        } catch (error) {
+            await Promise.all(deserializeArgumentsData.controllers
+                .map(controller => controller.disconnect()));
+            throw error;
+        }
+        this.initSync({ runnerInstance });
+        this.addConnectedControllers(deserializeArgumentsData.controllers);
+    }
+
     public async execute(
         action: IRunnerControllerExecuteAction,
     ): Promise<IRunnerEnvironmentExecuteResultAction> {
         let response: IRunnerMethodResult;
-        const deserializedArgumentsData = await this.argumentsDeserializer.deserializeArguments({
-            args: action.args,
-            onRunnerControllerDestroyed: this.runnerControllerDestroyedHandler, // TODO Need test
+        const deserializedArgumentsData = await deserializeArguments({
+            arguments: action.args,
+            runnerControllerPartFactory: this.runnerControllerPartFactory,
         });
         try {
-            response = await this.runnerInstance[action.method](...deserializedArgumentsData.args);
+            response = await this.runnerInstance[action.method](...deserializedArgumentsData.arguments);
         } catch (error) {
             await Promise.all(deserializedArgumentsData.controllers
                 .map(controller => controller.disconnect()));
-            return {
-                type: RunnerEnvironmentAction.EXECUTE_ERROR,
-                ... this.errorSerializer.serialize(error, new RunnerExecuteError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
-                        token: this.token,
-                        runnerName: this.runnerName,
-                        methodName: action.method,
-                    }),
-                })),
-            };
+            throw error;
         }
         this.addConnectedControllers(deserializedArgumentsData.controllers);
         return await this.handleExecuteResponse(response);
@@ -170,6 +201,12 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         return new ConnectEnvironment(config);
     }
 
+    protected buildRunnerController(
+        config: IRunnerControllerConfig<RunnerConstructor>
+    ): RunnerController<RunnerConstructor> {
+        return new RunnerController(config);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private destroyErrorSerializer(error: any): ISerializedError {
         return this.errorSerializer.serialize(error, new RunnerDestroyError({
@@ -188,10 +225,6 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             port: messageChanel.port2,
             transfer: [messageChanel.port2]
         };
-    }
-
-    private onRunnerControllerDestroyed(runnerController: RunnerController<RunnerConstructor>): void {
-        this.connectedControllers.delete(runnerController);
     }
 
     private getRunnerOwnData(): IRunnerEnvironmentOwnDataResponseAction | IRunnerEnvironmentOwnDataResponseErrorAction {
@@ -214,5 +247,29 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             return responseErrorAction;
         }
         return responseAction;
+    }
+
+    private buildRunnerControllerByPartConfig(config: {
+        token: RunnerToken,
+        port: MessagePort,
+    }): RunnerController<RunnerConstructor> {
+        const runnerController = this.buildRunnerController({
+            ...config,
+            runnersListController: this.runnersListController,
+            runnerControllerPartFactory: this.runnerControllerPartFactory,
+            errorSerializer: this.errorSerializer,
+            onDestroyed: () => this.connectedControllers.delete(runnerController),
+        });
+        return runnerController;
+    }
+
+    private async initRunnerControllerByPartConfigAndAttachToList(config: {
+        token: RunnerToken,
+        port: MessagePort,
+    }): Promise<RunnerController<RunnerConstructor>> {
+        const runnerController = this.buildRunnerControllerByPartConfig(config);
+        await runnerController.initAsync();
+        this.connectedControllers.add(runnerController);
+        return runnerController;
     }
 }

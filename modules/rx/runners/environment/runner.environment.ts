@@ -1,10 +1,11 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, IRunnerControllerConfig } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
+import { RxRunnerController } from '../controller/runner.controller';
 import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitRunnerResultAction, RxRunnerEnvironmentAction } from './runner-environment.actions';
 
@@ -27,6 +28,12 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     protected override buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
         return new RxConnectEnvironment(config);
+    }
+
+    protected override buildRunnerController(
+        config: IRunnerControllerConfig<RunnerConstructor>
+    ): RxRunnerController<RunnerConstructor> {
+        return new RxRunnerController(config);
     }
 
     private async mapRxEmit(

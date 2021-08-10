@@ -48,7 +48,6 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
                 return (await this.runnerControllerPartFactory({
                     token: action.token,
                     port: action.port,
-                    onDestroyed: this.onDestroyed,
                 })).resolvedRunner;
             default:
                 throw new WorkerRunnerUnexpectedError({

@@ -10,7 +10,6 @@ export { ConnectionWasClosedError, HostResolverDestroyError, RunnerDestroyError,
 export { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
 export { ClientResolverAction } from './resolver/client/client-resolver.actions';
 export { ClientRunnerResolverBase, IClientRunnerResolverConfigBase } from './resolver/client/client-runner.resolver';
-export { ArgumentsDeserializer, IArgumentsDeserializerConfig } from './resolver/host/arguments-deserializer';
 export { HostResolverAction, IHostResolverAction } from './resolver/host/host-resolver.actions';
 export { HostRunnerResolverBase, IHostRunnerResolverConfigBase } from './resolver/host/host-runner.resolver';
 export { LocalResolverBridge } from './resolver/resolver-bridge/local/local-resolver.bridge';
