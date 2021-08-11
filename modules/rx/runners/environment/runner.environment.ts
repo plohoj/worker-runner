@@ -1,11 +1,11 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, IRunnerControllerConfig } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
-import { RxRunnerController } from '../controller/runner.controller';
+import { RxRunnerControllerCollection } from '../controller/runner.controller.collection';
 import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
 import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitRunnerResultAction, RxRunnerEnvironmentAction } from './runner-environment.actions';
 
@@ -30,10 +30,10 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return new RxConnectEnvironment(config);
     }
 
-    protected override buildRunnerController(
-        config: IRunnerControllerConfig<RunnerConstructor>
-    ): RxRunnerController<RunnerConstructor> {
-        return new RxRunnerController(config);
+    protected override buildRunnerControllerCollection(
+        config: IRunnerControllerCollectionConfig<RunnerIdentifierConfigList>
+    ): RxRunnerControllerCollection<RunnerIdentifierConfigList> {
+        return new RxRunnerControllerCollection(config);
     }
 
     private async mapRxEmit(

@@ -84,9 +84,9 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
             const runnerEnvironment = runnerEnvironments
                 .find(runnerEnvironment => runnerEnvironment.token === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironment?.['connectedControllers'].size).toBe(1);
+            expect(runnerEnvironment?.['runnerControllerCollection'].runnerControllers.size).toBe(1);
             await withOtherInstanceStubRunner.disconnect();
-            expect(runnerEnvironment?.['connectedControllers'].size).toBe(0);
+            expect(runnerEnvironment?.['runnerControllerCollection'].runnerControllers.size).toBe(0);
 
             await localResolver.destroy();
         });
