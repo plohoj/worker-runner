@@ -1,20 +1,20 @@
-import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, RunnerConstructor, StrictRunnerByIdentifier, StrictRunnersList } from '@worker-runner/core';
+import { AvailableRunnerIdentifier, AvailableRunnersFromList, LocalResolverBridge, ResolvedRunner, RunnerConstructor, RunnerByIdentifier, RunnerIdentifierConfigList, InstanceTypeOrUnknown } from '@worker-runner/core';
 import { ClientRunnerResolver, RunnerArguments } from './client-runner.resolver';
 import { HostRunnerResolver } from './host-runner.resolver';
 
-interface ILocalRunnerResolverConfig<L extends StrictRunnersList> {
+interface ILocalRunnerResolverConfig<L extends RunnerIdentifierConfigList> {
     runners?: L
 }
 
-export class LocalRunnerResolver<L extends StrictRunnersList = []> extends ClientRunnerResolver<L> {
+export class LocalRunnerResolver<L extends RunnerIdentifierConfigList = []> extends ClientRunnerResolver<L> {
 
     declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>>(
         runnerInstance: R
     ) => ResolvedRunner<R>;
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
-        ...args: RunnerArguments<StrictRunnerByIdentifier<L, I>>
-    ) => Promise<ResolvedRunner<InstanceType<StrictRunnerByIdentifier<L, I>>>>;
+        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;
 
     declare protected resolverBridge?: LocalResolverBridge<L>;
 
@@ -29,7 +29,7 @@ export class LocalRunnerResolver<L extends StrictRunnersList = []> extends Clien
         this.resolverBridge = new LocalResolverBridge({
             hostRunnerResolverFactory: config => new HostRunnerResolver({
                 ...config,
-                runnersListController: this.runnersListController,
+                runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             }),
         });
     }

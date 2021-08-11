@@ -1,9 +1,9 @@
-import { IClientRunnerResolverConfigBase, IHostRunnerResolverConfigBase, SoftRunnersList, StrictRunnersList } from "@worker-runner/core";
+import { IClientRunnerResolverConfigBase, IHostRunnerResolverConfigBase, RunnerIdentifierConfigList } from "@worker-runner/core";
 import { ClientRunnerResolver, HostRunnerResolver } from "@worker-runner/promise";
 
 interface IApartConfiguredLocalRunnerResolvers<
-    CL extends SoftRunnersList,
-    HL extends StrictRunnersList,
+    CL extends RunnerIdentifierConfigList,
+    HL extends RunnerIdentifierConfigList,
 > {
     client: ClientRunnerResolver<CL>;
     host: HostRunnerResolver<HL>;
@@ -12,8 +12,8 @@ interface IApartConfiguredLocalRunnerResolvers<
 }
 
 export function createApartClientHostResolvers<
-    CL extends SoftRunnersList,
-    HL extends StrictRunnersList,
+    CL extends RunnerIdentifierConfigList,
+    HL extends RunnerIdentifierConfigList,
 >(config: {
     clientConfig?: Omit<IClientRunnerResolverConfigBase<CL>, 'connection'>,
     hostConfig: IHostRunnerResolverConfigBase<HL>,

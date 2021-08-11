@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { ISoftRunnerTokenConfig, RunnerIdentifier } from "@worker-runner/core";
+import { IRunnerIdentifierConfig, RunnerIdentifier } from "@worker-runner/core";
 import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promise";
 
 // Type check:
@@ -228,7 +228,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         const check0 = await new ClientRunnerResolver({
             connection: self,
             runners: [
-                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1>,
+                {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1>,
                 Runner2,
             ]}
         ).resolve(Runner1);
@@ -240,7 +240,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         const check1 = await new ClientRunnerResolver({
             connection: self,
             runners: [
-                {token: 'Runner1'} as ISoftRunnerTokenConfig<typeof Runner1, 'Runner1'>,
+                {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1, 'Runner1'>,
                 Runner2,
             ]
         }).resolve('Runner1');

@@ -1,4 +1,4 @@
-import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, SoftRunnersList, RunnerIdentifier, SoftRunnerByIdentifier, InstanceTypeOrUnknown } from '@worker-runner/core';
+import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, RunnerIdentifierConfigList, RunnerIdentifier, RunnerByIdentifier, InstanceTypeOrUnknown } from '@worker-runner/core';
 
 // TODO Extract?
 export type RunnerArguments<R extends RunnerConstructor>
@@ -9,10 +9,10 @@ export type RunnerArguments<R extends RunnerConstructor>
             : never
         : never;
 
-export class ClientRunnerResolver<L extends SoftRunnersList = []> extends ClientRunnerResolverBase<L> {
+export class ClientRunnerResolver<L extends RunnerIdentifierConfigList = []> extends ClientRunnerResolverBase<L> {
 
     declare public resolve: <I extends RunnerIdentifier>(
         identifier: I,
-        ...args: RunnerArguments<SoftRunnerByIdentifier<L, I>>
-    ) => Promise<ResolvedRunner<InstanceTypeOrUnknown<SoftRunnerByIdentifier<L, I>>>>;
+        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;
 }

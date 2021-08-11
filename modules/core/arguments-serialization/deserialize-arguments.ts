@@ -1,9 +1,9 @@
 import { RunnerController, RunnerControllerPartFactory } from "../runner/controller/runner.controller";
 import { IRunnerSerializedParameter } from "../types/constructor";
-import { AvailableRunnersFromList, StrictRunnersList } from "../types/runner-identifier";
+import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../types/runner-identifier";
 import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../types/runner-serialized-argument";
 
-export async function deserializeArguments<L extends StrictRunnersList>(config: {
+export async function deserializeArguments<L extends RunnerIdentifierConfigList>(config: {
     arguments: IRunnerSerializedArgument[],
     runnerControllerPartFactory: RunnerControllerPartFactory<AvailableRunnersFromList<L>>;
 }): Promise<{

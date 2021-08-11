@@ -18,11 +18,11 @@ export { IRunnerControllerConfig, RunnerController } from './runner/controller/r
 export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, RunnerEnvironmentAction } from './runner/environment/runner-environment.actions';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/environment/runner.environment';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from './runner/resolved-runner';
-export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner-bridge/runner.bridge';
+export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner.bridge';
 export { BanProperties } from './types/ban-properties';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonObject, TransferableJsonObject } from './types/json-object';
-export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, ISoftRunnerTokenConfig, IStrictRunnerTokenConfig, RunnerIdentifier, RunnerToken, SoftRunnerByIdentifier, SoftRunnersList, StrictRunnerByIdentifier, StrictRunnersList } from './types/runner-identifier';
+export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerIdentifier, RunnerToken, RunnerByIdentifier, RunnerIdentifierConfigList } from './types/runner-identifier';
 export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

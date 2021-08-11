@@ -1,4 +1,4 @@
-import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from "../runner/runner-bridge/runner.bridge";
+import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from "../runner/runner.bridge";
 import { IRunnerParameter, IRunnerSerializedParameter } from "../types/constructor";
 import { JsonObject } from "../types/json-object";
 import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../types/runner-serialized-argument";

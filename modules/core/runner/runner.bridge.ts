@@ -1,6 +1,6 @@
-import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
-import { RunnerController } from '../controller/runner.controller';
-import { ResolvedRunner } from '../resolved-runner';
+import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
+import { RunnerController } from './controller/runner.controller';
+import { ResolvedRunner } from './resolved-runner';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor = RunnerConstructor>
     = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;

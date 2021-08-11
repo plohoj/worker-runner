@@ -1,4 +1,4 @@
-import { ISoftRunnerTokenConfig } from "@worker-runner/core";
+import { IRunnerIdentifierConfig } from "@worker-runner/core";
 import { ClientRunnerResolver, HostRunnerResolver, LocalRunnerResolver } from "@worker-runner/promise";
 import { RxClientRunnerResolver, RxHostRunnerResolver, RxLocalRunnerResolver } from "@worker-runner/rx";
 import { runners } from "../common/runner-list";
@@ -27,11 +27,11 @@ export const resolverList = {
 
 export const clientRunnerList = [
     ...runners.filter(runner => 
-        (runner as ISoftRunnerTokenConfig)?.token !== EXTENDED_STUB_RUNNER_TOKEN
+        (runner as IRunnerIdentifierConfig)?.token !== EXTENDED_STUB_RUNNER_TOKEN
     ),
     {
         token: EXTENDED_STUB_RUNNER_TOKEN,
-    } as ISoftRunnerTokenConfig<typeof ExtendedStubRunner, typeof EXTENDED_STUB_RUNNER_TOKEN>
+    } as IRunnerIdentifierConfig<typeof ExtendedStubRunner, typeof EXTENDED_STUB_RUNNER_TOKEN>
 ];
 
 const clientRunnerResolver = new ClientRunnerResolver({

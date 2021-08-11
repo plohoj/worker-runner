@@ -1,14 +1,14 @@
-import { StrictRunnersList } from "../../../types/runner-identifier";
+import { RunnerIdentifierConfigList } from "../../../types/runner-identifier";
 import { HostRunnerResolverBase } from "../../host/host-runner.resolver";
 import { ClientResolverBridge } from "../client/client-resolver.bridge";
 
-export interface ILocalResolverBridgeConfig<L extends StrictRunnersList> {
+export interface ILocalResolverBridgeConfig<L extends RunnerIdentifierConfigList> {
     hostRunnerResolverFactory: (
         config: { connections: [MessagePort] }
     ) => HostRunnerResolverBase<L>;
 }
 
-export class LocalResolverBridge<L extends StrictRunnersList> extends ClientResolverBridge {
+export class LocalResolverBridge<L extends RunnerIdentifierConfigList> extends ClientResolverBridge {
     public readonly hostRunnerResolver: HostRunnerResolverBase<L>;
 
     constructor (config: ILocalResolverBridgeConfig<L>) {

@@ -6,44 +6,40 @@ import { RunnerConstructor } from "./constructor";
  */
 export type RunnerToken = string;
 
-export type IStrictRunnerTokenConfig<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken> = {
-    token: T;
-    runner: R;
-}
-export type ISoftRunnerTokenConfig<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken> = {
+export type RunnerIdentifier<R extends RunnerConstructor = RunnerConstructor> = RunnerToken | R;
+
+export type IRunnerIdentifierConfig<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken> = {
     token: T;
     runner?: R;
 }
 
-export type StrictRunnersList = ReadonlyArray<IStrictRunnerTokenConfig | RunnerConstructor>;
-export type SoftRunnersList = ReadonlyArray<ISoftRunnerTokenConfig | RunnerConstructor>;
+export type RunnerIdentifierConfigList = ReadonlyArray<IRunnerIdentifierConfig | RunnerConstructor>;
 
-type isLiteralString<T extends string> = string extends T ? false : true;
-
-export type AvailableRunnersFromList<L extends SoftRunnersList>
+export type AvailableRunnersFromList<L extends RunnerIdentifierConfigList>
     = L extends ArrayLike<infer TOR>
-        ? TOR extends ISoftRunnerTokenConfig
+        ? TOR extends IRunnerIdentifierConfig
             ? undefined extends TOR['runner'] 
                 ? never
                 : TOR['runner']
             : TOR
         : never;
 
-export type AnyRunnerFromList<L extends SoftRunnersList>
+export type AvailableRunnerIdentifier<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList>
+     = RunnerToken | AvailableRunnersFromList<L> | RunnerConstructor;
+
+export type AnyRunnerFromList<L extends RunnerIdentifierConfigList>
     = L extends ArrayLike<infer TOR>
-        ? TOR extends ISoftRunnerTokenConfig
+        ? TOR extends IRunnerIdentifierConfig
             ? Exclude<TOR['runner'], undefined>
             : TOR
         : never;
 
-export type AvailableRunnerIdentifier<L extends SoftRunnersList = SoftRunnersList>
-     = RunnerToken | AvailableRunnersFromList<L> | RunnerConstructor;
-export type RunnerIdentifier<R extends RunnerConstructor = RunnerConstructor> = RunnerToken | R;
+type isLiteralString<T extends string> = string extends T ? false : true;
 
-export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
+export type RunnerByToken<L extends RunnerIdentifierConfigList, T extends RunnerToken>
     = isLiteralString<T> extends true
         ? L extends ArrayLike<infer TOR>
-            ? TOR extends ISoftRunnerTokenConfig
+            ? TOR extends IRunnerIdentifierConfig
                 ? T extends TOR['token']
                     ? isLiteralString<TOR['token']> extends true
                         ? Exclude<TOR['runner'], undefined>
@@ -53,9 +49,9 @@ export type RunnerByToken<L extends SoftRunnersList, T extends RunnerToken>
             : never
         :never;
 
-type RunnersWithoutLiteralToken<L extends SoftRunnersList>
+type RunnersWithoutLiteralToken<L extends RunnerIdentifierConfigList>
     = L extends ArrayLike<infer TOR>
-        ? TOR extends ISoftRunnerTokenConfig
+        ? TOR extends IRunnerIdentifierConfig
             ? isLiteralString<TOR['token']> extends true
                 ? never
                 : 'runner' extends keyof TOR 
@@ -64,18 +60,7 @@ type RunnersWithoutLiteralToken<L extends SoftRunnersList>
             : TOR
         : never;
 
-export type StrictRunnerByIdentifier<L extends SoftRunnersList, I extends AvailableRunnerIdentifier<L>>
-    = I extends RunnerConstructor
-        ? I
-        : I extends RunnerToken
-            ? RunnerByToken<L, I> extends never
-                ? isLiteralString<I> extends true
-                    ? RunnersWithoutLiteralToken<L>
-                    : AnyRunnerFromList<L>
-                : RunnerByToken<L, I>
-            : never;
-
-export type SoftRunnerByIdentifier<L extends SoftRunnersList, I extends RunnerIdentifier>
+export type RunnerByIdentifier<L extends RunnerIdentifierConfigList, I extends RunnerIdentifier>
     = I extends RunnerConstructor
         ? I
         : I extends RunnerToken
