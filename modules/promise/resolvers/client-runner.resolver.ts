@@ -1,6 +1,5 @@
 import { IRunnerSerializedParameter, ClientRunnerResolverBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, RunnerIdentifierConfigList, RunnerIdentifier, RunnerByIdentifier, InstanceTypeOrUnknown } from '@worker-runner/core';
 
-// TODO Extract?
 export type RunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     = R extends RunnerConstructor<any, infer A>

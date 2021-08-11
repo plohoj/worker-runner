@@ -22,8 +22,16 @@ export class RunnerControllerCollection<L extends RunnerIdentifierConfigList> {
         this.errorSerializer = config.errorSerializer;
     }
 
-    public add(runnerController: RunnerController<AnyRunnerFromList<L>>): void {
-        this.runnerControllers.add(runnerController);
+    public add(...runnerControllers: RunnerController<AnyRunnerFromList<L>>[]): void {
+        for (const runnerController of runnerControllers) {
+            this.runnerControllers.add(runnerController);
+        }
+    }
+
+    public delete(...runnerControllers: RunnerController<AnyRunnerFromList<L>>[]): void {
+        for (const runnerController of runnerControllers) {
+            this.runnerControllers.delete(runnerController);
+        }
     }
     
     public buildRunnerControllerByPartConfig(config: {

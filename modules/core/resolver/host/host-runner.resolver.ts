@@ -135,7 +135,7 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
         await Promise.all(destroying$);
         this.runnerEnvironments.clear();
         if (destroyErrors.length > 0) {
-            throw new HostResolverDestroyError({ // TODO need test
+            throw new HostResolverDestroyError({ // TODO NEED TEST
                 originalErrors: destroyErrors,
             });
         }

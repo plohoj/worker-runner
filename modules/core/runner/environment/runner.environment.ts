@@ -10,7 +10,6 @@ import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-iden
 import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 import { TransferRunnerData } from '../../utils/transfer-runner-data';
 import { IRunnerControllerAction, IRunnerControllerExecuteAction, RunnerControllerAction } from '../controller/runner-controller.actions';
-import { RunnerController } from '../controller/runner.controller';
 import { IRunnerControllerCollectionConfig, RunnerControllerCollection } from '../controller/runner.controller.collection';
 import { RunnerIdentifierConfigCollection } from '../runner-identifier-config.collection';
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from '../runner.bridge';
@@ -83,19 +82,21 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     public async initAsync(config: IRunnerEnvironmentAsyncInitConfig): Promise<void> {
         let runnerInstance: InstanceType<R>;
         const runnerConstructor = this.runnerIdentifierConfigCollection.getRunnerConstructor(this.token);
-        const deserializeArgumentsData = await deserializeArguments({
+        const deserializedArgumentsData = await deserializeArguments({
             arguments: config.arguments,
             runnerControllerPartFactory: this.runnerControllerCollection.runnerControllerPartFactory,
         });
+        this.runnerControllerCollection.add(...deserializedArgumentsData.controllers);
         try {
-            runnerInstance = new runnerConstructor(...deserializeArgumentsData.arguments) as InstanceType<R>;
+            runnerInstance = new runnerConstructor(...deserializedArgumentsData.arguments) as InstanceType<R>;
         } catch (error) {
-            await Promise.all(deserializeArgumentsData.controllers
+            await Promise.all(deserializedArgumentsData.controllers
                 .map(controller => controller.disconnect()));
+            // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in constructor 
+            this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers)
             throw error;
         }
         this.initSync({ runnerInstance });
-        this.addConnectedControllers(deserializeArgumentsData.controllers);
     }
 
     public async execute(
@@ -106,21 +107,17 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             arguments: action.args,
             runnerControllerPartFactory: this.runnerControllerCollection.runnerControllerPartFactory,
         });
+        this.runnerControllerCollection.add(...deserializedArgumentsData.controllers);
         try {
             response = await this.runnerInstance[action.method](...deserializedArgumentsData.arguments);
         } catch (error) {
             await Promise.all(deserializedArgumentsData.controllers
                 .map(controller => controller.disconnect()));
+            // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in executed method 
+            this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers)
             throw error;
         }
-        this.addConnectedControllers(deserializedArgumentsData.controllers);
         return await this.handleExecuteResponse(response);
-    }
-
-    public addConnectedControllers(controllers: RunnerController<RunnerConstructor>[]): void {
-        for (const controller of controllers) {
-            this.runnerControllerCollection.add(controller);
-        }
     }
 
     public async handleDestroy(): Promise<void> {
@@ -132,7 +129,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             await Promise.all(
                 [...this.runnerControllerCollection.runnerControllers]
                     .map(controller => controller
-                        .destroy()
+                        .disconnect()
                         .catch(error => console.error(error)), // TODO need to combine errors
                     ),
             );
@@ -237,7 +234,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 type: RunnerEnvironmentAction.RUNNER_OWN_DATA_RESPONSE,
                 methodsNames: this.runnerIdentifierConfigCollection.getRunnerMethodsNames(this.token),
             };
-        } catch (error) { // TODO Need test
+        } catch (error) { // TODO NEED TEST
             const responseErrorAction: IRunnerEnvironmentOwnDataResponseErrorAction = {
                 type: RunnerEnvironmentAction.RUNNER_OWN_DATA_RESPONSE_ERROR,
                 ... this.errorSerializer.serialize(error, new RunnerNotFound({

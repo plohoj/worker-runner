@@ -110,7 +110,7 @@ export class RxConnectController extends ConnectController {
 
     private runnerObservableNotFound(action: IRxConnectEnvironmentNotFoundAction): void {
         const subscriber =  this.getSubscriber(action.id);
-        subscriber.error(new RxSubscriptionNotFoundError()); // TODO need test
+        subscriber.error(new RxSubscriptionNotFoundError()); // TODO NEED TEST
         subscriber.complete();
         this.subscribersMap.delete(action.id);
     }

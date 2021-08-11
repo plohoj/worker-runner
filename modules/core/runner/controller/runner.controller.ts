@@ -199,7 +199,6 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     private transferControl(): MessagePort {
-        // TODO remove this Controller from ClientResolver controllers list
         this.stopListen(false);
         return this.connectController.port;
     }

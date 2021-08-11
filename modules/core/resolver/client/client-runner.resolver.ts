@@ -159,7 +159,6 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
-    // TODO try to transfer the method to mixin
     protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerBridge {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
