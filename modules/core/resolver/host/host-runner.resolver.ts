@@ -2,12 +2,13 @@ import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/con
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerDestroyError, RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
+import { RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
+import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverSoftInitRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
 import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
@@ -63,13 +64,15 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
                 } catch (error) {
                     const errorAction: IHostResolverRunnerInitErrorAction = {
                         type: HostResolverAction.RUNNER_INIT_ERROR,
-                        ... this.errorSerializer.serialize(error, new RunnerInitError({
-                            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                                token: action.token,
-                                runnerName: this.runnerIdentifierConfigCollection
-                                    .getRunnerConstructorSoft(action.token)?.name,
+                        ... this.errorSerializer.serialize(
+                            this.errorSerializer.normalize(error, RunnerInitError, {
+                                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                                    token: action.token,
+                                    runnerName: this.runnerIdentifierConfigCollection
+                                        .getRunnerConstructorSoft(action.token)?.name,
+                                }),
                             }),
-                        })),
+                        ),
                     };
                     return errorAction;
                 }
@@ -118,35 +121,30 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     }
 
     private async clearEnvironment(): Promise<void> {
-        const destroyErrors = new Array<ISerializedError>();
-        const destroying$ = new Array<Promise<void>>();
-        for (const runnerEnvironment of this.runnerEnvironments) {
-            destroying$.push(
-                runnerEnvironment.handleDestroy().catch(error => {
-                    destroyErrors.push(this.errorSerializer.serialize(error, new RunnerDestroyError({
-                        message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
-                            token: runnerEnvironment.token,
-                            runnerName: runnerEnvironment.runnerName,
-                        }),
-                    })));
-                }),
-            );
-        }
-        await Promise.all(destroying$);
-        this.runnerEnvironments.clear();
-        if (destroyErrors.length > 0) {
-            throw new HostResolverDestroyError({ // TODO NEED TEST
-                originalErrors: destroyErrors,
+        try {
+            await allPromisesCollectErrors(
+                [...this.runnerEnvironments]
+                    .map(runnerEnvironment => runnerEnvironment.handleDestroy())
+            )
+        } catch (error: unknown) {
+            // TODO NEED TEST
+            throw new HostResolverDestroyError({ 
+                originalErrors: Array.isArray(error) ? error : [error],
             });
+        } finally {
+            this.runnerEnvironments.clear();
         }
     }
+
     private handleNewConnection(port: MessagePort): void {
         this.connectEnvironment.addPort(port);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private destroyErrorSerializer(error: any): ISerializedError {
-        return this.errorSerializer.serialize(error, new HostResolverDestroyError());
+        return this.errorSerializer.serialize(
+            this.errorSerializer.normalize(error, HostResolverDestroyError)
+        );
     }
     
     private async initRunnerInstance(

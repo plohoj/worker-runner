@@ -1,4 +1,4 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, ISerializedError } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
@@ -70,9 +70,14 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async mapRxError(error: any): Promise<never> {
-        const serializedError = this.errorSerializer.serialize(error, new RxRunnerEmitError({
-            message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({runnerName: this.runnerName}),
-        }));
+        const serializedError: ISerializedError = this.errorSerializer.serialize(
+            this.errorSerializer.normalize(error, RxRunnerEmitError, {
+                message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({
+                    token: this.token,
+                    runnerName: this.runnerName
+                }),
+            }),
+        );
         throw serializedError;
     }
 }

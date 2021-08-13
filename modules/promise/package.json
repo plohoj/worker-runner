@@ -15,6 +15,7 @@
   "types": "./declarations/index.ts",
   "main": "./umd/promise.js",
   "module": "./esm/promise.js",
+  "sideEffects": false,
   "keywords": [
     "worker-runner",
     "worker",

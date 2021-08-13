@@ -3,11 +3,11 @@ export { ConnectController, IConnectControllerConfig } from './connect/controlle
 export { IConnectEnvironmentAction, IConnectEnvironmentActions, IPossibleConnectEnvironmentActionProperties } from './connect/environment/connect-environment.actions';
 export { ConnectEnvironment, IConnectEnvironmentConfig, IListeningInterrupter, IMessagePortConnectEnvironmentData } from './connect/environment/connect.environment';
 export { WorkerRunnerErrorCode } from './errors/error-code';
-export { CODE_TO_ERROR_MAP } from './errors/error-code-map';
+export { CODE_TO_ERROR_MAP, ICodeToErrorMap } from './errors/error-code-map';
 export { IRunnerExecuteMessageConfig, IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';
-export { ISerializedErrorAction, WorkerRunnerErrorSerializer } from './errors/error.serializer';
+export { ISerializedError, ISerializedErrorAction, WorkerRunnerErrorSerializer } from './errors/error.serializer';
 export { ConnectionWasClosedError, HostResolverDestroyError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from './errors/runner-errors';
-export { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
+export { combineErrorConfig, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
 export { ClientResolverAction } from './resolver/client/client-resolver.actions';
 export { ClientRunnerResolverBase, IClientRunnerResolverConfigBase } from './resolver/client/client-runner.resolver';
 export { HostResolverAction, IHostResolverAction } from './resolver/host/host-resolver.actions';
@@ -15,7 +15,7 @@ export { HostRunnerResolverBase, IHostRunnerResolverConfigBase } from './resolve
 export { LocalResolverBridge } from './resolver/resolver-bridge/local/local-resolver.bridge';
 export { IRunnerControllerAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from './runner/controller/runner-controller.actions';
 export { IRunnerControllerConfig, RunnerController } from './runner/controller/runner.controller';
-export { RunnerControllerCollection, IRunnerControllerCollectionConfig } from './runner/controller/runner.controller.collection';
+export { IRunnerControllerCollectionConfig, RunnerControllerCollection } from './runner/controller/runner.controller.collection';
 export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, RunnerEnvironmentAction } from './runner/environment/runner-environment.actions';
 export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/environment/runner.environment';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from './runner/resolved-runner';

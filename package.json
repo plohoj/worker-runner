@@ -25,6 +25,7 @@
   },
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
+  "sideEffects": false,
   "devDependencies": {
     "@babel/core": "^7.14.6",
     "@babel/preset-env": "^7.14.7",

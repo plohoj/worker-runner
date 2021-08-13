@@ -15,6 +15,7 @@
   "types": "./declarations/index.ts",
   "main": "./umd/rx.js",
   "module": "./esm/rx.js",
+  "sideEffects": false,
   "keywords": [
     "worker-runner",
     "worker",

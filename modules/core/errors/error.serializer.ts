@@ -1,8 +1,8 @@
+import { Constructor } from '../types/constructor';
 import { WorkerRunnerErrorCode } from './error-code';
 import { CODE_TO_ERROR_MAP } from './error-code-map';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
-import { HostResolverDestroyError } from './runner-errors';
-import { IRunnerErrorConfigBase, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
+import { IRunnerErrorConfigBase, IRunnerErrorConfigCaptureOpt, WorkerRunnerError, WorkerRunnerMultipleError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export interface ISerializedError extends IRunnerErrorConfigBase {
     errorCode: string;
@@ -19,24 +19,48 @@ export interface ISerializedErrorAction<T> extends ISerializedError {
 export class WorkerRunnerErrorSerializer {
     protected readonly codeToErrorMap = CODE_TO_ERROR_MAP;
 
-    public serialize(
-        error: unknown = {},
-        alternativeError: Partial<ISerializedError> | WorkerRunnerError = {},
-    ): ISerializedError {
+    public normalize<
+        E extends Constructor<WorkerRunnerError, [Pick<IRunnerErrorConfigBase, 'message'>]>,
+        C extends ConstructorParameters<E>[0],
+    >(
+        error: unknown,
+        alternativeErrorConstructor: E,
+        config?: C,
+    ): Error | E {
+        if (error instanceof Error) {
+            return error;
+        }
+        const errorConfig = {...config};
+        const errorMessage = error && String(error);
+        if (errorMessage) {
+            errorConfig.message = errorMessage as string;
+        }
+        (errorConfig as IRunnerErrorConfigCaptureOpt).captureOpt = this.normalize;
+        return new alternativeErrorConstructor(errorConfig);
+    }
+
+    public serialize(error: unknown = {}): ISerializedError {
         const errorCode = (error as WorkerRunnerError)[WORKER_RUNNER_ERROR_CODE]
-            ?? (alternativeError as WorkerRunnerError)[WORKER_RUNNER_ERROR_CODE]
-            ?? (alternativeError as Partial<ISerializedError>).errorCode
+            ?? (error instanceof Error ? WorkerRunnerErrorCode.OTHER_ERROR : undefined)
             ?? WorkerRunnerErrorCode.UNEXPECTED_ERROR;
+
         let serializedError: ISerializedError;
+
         if (error instanceof Error) {
             serializedError = {
                 errorCode,
-                name: error.name || alternativeError.name || WorkerRunnerUnexpectedError.name,
-                message: error.message || alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
-                // eslint-disable-next-line unicorn/error-message
-                stack: error.stack || alternativeError.stack || new Error().stack,
+                name: error.name || WorkerRunnerUnexpectedError.name,
+                message: error.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
+                stack: error.stack,
             };
-            if (error instanceof HostResolverDestroyError) {
+            if (!serializedError.stack) {
+                Error.captureStackTrace?.(this.serialize);
+            }
+            if (!serializedError.stack) {
+                // eslint-disable-next-line unicorn/error-message
+                serializedError.stack = new Error().stack;
+            }
+            if (error instanceof WorkerRunnerMultipleError && error.originalErrors) {
                 serializedError.originalErrors = error.originalErrors.map(
                     originalError => this.serialize(originalError)
                 );
@@ -44,37 +68,34 @@ export class WorkerRunnerErrorSerializer {
         } else {
             serializedError = {
                 errorCode,
-                name: alternativeError.name || WorkerRunnerUnexpectedError.name,
+                name: WorkerRunnerUnexpectedError.name,
                 message: error
                     ? String(error)
-                    : (alternativeError.message || WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR()),
-                // eslint-disable-next-line unicorn/error-message
-                stack: alternativeError.stack || new Error().stack,
+                    : WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
             };
-        }
-        if (!serializedError.originalErrors && alternativeError instanceof HostResolverDestroyError) {
-            serializedError.originalErrors = alternativeError.originalErrors.map(
-                originalError => this.serialize(originalError)
-            );
+            Error.captureStackTrace?.(this.serialize);
+            if (!serializedError.stack) {
+                // eslint-disable-next-line unicorn/error-message
+                serializedError.stack = new Error().stack;
+            }
         }
         return serializedError;
     }
 
-    public deserialize(error: ISerializedError): WorkerRunnerError {
-        if (error.errorCode === WorkerRunnerErrorCode.WORKER_DESTROY_ERROR) {
-            return new HostResolverDestroyError({
-                captureOpt: this.deserialize,
-                ...error,
-                originalErrors: error.originalErrors?.map(originalError => this.deserialize(originalError))
-            });
+    public deserialize(error: ISerializedError): Error {
+        if (error.errorCode === WorkerRunnerErrorCode.OTHER_ERROR) {
+            const otherError = new Error(error.message);
+            otherError.name = error.name;
+            if (error.stack) {
+                otherError.stack = error.stack;
+            }
+            return otherError;
         }
-        let errorConstructor = this.codeToErrorMap[error.errorCode];
-        if (!errorConstructor) {
-            errorConstructor = WorkerRunnerUnexpectedError;
-        }
+        const errorConstructor = this.codeToErrorMap[error.errorCode] || WorkerRunnerUnexpectedError;
         return new errorConstructor({
             captureOpt: this.deserialize,
             ...error,
+            originalErrors: error.originalErrors?.map(originalError => this.deserialize(originalError))
         });
     }
 }

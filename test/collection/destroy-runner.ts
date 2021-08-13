@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerDestroyError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolvers, resolverList } from '../client/resolver-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -25,7 +25,7 @@ each(resolverList, (mode, resolver) =>
 
         it ('with exception in method', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
-            await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(errorContaining(RunnerDestroyError, {
+            await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(errorContaining(Error, {
                 message: 'DESTROY_EXCEPTION',
                 name: Error.name,
                 stack: jasmine.stringMatching(/.+/),

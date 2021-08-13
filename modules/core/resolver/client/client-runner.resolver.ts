@@ -3,8 +3,8 @@ import { IConnectControllerErrorDeserializer } from '../../connect/controller/co
 import { ConnectController } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { ConnectionWasClosedError } from '../../errors/runner-errors';
-import { WorkerRunnerError, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
+import { ConnectionWasClosedError, RunnerInitError } from '../../errors/runner-errors';
+import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerControllerCollectionConfig, RunnerControllerCollection } from '../../runner/controller/runner.controller.collection';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerBridge } from '../../runner/runner.bridge';
@@ -137,15 +137,12 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             }
             return responseAction;
         } catch (error) {
-            if (error instanceof WorkerRunnerError) {
-                throw error;
-            }
-            throw new WorkerRunnerUnexpectedError(this.errorSerializer.serialize(error, {
+            throw this.errorSerializer.normalize(error, RunnerInitError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                     token,
                     runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(token)?.name,
                 }),
-            }));
+            });
         }
     }
 

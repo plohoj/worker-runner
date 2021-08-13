@@ -99,7 +99,7 @@ each(resolverList, (mode, resolver) =>
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
             await expectAsync(errorStubRunner.throwErrorTrace(exceptionError))
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                .toBeRejectedWith(errorContaining(Error, {
                     message: exceptionError,
                     name: Error.name,
                     stack: jasmine.stringMatching(/throwErrorTrace/),
@@ -127,7 +127,7 @@ each(resolverList, (mode, resolver) =>
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
             await expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, 7))
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                .toBeRejectedWith(errorContaining(Error, {
                     message: exceptionError,
                     name: Error.name,
                     stack: jasmine.stringMatching(/.+/),

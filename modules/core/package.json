@@ -15,6 +15,7 @@
   "types": "./declarations/index.ts",
   "main": "./umd/core.js",
   "module": "./esm/core.js",
+  "sideEffects": false,
   "keywords": [
     "worker-runner"
   ],

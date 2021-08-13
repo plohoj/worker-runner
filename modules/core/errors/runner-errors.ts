@@ -1,79 +1,69 @@
 import { WorkerRunnerErrorCode } from './error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
-import { IRunnerErrorConfigCaptureOpt, IRunnerErrorConfigStack, IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
+import { combineErrorConfig, IWorkerRunnerErrorConfig, IWorkerRunnerMultipleErrorConfig, WorkerRunnerError, WorkerRunnerMultipleError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
 export class ConnectionWasClosedError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.CONNECTION_WAS_CLOSED;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
-        super({
-            name: config.name || ConnectionWasClosedError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || ConnectionWasClosedError,
-        });
+        super(combineErrorConfig(config, {
+            name: ConnectionWasClosedError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            captureOpt: ConnectionWasClosedError,
+        }));
     }
 }
 
 export class RunnerNotFound extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_NOT_FOUND;
     constructor(config: Readonly<IWorkerRunnerErrorConfig> = {}) {
-        super({
-            name: config.name || RunnerNotFound.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerNotFound,
-        });
+        super(combineErrorConfig(config, {
+            name: RunnerNotFound.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND(),
+            captureOpt: RunnerNotFound,
+        }));
     }
 }
 
-export class RunnerInitError extends WorkerRunnerError {
+export class RunnerInitError extends WorkerRunnerMultipleError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_INIT_ERROR;
-    constructor(config: IWorkerRunnerErrorConfig = {}) {
-        super({
-            name: config.name || RunnerInitError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerInitError,
-        });
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: RunnerInitError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(),
+            captureOpt: RunnerInitError,
+        }));
     }
 }
 
-export class RunnerExecuteError extends WorkerRunnerError {
+export class RunnerExecuteError extends WorkerRunnerMultipleError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR;
-    constructor(config: IWorkerRunnerErrorConfig = {}) {
-        super({
-            name: config.name || RunnerExecuteError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerExecuteError,
-        });
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: RunnerExecuteError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(),
+            captureOpt: RunnerExecuteError,
+        }));
     }
 }
 
-export class RunnerDestroyError extends WorkerRunnerError {
+export class RunnerDestroyError extends WorkerRunnerMultipleError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
-    constructor(config: IWorkerRunnerErrorConfig = {}) {
-        super({
-            name: config.name || RunnerDestroyError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || RunnerDestroyError,
-        });
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: RunnerDestroyError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            captureOpt: RunnerDestroyError,
+        }));
     }
 }
 
-export class HostResolverDestroyError extends WorkerRunnerError {
+export class HostResolverDestroyError extends WorkerRunnerMultipleError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
-    public originalErrors = new Array<Error>();
-    constructor(config: IWorkerRunnerErrorConfig & {originalErrors?: Error[]} = {}) {
-        super({
-            name: config.name || HostResolverDestroyError.name,
-            message: config.message || WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_DESTROY_ERROR(),
-            stack: (config as IRunnerErrorConfigStack).stack,
-            captureOpt: (config as IRunnerErrorConfigCaptureOpt).captureOpt || HostResolverDestroyError,
-        });
-        if (config.originalErrors) {
-            this.originalErrors.push(...config.originalErrors);
-        }
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: HostResolverDestroyError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_DESTROY_ERROR(),
+            captureOpt: HostResolverDestroyError,
+        }));
     }
 }
