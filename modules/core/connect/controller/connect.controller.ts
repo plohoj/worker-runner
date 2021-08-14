@@ -1,15 +1,16 @@
+import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
+import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
-import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActionPropertiesRequirements, IConnectEnvironmentActions, IConnectEnvironmentDestroyedWithErrorAction } from "../environment/connect-environment.actions";
-import { IConnectControllerErrorDeserializer } from "./connect-controller-error-deserializer";
-import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActionPropertiesRequirements, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction,  } from "./connect-controller.actions";
+import { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomErrorAction, IConnectEnvironmentCustomResponseAction } from "../environment/connect-environment.actions";
+import { ConnectControllerAction, IConnectControllerActions, IConnectControllerCustomAction, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction, IConnectCustomAction,  } from "./connect-controller.actions";
 
 type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
 
 export interface IConnectControllerConfig {
     port: MessagePort,
+    errorSerializer: WorkerRunnerErrorSerializer;
     forceDestroyHandler?: () => void;
-    destroyErrorDeserializer: IConnectControllerErrorDeserializer;
     disconnectErrorFactory?: DisconnectErrorFactory;
 }
 
@@ -17,17 +18,17 @@ export class ConnectController {
     public readonly port: MessagePort;
     public disconnectStatus?: ConnectionWasClosedError;
 
-    protected readonly promiseListResolver = new PromiseListResolver<IConnectEnvironmentAction>();
+    protected readonly promiseListResolver = new PromiseListResolver<IConnectEnvironmentActions | IConnectCustomAction>();
     protected readonly disconnectErrorFactory: DisconnectErrorFactory;
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer;
 
     private readonly messageHandler = this.onMessage.bind(this);
     private readonly forceDestroyHandler?: () => void;
-    private readonly destroyErrorDeserializer: IConnectControllerErrorDeserializer;
     private lastActionId = 0;
 
     constructor(config: IConnectControllerConfig) {
+        this.errorSerializer = config.errorSerializer;
         this.forceDestroyHandler = config.forceDestroyHandler;
-        this.destroyErrorDeserializer = config.destroyErrorDeserializer;
         this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
         this.port = config.port;
         this.port.addEventListener('message', this.messageHandler);
@@ -39,8 +40,7 @@ export class ConnectController {
             type: ConnectControllerAction.DESTROY,
         };
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await this.sendAction(destroyAction as any);
+            await this.innerSendAction(destroyAction);
         } finally {
             this.stopListen();
         }
@@ -50,28 +50,25 @@ export class ConnectController {
         const disconnectAction: Omit<IConnectControllerDisconnectAction, 'id'> = {
             type: ConnectControllerAction.DISCONNECT,
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await this.sendAction(disconnectAction as any);
+        await this.innerSendAction(disconnectAction);
         this.stopListen();
     }
 
-    public sendAction<
-        O extends IConnectControllerActionPropertiesRequirements<O>,
-        I extends IConnectEnvironmentActionPropertiesRequirements<I>,
+    public async sendAction<
+        O extends IConnectCustomAction,
+        I extends IConnectCustomAction,
     >(action: O): Promise<I> {
-        if (this.disconnectStatus) {
-            throw this.disconnectStatus;
-        }
-        const actionId = this.resolveActionId();
         const {transfer, ...actionWithoutTransfer} = action; 
-        const actionWidthId: IConnectControllerAction & O = {
-            ...actionWithoutTransfer as O,
-            id: actionId,
+        const wrappedAction: Omit<IConnectControllerCustomAction, 'id'> = {
+            type: ConnectControllerAction.CUSTOM,
+            payload: actionWithoutTransfer,
         };
-        const response$ = this.promiseListResolver.promise(actionId);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.port.postMessage(actionWidthId, transfer!);
-        return response$ as unknown as Promise<I>;
+        const response: IConnectEnvironmentCustomResponseAction | IConnectEnvironmentCustomErrorAction
+            = await this.innerSendAction(wrappedAction, transfer);
+        if (response.type === ConnectEnvironmentAction.CUSTOM_RESPONSE) {
+            return response.payload as I;
+        }
+        throw this.errorSerializer.deserialize(response.error);
     }
 
     /** Stop listening on the port without notifying *ConnectEnvironment* */
@@ -94,29 +91,50 @@ export class ConnectController {
         this.promiseListResolver.promises.clear();
     }
 
-    protected handleAction(actionWithId: IConnectEnvironmentAction | IConnectEnvironmentActions): void {
-        switch ((actionWithId as IConnectEnvironmentActions).type) {
+    protected handleAction(action: IConnectEnvironmentActions): void {
+        switch (action.type) {
             case ConnectEnvironmentAction.DESTROYED_BY_FORCE:
                 this.stopListen();
                 this.forceDestroyHandler?.();
                 break;
+            case ConnectEnvironmentAction.CUSTOM_ERROR:
             case ConnectEnvironmentAction.DESTROYED_WITH_ERROR: {
-                const error = this.destroyErrorDeserializer(
-                    (actionWithId as IConnectEnvironmentDestroyedWithErrorAction).error
-                );
-                this.promiseListResolver.reject((actionWithId as IConnectEnvironmentAction).id, error);
+                const error = this.errorSerializer.deserialize(action.error);
+                this.promiseListResolver.reject(action.id, error);
                 break;
             }
-            default: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const {id, ...action} = actionWithId as any;
-                this.promiseListResolver.resolve(id, action);
+            case ConnectEnvironmentAction.CUSTOM_RESPONSE:
+            case ConnectEnvironmentAction.DISCONNECTED:
+            case ConnectEnvironmentAction.DESTROYED_BY_REQUEST: {
+                this.promiseListResolver.resolve(action.id, action);
                 break;
             }
+            default:
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected Action type for Connect Controller',
+                });
         }
     }
 
-    private onMessage(event: MessageEvent<IConnectEnvironmentAction | IConnectEnvironmentActions>): void {
+    protected innerSendAction<
+        O extends Omit<IConnectControllerActions, 'id'>,
+        I extends IConnectEnvironmentActions,
+    >(action: O, transfer?: Transferable[]): Promise<I> {
+        if (this.disconnectStatus) {
+            throw this.disconnectStatus;
+        }
+        const actionId = this.resolveActionId();
+        const actionWidthId = {
+            ...action,
+            id: actionId,
+        } as IConnectControllerActions;
+        const response$ = this.promiseListResolver.promise(actionId);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.port.postMessage(actionWidthId, transfer!);
+        return response$ as unknown as Promise<I>;
+    }
+
+    private onMessage(event: MessageEvent<IConnectEnvironmentActions>): void {
         this.handleAction(event.data);
     }
 

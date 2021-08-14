@@ -1,7 +1,6 @@
-import { ConnectEnvironmentErrorSerializer } from '../../connect/environment/connect-environment-error-serializer';
 import { ConnectEnvironment } from '../../connect/environment/connect.environment';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { ISerializedError, WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
+import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
@@ -11,7 +10,7 @@ import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../type
 import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverAction, IClientResolverSoftInitRunnerAction } from '../client/client-resolver.actions';
 import { HostResolverBridge } from '../resolver-bridge/host/host-resolver.bridge';
-import { IHostResolverAction, IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
+import { IHostResolverAction, IHostResolverRunnerInitedAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from './host-resolver.actions';
 
 export type IHostRunnerResolverConfigBase<L extends RunnerIdentifierConfigList> = {
     connections?: RunnerResolverPossibleConnection[];
@@ -26,7 +25,7 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     protected readonly errorSerializer = this.buildWorkerErrorSerializer();
     protected readonly newConnectionHandler = this.handleNewConnection.bind(this);
     protected readonly connectEnvironment = new ConnectEnvironment({
-        destroyErrorSerializer: this.destroyErrorSerializer.bind(this) as ConnectEnvironmentErrorSerializer,
+        errorSerializer: this.errorSerializer,
         actionsHandler: this.handleAction.bind(this),
         destroyHandler: this.onAllDisconnect.bind(this),
     });
@@ -59,23 +58,7 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
         switch (action.type) {
             case ClientResolverAction.INIT_RUNNER:
             case ClientResolverAction.SOFT_INIT_RUNNER:
-                try {
-                    return await this.initRunnerInstance(action);
-                } catch (error) {
-                    const errorAction: IHostResolverRunnerInitErrorAction = {
-                        type: HostResolverAction.RUNNER_INIT_ERROR,
-                        ... this.errorSerializer.serialize(
-                            this.errorSerializer.normalize(error, RunnerInitError, {
-                                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                                    token: action.token,
-                                    runnerName: this.runnerIdentifierConfigCollection
-                                        .getRunnerConstructorSoft(action.token)?.name,
-                                }),
-                            }),
-                        ),
-                    };
-                    return errorAction;
-                }
+                return await this.initRunnerInstance(action);
             default:
                 throw new WorkerRunnerUnexpectedError({
                     message: 'Unexpected Action type for Host Runner Resolver',
@@ -139,44 +122,46 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     private handleNewConnection(port: MessagePort): void {
         this.connectEnvironment.addPort(port);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private destroyErrorSerializer(error: any): ISerializedError {
-        return this.errorSerializer.serialize(
-            this.errorSerializer.normalize(error, HostResolverDestroyError)
-        );
-    }
     
     private async initRunnerInstance(
         action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction,
     ): Promise<
-        | IHostResolverRunnerInitErrorAction
         | IHostResolverSoftRunnerInitedAction
         | IHostResolverRunnerInitedAction
     > {
-        const messageChanel = new MessageChannel();
-        const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
-            token: action.token,
-            port: messageChanel.port1,
-        });
-        await runnerEnvironment.initAsync({ arguments: action.args });
-        this.runnerEnvironments.add(runnerEnvironment);
+        try {
+            const messageChanel = new MessageChannel();
+            const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
+                token: action.token,
+                port: messageChanel.port1,
+            });
+            await runnerEnvironment.initAsync({ arguments: action.args });
+            this.runnerEnvironments.add(runnerEnvironment);
 
-        const partOfResponseAction = {
-            port: messageChanel.port2,
-            transfer: [messageChanel.port2],
+            const partOfResponseAction = {
+                port: messageChanel.port2,
+                transfer: [messageChanel.port2],
+            }
+            const responseAction = action.type === ClientResolverAction.SOFT_INIT_RUNNER
+                ? {
+                    ...partOfResponseAction,
+                    type: HostResolverAction.SOFT_RUNNER_INITED,
+                    methodsNames: this.runnerIdentifierConfigCollection.getRunnerMethodsNames(action.token),
+                } as IHostResolverSoftRunnerInitedAction
+                : {
+                    ...partOfResponseAction,
+                    type: HostResolverAction.RUNNER_INITED,
+                } as IHostResolverRunnerInitedAction;
+            return responseAction;
+        } catch (error: unknown) {
+            throw this.errorSerializer.normalize(error, RunnerInitError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                    token: action.token,
+                    runnerName: this.runnerIdentifierConfigCollection
+                        .getRunnerConstructorSoft(action.token)?.name,
+                }),
+            });
         }
-        const responseAction = action.type === ClientResolverAction.SOFT_INIT_RUNNER
-            ? {
-                ...partOfResponseAction,
-                type: HostResolverAction.SOFT_RUNNER_INITED,
-                methodsNames: this.runnerIdentifierConfigCollection.getRunnerMethodsNames(action.token),
-            } as IHostResolverSoftRunnerInitedAction
-            : {
-                ...partOfResponseAction,
-                type: HostResolverAction.RUNNER_INITED,
-            } as IHostResolverRunnerInitedAction;
-        return responseAction;
     }
 
     private buildRunnerEnvironmentByPartConfig(

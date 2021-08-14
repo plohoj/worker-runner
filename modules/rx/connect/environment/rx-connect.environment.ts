@@ -1,7 +1,7 @@
-import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentAction, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, JsonObject, TransferableJsonObject, WorkerRunnerUnexpectedError, IListeningInterrupter, ConnectionWasClosedError } from "@worker-runner/core";
+import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, WorkerRunnerUnexpectedError, IListeningInterrupter, ConnectionWasClosedError, IConnectCustomAction } from "@worker-runner/core";
 import { from, Observable, Subscription } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
-import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
+import { RxRunnerEmitError, RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectControllerActions, RxConnectControllerAction } from "../controller/rx-connect-controller.actions";
 import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
 
@@ -11,25 +11,28 @@ interface IRxListeningInterrupter extends IListeningInterrupter {
 
 interface IMessagePortRxConnectEnvironmentData extends IMessagePortConnectEnvironmentData{
     subscriptionsMap: Map<number, Subscription>;
-    observablesMap: Map<number, Observable<Record<string, TransferableJsonObject>>>
+    observablesMap: Map<number, Observable<IConnectCustomAction>>
     listeningInterrupter: IRxListeningInterrupter;
 }
 
-/** **WARNING**: Errors emits as is, need use pipe for serialize*/
-export class RxConnectEnvironment extends ConnectEnvironment {
+export class RxConnectEnvironment<
+    I extends IConnectCustomAction = IConnectCustomAction,
+    O extends IConnectCustomAction = IConnectCustomAction
+> extends ConnectEnvironment<I, O> {
         
     declare protected sendAction: (
         port: MessagePort,
         action: IConnectEnvironmentActions | IRxConnectEnvironmentActions,
+        transfer?: Transferable[]
     ) => void;
 
     declare protected getMessagePortData: (port: MessagePort) => IMessagePortRxConnectEnvironmentData | undefined;
 
     protected override async handleAction(
         port: MessagePort,
-        actionWithId: IConnectEnvironmentAction | IConnectControllerActions | IRxConnectControllerActions
+        actionWithId: IConnectControllerActions | IRxConnectControllerActions
     ): Promise<void> {
-        switch ((actionWithId as IRxConnectControllerActions).type) {
+        switch (actionWithId.type) {
             case RxConnectControllerAction.RX_SUBSCRIBE:
                 this.onSubscribeAction(port, actionWithId.id);
                 break;
@@ -37,13 +40,13 @@ export class RxConnectEnvironment extends ConnectEnvironment {
                 this.onUnsubscribeAction(port, actionWithId.id);
                 break;
             default: 
-                super.handleAction(port, actionWithId as IConnectEnvironmentAction | IConnectControllerActions)
+                super.handleAction(port, actionWithId)
         }
     }
 
     protected override async handleCustomActionResponse (
         port: MessagePort,
-        response: Record<string, TransferableJsonObject> | Observable<Record<string, TransferableJsonObject>>,
+        response: O | Observable<O>,
         actionId: number,
     ): Promise<void> {
         if (response instanceof Observable) {
@@ -81,7 +84,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         };
     }
 
-    private pipeObservable(port: MessagePort, actionId: number): Observable<Record<string, TransferableJsonObject>> | undefined {
+    private extractObservable(port: MessagePort, actionId: number): Observable<IConnectCustomAction> | undefined {
         const portRxData = this.getMessagePortData(port);
         if (!portRxData) {
             return;
@@ -98,7 +101,7 @@ export class RxConnectEnvironment extends ConnectEnvironment {
         port: MessagePort,
         actionId: number,
     ): void {
-        const observable = this.pipeObservable(port, actionId);
+        const observable = this.extractObservable(port, actionId);
         if (!observable) {
             const notFoundAction: IRxConnectEnvironmentNotFoundAction = {
                 id: actionId,
@@ -133,25 +136,26 @@ export class RxConnectEnvironment extends ConnectEnvironment {
     private onObservableEmit(
         port: MessagePort,
         actionId: number,
-        data: Record<string, TransferableJsonObject>
+        data: IConnectCustomAction
     ): void {
         const {transfer, ...dataWithoutTransfer} = data
         const emitAction: IRxConnectEnvironmentEmitAction = {
             response: dataWithoutTransfer,
             id: actionId,
             type: RxConnectEnvironmentAction.RX_EMIT,
-            transfer: transfer as Transferable[],
         }
-        this.sendAction(port, emitAction);
+        this.sendAction(port, emitAction, transfer);
     }
 
     private onObservableError(
         port: MessagePort,
         actionId: number,
-        error: Record<string, JsonObject>,
+        error: unknown,
     ): void {
         const errorAction: IRxConnectEnvironmentErrorAction = {
-            error,
+            error: this.errorSerializer.serialize(
+                this.errorSerializer.normalize(error, RxRunnerEmitError),
+            ),
             id: actionId,
             type: RxConnectEnvironmentAction.RX_ERROR,
         }

@@ -1,4 +1,4 @@
-import { BanProperties, IPossibleConnectEnvironmentActionProperties, TransferableJsonObject, IConnectEnvironmentActions, JsonObject } from "@worker-runner/core";
+import { ISerializedError, IConnectCustomAction } from "@worker-runner/core";
 
 export enum RxConnectEnvironmentAction {
     RX_INIT = 'RX_INIT',
@@ -16,16 +16,13 @@ export interface IRxConnectEnvironmentInitAction {
 export type IRxConnectEnvironmentEmitAction = {
     id: number;
     type: RxConnectEnvironmentAction.RX_EMIT;
-    response: {
-        transfer?: Transferable[],
-    } & Record<string, TransferableJsonObject>
-    transfer?: Transferable[],
+    response: IConnectCustomAction,
 } 
 
 export type IRxConnectEnvironmentErrorAction = {
     id: number;
     type: RxConnectEnvironmentAction.RX_ERROR,
-    error: Record<string, JsonObject>
+    error: ISerializedError
 };
 
 export interface IRxConnectEnvironmentCompletedAction {
@@ -44,13 +41,3 @@ export type IRxConnectEnvironmentActions =
     | IRxConnectEnvironmentErrorAction
     | IRxConnectEnvironmentCompletedAction
     | IRxConnectEnvironmentNotFoundAction;
-
-type IRxBannedConnectEnvironmentActionProperties
-    = Omit<(IConnectEnvironmentActions | IRxConnectEnvironmentActions), keyof IPossibleConnectEnvironmentActionProperties>
-    & {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        id: any;
-    }
-
-export type IRxConnectEnvironmentActionPropertiesRequirements<T> = 
-    BanProperties<T, IRxBannedConnectEnvironmentActionProperties> & IPossibleConnectEnvironmentActionProperties;

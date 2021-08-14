@@ -12,10 +12,6 @@ export interface ISerializedError extends IRunnerErrorConfigBase {
     originalErrors?: ISerializedError[];
 }
 
-export interface ISerializedErrorAction<T> extends ISerializedError {
-    type: T;
-}
-
 export class WorkerRunnerErrorSerializer {
     protected readonly codeToErrorMap = CODE_TO_ERROR_MAP;
 

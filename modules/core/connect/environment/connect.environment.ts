@@ -1,11 +1,14 @@
+import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
-import { TransferableJsonObject } from "../../types/json-object";
-import { ConnectControllerAction, IConnectControllerAction, IConnectControllerActions } from "../controller/connect-controller.actions";
-import { ConnectEnvironmentErrorSerializer } from "./connect-environment-error-serializer";
-import { ConnectEnvironmentAction, IConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentDestroyedByForceAction, IConnectEnvironmentDestroyedByRequestAction, IConnectEnvironmentDestroyedWithErrorAction, IConnectEnvironmentDisconnectedAction } from "./connect-environment.actions";
+import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
+import { ConnectControllerAction, IConnectControllerActions, IConnectControllerCustomAction, IConnectCustomAction } from "../controller/connect-controller.actions";
+import { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomErrorAction, IConnectEnvironmentCustomResponseAction, IConnectEnvironmentDestroyedByForceAction, IConnectEnvironmentDestroyedByRequestAction, IConnectEnvironmentDestroyedWithErrorAction, IConnectEnvironmentDisconnectedAction } from "./connect-environment.actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConnectEnvironmentActionsHandler = (action: any) => any;
+type ConnectEnvironmentActionsHandler<
+    I extends IConnectCustomAction,
+    O extends IConnectCustomAction
+> = (action: I) => Promise<O>;
 
 const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = '__workerRunner_connectEnvironmentData';
 
@@ -15,7 +18,7 @@ export interface IListeningInterrupter {
 }
 
 export interface IMessagePortConnectEnvironmentData {
-    handler: ConnectEnvironmentActionsHandler;
+    handler: (event: MessageEvent) => void;
     listeningInterrupter: IListeningInterrupter;
 } 
 
@@ -23,22 +26,30 @@ interface IMessagePortWithConnectEnvironmentData {
     [MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA]?: IMessagePortConnectEnvironmentData;
 }
 
-export interface IConnectEnvironmentConfig{
-    actionsHandler: ConnectEnvironmentActionsHandler;
-    destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
+export type IConnectEnvironmentConfig<
+    I extends IConnectCustomAction,
+    O extends IConnectCustomAction
+> = {
+    errorSerializer: WorkerRunnerErrorSerializer;
+    actionsHandler: ConnectEnvironmentActionsHandler<I, O>;
     destroyHandler: () => Promise<void> | void;
 }
 
-export class ConnectEnvironment {
+export class ConnectEnvironment<
+    I extends IConnectCustomAction = IConnectCustomAction,
+    O extends IConnectCustomAction = IConnectCustomAction
+> {
     public readonly connectedPorts = new Set<MessagePort>();
-    protected readonly destroyErrorSerializer: ConnectEnvironmentErrorSerializer;
-    private actionsHandler: ConnectEnvironmentActionsHandler;
-    private destroyHandler: () => void;
 
-    constructor(config: IConnectEnvironmentConfig) {
+    protected readonly errorSerializer: WorkerRunnerErrorSerializer;
+
+    private readonly actionsHandler: ConnectEnvironmentActionsHandler<I, O>;
+    private readonly destroyHandler: () => void;
+
+    constructor(config: IConnectEnvironmentConfig<I, O>) {
+        this.errorSerializer = config.errorSerializer;
         this.actionsHandler = config.actionsHandler;
         this.destroyHandler = config.destroyHandler;
-        this.destroyErrorSerializer = config.destroyErrorSerializer;
     }
 
     public addPort(port: MessagePort): void {
@@ -64,21 +75,25 @@ export class ConnectEnvironment {
 
     protected async handleAction(
         port: MessagePort,
-        actionWithId: IConnectControllerAction | IConnectControllerActions
+        action: IConnectControllerActions
     ): Promise<void> {
-        switch ((actionWithId as IConnectControllerActions).type) {
+        switch (action.type) {
             case ConnectControllerAction.INTERRUPT_LISTENING:
                 this.onInterruptListening(port);
                 break;
             case ConnectControllerAction.DISCONNECT:
-                this.onDisconnect(port, actionWithId.id);
+                this.onDisconnect(port, action.id);
                 break;
             case ConnectControllerAction.DESTROY:
-                await this.onDestroy(port, actionWithId.id);
+                await this.onDestroy(port, action.id);
                 break;
-            default: 
-                await this.onCustomAction(port, actionWithId as IConnectControllerAction);
+            case ConnectControllerAction.CUSTOM:
+                await this.onCustomAction(port, action);
                 break;
+            default:
+                throw new WorkerRunnerUnexpectedError({
+                    message: 'Unexpected Action type for Connect Environment',
+                });
         }
     }
 
@@ -130,7 +145,7 @@ export class ConnectEnvironment {
             const errorAction: IConnectEnvironmentDestroyedWithErrorAction = {
                 id: actionId,
                 type: ConnectEnvironmentAction.DESTROYED_WITH_ERROR,
-                error: this.destroyErrorSerializer(error),
+                error: this.errorSerializer.serialize(error),
             }
             this.sendAction(port, errorAction);
         }
@@ -144,51 +159,56 @@ export class ConnectEnvironment {
         this.closeConnection(port);
     }
 
-    protected async onCustomAction(port: MessagePort, actionWithId: IConnectControllerAction): Promise<void> {
-        const {id, ...action} = actionWithId;
-        const portData = this.getMessagePortData(port);
-        if (!portData) {
-            throw new ConnectionWasClosedError();
+    protected async onCustomAction(port: MessagePort, action: IConnectControllerCustomAction): Promise<void> {
+        try {
+            const portData = this.getMessagePortData(port);
+            if (!portData) {
+                throw new ConnectionWasClosedError();
+            }
+            let isListeningInterrupt = false;
+            const result = await Promise.race([
+                portData.listeningInterrupter.promise.then(() => isListeningInterrupt = true),
+                this.actionsHandler(action.payload as I),
+            ])
+            if (isListeningInterrupt) {
+                // Aborting the action because the connection was closed
+                return;
+            }
+            this.handleCustomActionResponse(port, result as O, action.id);
+        } catch (error: unknown) {
+            const customErrorAction: IConnectEnvironmentCustomErrorAction = {
+                id: action.id,
+                type: ConnectEnvironmentAction.CUSTOM_ERROR,
+                error: this.errorSerializer.serialize(error)
+            }
+            this.sendAction(port, customErrorAction);
         }
-        let isListeningInterrupt = false;
-        const result = await Promise.race([
-            portData.listeningInterrupter.promise.then(() => isListeningInterrupt = true),
-            this.actionsHandler(action) as Record<string, TransferableJsonObject>
-        ])
-        if (isListeningInterrupt) {
-            // Aborting the action because the connection was closed
-            return;
-        }
-        this.handleCustomActionResponse(port, result as Record<string, TransferableJsonObject>, id);
     }
 
     protected sendAction(
         port: MessagePort,
-        action: IConnectEnvironmentActions
+        action: IConnectEnvironmentActions,
+        transfer?: Transferable[]
     ): void {
         if (!this.connectedPorts.has(port)) {
             throw new ConnectionWasClosedError();
         }
-        const {transfer, ...actionWithoutTransfer} = action as Record<string, TransferableJsonObject>;
-        port.postMessage(actionWithoutTransfer, transfer as Transferable[]);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        port.postMessage(action, transfer!);
     }
 
     protected async handleCustomActionResponse (
         port: MessagePort,
-        response: Record<string, TransferableJsonObject>,
+        response: O,
         actionId: number,
     ): Promise<void> {
-        const responseActionWithId = {
-            ...response,
+        const {transfer, ...responseWithoutTransfer} = response; 
+        const responseAction: IConnectEnvironmentCustomResponseAction = {
             id: actionId,
+            type: ConnectEnvironmentAction.CUSTOM_RESPONSE,
+            payload: responseWithoutTransfer,
         };
-        this.sendAction(port, responseActionWithId as IConnectEnvironmentActions);
-    }
-
-    protected handleResponse(
-        response: Record<string, TransferableJsonObject>
-    ): Record<string, TransferableJsonObject> | IConnectEnvironmentAction {
-        return response;
+        this.sendAction(port, responseAction, transfer);
     }
 
     protected buildListeningInterrupter(): IListeningInterrupter {
@@ -214,7 +234,7 @@ export class ConnectEnvironment {
     
     private async onMessage(
         port: MessagePort,
-        event: MessageEvent<IConnectEnvironmentAction | IConnectControllerActions>,
+        event: MessageEvent<IConnectControllerActions>,
     ): Promise<void> {
         this.handleAction(port, event.data)
     }

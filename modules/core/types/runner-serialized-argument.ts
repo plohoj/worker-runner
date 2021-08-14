@@ -6,12 +6,12 @@ export enum RunnerSerializedArgumentType {
     RUNNER_INSTANCE = 'RUNNER_INSTANCE',
 }
 
-export interface IRunnerSerializedJSONArgument {
+export type IRunnerSerializedJSONArgument = {
     type: RunnerSerializedArgumentType.JSON;
     data: TransferableJsonObject;
 }
 
-export interface IRunnerSerializedEnvironmentArgument {
+export type IRunnerSerializedEnvironmentArgument = {
     type: RunnerSerializedArgumentType.RUNNER_INSTANCE;
     port: MessagePort;
     token: RunnerToken;

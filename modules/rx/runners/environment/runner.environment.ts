@@ -1,4 +1,4 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, ISerializedError } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
@@ -11,7 +11,6 @@ import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEn
 
 export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
     protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
-    declare protected readonly connectEnvironment: RxConnectEnvironment;
 
     protected override async handleExecuteResponse(
         executeResult: IRunnerMethodResult,
@@ -26,7 +25,10 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return super.handleExecuteResponse(executeResult);
     }
 
-    protected override buildConnectEnvironment(config: IConnectEnvironmentConfig): RxConnectEnvironment {
+    protected override buildConnectEnvironment<
+        I extends IConnectCustomAction,
+        O extends IConnectCustomAction
+    >(config: IConnectEnvironmentConfig<I, O>): RxConnectEnvironment<I, O> {
         return new RxConnectEnvironment(config);
     }
 
@@ -70,14 +72,10 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async mapRxError(error: any): Promise<never> {
-        const serializedError: ISerializedError = this.errorSerializer.serialize(
-            this.errorSerializer.normalize(error, RxRunnerEmitError, {
-                message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR({
-                    token: this.token,
-                    runnerName: this.runnerName
-                }),
-            }),
-        );
-        throw serializedError;
+        throw this.errorSerializer.normalize(error, RxRunnerEmitError, {
+            message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR(
+                this.getErrorMessageConfig(),
+            ),
+        });
     }
 }

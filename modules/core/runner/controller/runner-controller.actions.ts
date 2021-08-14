@@ -6,18 +6,18 @@ export enum RunnerControllerAction {
     REQUEST_RUNNER_OWN_DATA = 'REQUEST_RUNNER_OWN_DATA',
 }
 
-export interface IRunnerControllerExecuteAction {
+export type IRunnerControllerExecuteAction = {
     type: RunnerControllerAction.EXECUTE;
     method: string;
     args: IRunnerSerializedArgument[];
     transfer?: Transferable[]
 }
 
-export interface IRunnerControllerResolveAction {
+export type IRunnerControllerResolveAction = {
     type: RunnerControllerAction.RESOLVE;
 }
 
-export interface IRunnerControllerRequestRunnerOwnDataAction {
+export type IRunnerControllerRequestRunnerOwnDataAction = {
     type: RunnerControllerAction.REQUEST_RUNNER_OWN_DATA;
 }
 

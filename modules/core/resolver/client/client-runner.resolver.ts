@@ -1,5 +1,4 @@
 import { serializeArguments } from '../../arguments-serialization/serialize-arguments';
-import { IConnectControllerErrorDeserializer } from '../../connect/controller/connect-controller-error-deserializer';
 import { ConnectController } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
@@ -11,7 +10,7 @@ import { RunnerBridge } from '../../runner/runner.bridge';
 import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IHostResolverRunnerInitedAction, IHostResolverRunnerInitErrorAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
+import { IHostResolverRunnerInitedAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
 import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
 import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bridge';
 import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverSoftInitRunnerAction } from './client-resolver.actions';
@@ -50,8 +49,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         const port = await this.resolverBridge!.connect();
         this.connectController = new ConnectController({
             port,
-            destroyErrorDeserializer: this.errorSerializer
-                .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
+            errorSerializer: this.errorSerializer,
             forceDestroyHandler: this.destroyByForce.bind(this),
         });
     }
@@ -127,14 +125,8 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
                 args: serializedArguments.arguments,
                 transfer: serializedArguments.transfer,
             };
-            const responseAction:
-                | IHostResolverRunnerInitedAction
-                | IHostResolverSoftRunnerInitedAction
-                | IHostResolverRunnerInitErrorAction
-                    = await this.connectController.sendAction(action);
-            if (responseAction.type === HostResolverAction.RUNNER_INIT_ERROR) {
-                throw this.errorSerializer.deserialize(responseAction);
-            }
+            const responseAction: IHostResolverRunnerInitedAction | IHostResolverSoftRunnerInitedAction
+                = await this.connectController.sendAction(action);
             return responseAction;
         } catch (error) {
             throw this.errorSerializer.normalize(error, RunnerInitError, {

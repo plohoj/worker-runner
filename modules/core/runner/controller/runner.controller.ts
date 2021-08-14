@@ -1,12 +1,11 @@
 import { serializeArguments } from '../../arguments-serialization/serialize-arguments';
-import { IConnectControllerErrorDeserializer } from '../../connect/controller/connect-controller-error-deserializer';
 import { ConnectController, IConnectControllerConfig } from '../../connect/controller/connect.controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError } from '../../errors/runner-errors';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IRunnerEnvironmentOwnDataResponseAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
+import { IRunnerEnvironmentOwnDataAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
 import { ResolvedRunner } from '../resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../runner-identifier-config.collection';
 import { IRunnerBridgeConstructor } from '../runner.bridge';
@@ -85,13 +84,14 @@ export class RunnerController<R extends RunnerConstructor> {
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {
         const serializedArgumentsData = await serializeArguments(args);
-        const actionResult = await this.connectController
-            .sendAction<IRunnerControllerExecuteAction, IRunnerEnvironmentExecuteResultAction>({
-                type: RunnerControllerAction.EXECUTE,
-                args: serializedArgumentsData.arguments,
-                method: methodName,
-                transfer: serializedArgumentsData.transfer,
-            });
+        const action: IRunnerControllerExecuteAction = {
+            type: RunnerControllerAction.EXECUTE,
+            args: serializedArgumentsData.arguments,
+            method: methodName,
+            transfer: serializedArgumentsData.transfer,
+        };
+        const actionResult: IRunnerEnvironmentExecuteResultAction
+            = await this.connectController.sendAction(action);
         return this.handleExecuteResult(actionResult);
     }
 
@@ -126,9 +126,9 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public async resolveControl(): Promise<MessagePort> {
-        const actionResult = await this.connectController.sendAction({
+        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectController.sendAction({
             type: RunnerControllerAction.RESOLVE,
-        }) as IRunnerEnvironmentResolvedAction;
+        });
         return actionResult.port;
     }
 
@@ -151,8 +151,6 @@ export class RunnerController<R extends RunnerConstructor> {
         action: IRunnerEnvironmentExecuteResultAction
     ): Promise<IRunnerSerializedMethodResult> {
         switch (action.type) {
-            case RunnerEnvironmentAction.EXECUTE_ERROR:
-                throw this.errorSerializer.deserialize(action);
             case RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT:
                 return this.handleExecuteWithRunnerResult(action);
             default:
@@ -170,8 +168,7 @@ export class RunnerController<R extends RunnerConstructor> {
         config: Pick<IConnectControllerConfig, 'port'>,
     ): ConnectController {
         return this.buildConnectController({
-            destroyErrorDeserializer: this.errorSerializer
-                .deserialize.bind(this.errorSerializer) as IConnectControllerErrorDeserializer,
+            errorSerializer: this.errorSerializer,
             forceDestroyHandler: () => this.onDestroyed(),
             disconnectErrorFactory: this.disconnectErrorFactory.bind(this),
             ...config,
@@ -188,12 +185,12 @@ export class RunnerController<R extends RunnerConstructor> {
         return runnerController.resolvedRunner;
     }
 
-    private async requestRunnerOwnData(): Promise<IRunnerEnvironmentOwnDataResponseAction> {
+    private async requestRunnerOwnData(): Promise<IRunnerEnvironmentOwnDataAction> {
         const action: IRunnerControllerRequestRunnerOwnDataAction = {
             type: RunnerControllerAction.REQUEST_RUNNER_OWN_DATA,
         }
-        const environmentData = await this.connectController
-            .sendAction<IRunnerControllerRequestRunnerOwnDataAction, IRunnerEnvironmentOwnDataResponseAction>(action);
+        const environmentData: IRunnerEnvironmentOwnDataAction
+            = await this.connectController.sendAction(action);
 
         return environmentData;
     }

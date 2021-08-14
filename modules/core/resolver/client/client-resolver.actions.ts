@@ -7,14 +7,14 @@ export enum ClientResolverAction {
     SOFT_INIT_RUNNER = 'SOFT_INIT_RUNNER',
 }
 
-export interface IClientResolverInitRunnerAction {
+export type IClientResolverInitRunnerAction = {
     type: ClientResolverAction.INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
     transfer: Transferable[]
 }
 
-export interface IClientResolverSoftInitRunnerAction {
+export type IClientResolverSoftInitRunnerAction = {
     type: ClientResolverAction.SOFT_INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
