@@ -77,13 +77,21 @@ each(resolverList, (mode, resolver) =>
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
-                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
-                        runnerName: ExecutableStubRunner.name,
+                .toBeRejectedWith(errorContaining(RunnerInitError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                        token: WithOtherInstanceStubRunner.name,
+                        runnerName: WithOtherInstanceStubRunner.name,
                     }),
-                    name: ConnectionWasClosedError.name,
+                    name: RunnerInitError.name,
                     stack: jasmine.stringMatching(/.+/),
+                    originalErrors: [errorContaining(ConnectionWasClosedError, {
+                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                            token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                            runnerName: ExecutableStubRunner.name,
+                        }),
+                        name: ConnectionWasClosedError.name,
+                        stack: jasmine.stringMatching(/.+/),
+                    })],
                 }));
         });
 

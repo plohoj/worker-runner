@@ -85,30 +85,31 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         const deserializedArgumentsData = await deserializeArguments({
             arguments: config.arguments,
             runnerControllerPartFactory: this.runnerControllerCollection.runnerControllerPartFactory,
+            combinedErrorsFactory: (errors: unknown[]) => new RunnerInitError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(this.getErrorMessageConfig()),
+                originalErrors: errors,
+            }),
         });
         this.runnerControllerCollection.add(...deserializedArgumentsData.controllers);
         try {
             runnerInstance = new runnerConstructor(...deserializedArgumentsData.arguments) as InstanceType<R>;
         } catch (error) {
-            try {
-                await allPromisesCollectErrors(
-                    deserializedArgumentsData.controllers
-                        .map(controller => controller.disconnect())
-                );
-            // eslint-disable-next-line unicorn/catch-error-name
-            } catch (errors: unknown) {
+            const possibleErrors = await allPromisesCollectErrors(
+                deserializedArgumentsData.controllers
+                    .map(controller => controller.disconnect())
+            );
+            // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in constructor 
+            this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers);
+            if ('errors' in possibleErrors) {
                 throw new RunnerInitError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(
                         this.getErrorMessageConfig(),
                     ),
                     originalErrors: [
                         error,
-                        ...Array.isArray(errors) ? errors : [errors],
+                        ...possibleErrors.errors,
                     ]
                 })
-            } finally {
-                // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in constructor 
-                this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers)
             }
             throw error;
         }
@@ -122,30 +123,31 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         const deserializedArgumentsData = await deserializeArguments({
             arguments: action.args,
             runnerControllerPartFactory: this.runnerControllerCollection.runnerControllerPartFactory,
+            combinedErrorsFactory: (errors: unknown[]) => new RunnerExecuteError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(this.getErrorMessageConfig()),
+                originalErrors: errors,
+            }),
         });
         this.runnerControllerCollection.add(...deserializedArgumentsData.controllers);
         try {
             response = await this.runnerInstance[action.method](...deserializedArgumentsData.arguments);
         } catch (error: unknown) {
-            try {
-                await allPromisesCollectErrors(
-                    deserializedArgumentsData.controllers
-                        .map(controller => controller.disconnect())
-                );
-            // eslint-disable-next-line unicorn/catch-error-name
-            } catch (errors: unknown) {
+            const possibleErrors = await allPromisesCollectErrors(
+                deserializedArgumentsData.controllers
+                    .map(controller => controller.disconnect())
+            );
+            // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in executed method 
+            this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers);
+            if ('errors' in possibleErrors) {
                 throw new RunnerExecuteError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(
                         this.getErrorMessageConfig(),
                     ),
                     originalErrors: [
                         error,
-                        ...Array.isArray(errors) ? errors : [errors],
+                        ...possibleErrors.errors,
                     ]
                 })
-            } finally {
-                // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in executed method 
-                this.runnerControllerCollection.delete(...deserializedArgumentsData.controllers)
             }
             throw this.errorSerializer.normalize(error, RunnerExecuteError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
@@ -169,35 +171,28 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                     this.getErrorMessageConfig(),
                 ),
             }) ;
-            throw caughtError;
-        } finally {
-            try {
-                await allPromisesCollectErrors(
-                    [...this.runnerControllerCollection.runnerControllers]
-                        .map(controller => controller.disconnect()),
-                );
-            // eslint-disable-next-line unicorn/catch-error-name
-            } catch (errors: unknown) {
-                const originalErrors = new Array<unknown>();
-                if (caughtError) {
-                    originalErrors.push(caughtError);
-                }
-                if (Array.isArray(errors)) {
-                    originalErrors.push(...errors)
-                } else {
-                    originalErrors.push(errors)
-                }
-                // eslint-disable-next-line no-unsafe-finally
-                throw new RunnerDestroyError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
-                        this.getErrorMessageConfig(),
-                    ),
-                    originalErrors
-                })
-            } finally {
-                this.runnerControllerCollection.runnerControllers.clear();
-                this.onDestroyed();
+        }
+        const possibleErrors = await allPromisesCollectErrors(
+            [...this.runnerControllerCollection.runnerControllers]
+                .map(controller => controller.disconnect()),
+        );
+        this.runnerControllerCollection.runnerControllers.clear();
+        this.onDestroyed();
+        if ('errors' in possibleErrors) {
+            const originalErrors = new Array<unknown>();
+            if (caughtError) {
+                originalErrors.push(caughtError);
             }
+            originalErrors.push(...possibleErrors.errors);
+            throw new RunnerDestroyError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                    this.getErrorMessageConfig(),
+                ),
+                originalErrors,
+            });
+        }
+        if (caughtError) {
+            throw caughtError;
         }
     }
 

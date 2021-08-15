@@ -104,18 +104,15 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     }
 
     private async clearEnvironment(): Promise<void> {
-        try {
-            await allPromisesCollectErrors(
-                [...this.runnerEnvironments]
-                    .map(runnerEnvironment => runnerEnvironment.handleDestroy())
-            )
-        } catch (error: unknown) {
-            // TODO NEED TEST
+        const possibleErrors = await allPromisesCollectErrors(
+            [...this.runnerEnvironments]
+                .map(runnerEnvironment => runnerEnvironment.handleDestroy())
+        )
+        this.runnerEnvironments.clear();
+        if ('errors' in possibleErrors) {
             throw new HostResolverDestroyError({ 
-                originalErrors: Array.isArray(error) ? error : [error],
+                originalErrors: possibleErrors.errors,
             });
-        } finally {
-            this.runnerEnvironments.clear();
         }
     }
 

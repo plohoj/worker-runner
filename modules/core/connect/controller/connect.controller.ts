@@ -35,6 +35,25 @@ export class ConnectController {
         this.port.start();
     }
 
+    // TODO NEED TEST
+    public static disconnectPort(port: MessagePort): Promise<void> {
+        return new Promise(resolve => {
+            function disconnectHandler(event: MessageEvent): void {
+                if ((event.data as IConnectEnvironmentActions).type === ConnectEnvironmentAction.DISCONNECTED) {
+                    port.removeEventListener('message', disconnectHandler);
+                    resolve();
+                }
+            }
+            port.addEventListener('message', disconnectHandler);
+            port.start();
+            const disconnectAction: IConnectControllerDisconnectAction = {
+                id: -1,
+                type: ConnectControllerAction.DISCONNECT,
+            }
+            port.postMessage(disconnectAction)
+        })
+    }
+
     public async destroy(): Promise<void> {
         const destroyAction: Omit<IConnectControllerDestroyAction, 'id'> = {
             type: ConnectControllerAction.DESTROY,
@@ -116,7 +135,7 @@ export class ConnectController {
         }
     }
 
-    protected innerSendAction<
+    private innerSendAction<
         O extends Omit<IConnectControllerActions, 'id'>,
         I extends IConnectEnvironmentActions,
     >(action: O, transfer?: Transferable[]): Promise<I> {

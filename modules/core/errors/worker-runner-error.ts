@@ -42,26 +42,6 @@ export interface IRunnerErrorConfigOriginalErrors {
     originalErrors?: unknown[];
 }
 
-export type IWorkerRunnerAlternativeErrorConfig = IRunnerErrorConfigBase & IRunnerErrorConfigCaptureOpt;
-
-export function combineErrorConfig(
-    primaryConfig: IWorkerRunnerErrorConfig,
-    alternativeConfig: IWorkerRunnerAlternativeErrorConfig,
-): IWorkerRunnerErrorConfig {
-    const config: IWorkerRunnerErrorConfig = {
-        name: primaryConfig.name || alternativeConfig.name,
-        message: primaryConfig.message || alternativeConfig.message,
-    };
-    const stack = (primaryConfig as IRunnerErrorConfigStack).stack || (alternativeConfig as IRunnerErrorConfigStack).stack
-    if (stack) {
-        (config as IRunnerErrorConfigStack).stack = stack;
-    } else {
-        (config as IRunnerErrorConfigCaptureOpt).captureOpt = (primaryConfig as IRunnerErrorConfigCaptureOpt).captureOpt
-            || (alternativeConfig as IRunnerErrorConfigCaptureOpt).captureOpt
-    }
-    return config;
-}
-
 export type IWorkerRunnerMultipleErrorConfig = IWorkerRunnerErrorConfig & IRunnerErrorConfigOriginalErrors;
 
 export abstract class WorkerRunnerMultipleError extends WorkerRunnerError {
@@ -86,4 +66,27 @@ export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
             captureOpt: WorkerRunnerUnexpectedError,
         }));
     }
+}
+
+export type IWorkerRunnerAlternativeErrorConfig = IRunnerErrorConfigBase & IRunnerErrorConfigCaptureOpt;
+
+export function combineErrorConfig(
+    primaryConfig: IWorkerRunnerMultipleErrorConfig,
+    alternativeConfig: IWorkerRunnerAlternativeErrorConfig,
+): IWorkerRunnerErrorConfig {
+    const config: IWorkerRunnerErrorConfig = {
+        name: primaryConfig.name || alternativeConfig.name,
+        message: primaryConfig.message || alternativeConfig.message,
+    };
+    const stack = (primaryConfig as IRunnerErrorConfigStack).stack || (alternativeConfig as IRunnerErrorConfigStack).stack
+    if (stack) {
+        (config as IRunnerErrorConfigStack).stack = stack;
+    } else {
+        (config as IRunnerErrorConfigCaptureOpt).captureOpt = (primaryConfig as IRunnerErrorConfigCaptureOpt).captureOpt
+            || (alternativeConfig as IRunnerErrorConfigCaptureOpt).captureOpt
+    }
+    if (primaryConfig.originalErrors?.length) {
+        (config as IWorkerRunnerMultipleErrorConfig).originalErrors = primaryConfig.originalErrors;
+    }
+    return config;
 }

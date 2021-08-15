@@ -3,7 +3,7 @@ import { RunnerToken } from "./runner-identifier";
 
 export enum RunnerSerializedArgumentType {
     JSON = 'JSON',
-    RUNNER_INSTANCE = 'RUNNER_INSTANCE',
+    RESOLVED_RUNNER = 'RESOLVED_RUNNER',
 }
 
 export type IRunnerSerializedJSONArgument = {
@@ -11,10 +11,10 @@ export type IRunnerSerializedJSONArgument = {
     data: TransferableJsonObject;
 }
 
-export type IRunnerSerializedEnvironmentArgument = {
-    type: RunnerSerializedArgumentType.RUNNER_INSTANCE;
+export type IRunnerSerializedResolvedRunnerArgument = {
+    type: RunnerSerializedArgumentType.RESOLVED_RUNNER;
     port: MessagePort;
     token: RunnerToken;
 }
 
-export type IRunnerSerializedArgument = IRunnerSerializedJSONArgument | IRunnerSerializedEnvironmentArgument;
+export type IRunnerSerializedArgument = IRunnerSerializedJSONArgument | IRunnerSerializedResolvedRunnerArgument;

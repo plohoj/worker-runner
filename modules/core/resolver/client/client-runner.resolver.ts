@@ -117,7 +117,16 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             });
         }
         try {
-            const serializedArguments = await serializeArguments(args);
+            const serializedArguments = await serializeArguments({
+                arguments: args,
+                combinedErrorsFactory: (errors: unknown[]) => new RunnerInitError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
+                        token,
+                        runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(token)?.name
+                    }),
+                    originalErrors: errors,
+                }),
+            });
             const hasBridgeConstructor = this.runnerIdentifierConfigCollection.hasBridgeConstructor(token);
             const action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction = {
                 type: hasBridgeConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.SOFT_INIT_RUNNER,

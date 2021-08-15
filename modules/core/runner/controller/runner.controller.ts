@@ -1,8 +1,8 @@
 import { serializeArguments } from '../../arguments-serialization/serialize-arguments';
 import { ConnectController, IConnectControllerConfig } from '../../connect/controller/connect.controller';
-import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
+import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
-import { ConnectionWasClosedError } from '../../errors/runner-errors';
+import { ConnectionWasClosedError, RunnerExecuteError } from '../../errors/runner-errors';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { IRunnerEnvironmentOwnDataAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
@@ -41,7 +41,7 @@ export class RunnerController<R extends RunnerConstructor> {
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
 
     private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
-    private isMarkedForTransfer = false;
+    private _isMarkedForTransfer = false;
 
     constructor(config: Readonly<IRunnerControllerConfig<R>>) {
         this.token = config.token;
@@ -60,6 +60,13 @@ export class RunnerController<R extends RunnerConstructor> {
     }
     public set resolvedRunner(value: ResolvedRunner<InstanceType<R>>) {
         this._resolvedRunner = value;
+    }
+
+    public get isMarkedForTransfer(): boolean {
+        return this._isMarkedForTransfer;
+    }
+    private set isMarkedForTransfer(value: boolean) {
+        this._isMarkedForTransfer = value;
     }
 
     public initSync(config: IRunnerControllerInitSyncConfig): void {
@@ -83,7 +90,15 @@ export class RunnerController<R extends RunnerConstructor> {
         methodName: string,
         args: IRunnerParameter[],
     ): Promise<IRunnerSerializedMethodResult> {
-        const serializedArgumentsData = await serializeArguments(args);
+        const serializedArgumentsData = await serializeArguments({
+            arguments: args,
+            combinedErrorsFactory: (errors: unknown[]) => new RunnerExecuteError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(
+                    this.getErrorMessageConfig(),
+                ),
+                originalErrors: errors,
+            }),
+        });
         const action: IRunnerControllerExecuteAction = {
             type: RunnerControllerAction.EXECUTE,
             args: serializedArgumentsData.arguments,
@@ -164,6 +179,13 @@ export class RunnerController<R extends RunnerConstructor> {
         return new ConnectController(config);
     }
 
+    protected getErrorMessageConfig(): IRunnerMessageConfig {
+        return {
+            token: this.token,
+            runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(this.token)?.name,
+        }
+    }
+
     private buildConnectControllerByPartConfig(
         config: Pick<IConnectControllerConfig, 'port'>,
     ): ConnectController {
@@ -204,10 +226,9 @@ export class RunnerController<R extends RunnerConstructor> {
         return new ConnectionWasClosedError({
             captureOpt: this.disconnectErrorFactory,
             ...error,
-            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
-                token: this.token,
-                runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(this.token)?.name,
-            })
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(
+                this.getErrorMessageConfig(),
+            )
         });
     }
 }
