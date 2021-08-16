@@ -2,6 +2,7 @@ import { combineErrorConfig, IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER
 import { RxWorkerRunnerErrorCode } from './error-code';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from './error-messages';
 
+// TODO NEED TEST
 export class RxSubscriptionNotFoundError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = RxWorkerRunnerErrorCode.SUBSCRIPTION_NOT_FOUND;
     constructor(config: IWorkerRunnerErrorConfig = {}) {

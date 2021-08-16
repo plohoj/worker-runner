@@ -27,7 +27,6 @@ export async function serializeArguments(config: {
             }
             if (RunnerBridge.isRunnerBridge(argument)) {
                 const controller = argument[RUNNER_BRIDGE_CONTROLLER];
-                // TODO close all connection after throw error 
                 const transferPort = await controller.resolveOrTransferControl();
                 transfer.push(transferPort);
                 return {

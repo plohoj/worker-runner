@@ -1,6 +1,6 @@
 import { ConnectController, IConnectEnvironmentActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, IConnectCustomAction, IConnectEnvironmentCustomResponseAction, ConnectEnvironmentAction } from "@worker-runner/core";
 import { Observable, Subscriber } from "rxjs";
-import { share } from "rxjs/operators";
+import { finalize, share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
 import { IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";
@@ -51,6 +51,7 @@ export class RxConnectController extends ConnectController {
     }
 
     private runnerObservableInit(action: IRxConnectEnvironmentInitAction): void {
+        let isComplete = false;
         const observable = new Observable<IConnectCustomAction>(subscriber => {
             if (!this.canSubscribedList.has(action.id)) {
                 if (this.disconnectStatus) {
@@ -67,15 +68,20 @@ export class RxConnectController extends ConnectController {
                 type: RxConnectControllerAction.RX_SUBSCRIBE,
                 id: action.id,
             });
-            return () => { // TODO check that the method is called after observable unsubscribe
-                // TODO place permanent error message about subscribe listener has been disconnected
-                const unsubscribeAction: IRxConnectControllerUnsubscribeAction = { // TODO check work
-                    type: RxConnectControllerAction.RX_UNSUBSCRIBE,
-                    id: action.id,
+            return () => {
+                // TODO NEED TEST
+                if (!isComplete) {
+                    const unsubscribeAction: IRxConnectControllerUnsubscribeAction = {
+                        type: RxConnectControllerAction.RX_UNSUBSCRIBE,
+                        id: action.id,
+                    }
+                    this.port.postMessage(unsubscribeAction);
                 }
-                this.port.postMessage(unsubscribeAction);
             };
-        }).pipe(share());
+        }).pipe(
+            tap({ complete: () => isComplete = true }),
+            share(),
+        );
         this.canSubscribedList.add(action.id);
         const responseAction: IConnectEnvironmentCustomResponseAction = {
             id: action.id,
