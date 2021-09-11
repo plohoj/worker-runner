@@ -1,6 +1,6 @@
 import { ConnectController, IConnectEnvironmentActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, IConnectCustomAction, IConnectEnvironmentCustomResponseAction, ConnectEnvironmentAction } from "@worker-runner/core";
 import { Observable, Subscriber } from "rxjs";
-import { finalize, share, tap } from "rxjs/operators";
+import { share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
 import { IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";

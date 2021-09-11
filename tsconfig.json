@@ -2,9 +2,6 @@
     "compilerOptions": {
         "baseUrl": "./",
         "module": "ESNext",
-        "lib": [
-            "webworker"
-        ],
         "target": "ES2015",
         "outDir": "./dist",
         "strict": true,

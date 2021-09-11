@@ -65,9 +65,9 @@ export async function serializeArguments(config: {
                 ),
         ]);
         if ('errors' in disconnectedOrErrors) {
+            // TODO NEED TEST
             allErrors.push(...disconnectedOrErrors.errors);
         }
-        // TODO NEED TEST
         throw config.combinedErrorsFactory(allErrors);
     }
 

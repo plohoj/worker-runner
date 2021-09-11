@@ -84,6 +84,36 @@ each(resolverList, (mode, resolver) =>
                 }));
         });
 
+        it ('with destroyed Resolved Runner in arguments at runtime', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
+            const executableStubRinnerConnectionErrorMather = errorContaining(ConnectionWasClosedError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                    runnerName: ExecutableStubRunner.name,
+                }),
+                name: ConnectionWasClosedError.name,
+                stack: jasmine.stringMatching(/.+/),
+            });
+
+            const executeResponse$ = withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner);
+            await executableStubRunner.destroy();
+
+            await expectAsync(executeResponse$)
+                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                        token: WithOtherInstanceStubRunner.name,
+                        runnerName: WithOtherInstanceStubRunner.name,
+                    }),
+                    name: RunnerExecuteError.name,
+                    stack: jasmine.stringMatching(/.+/),
+                    originalErrors: [
+                        executableStubRinnerConnectionErrorMather,
+                        executableStubRinnerConnectionErrorMather,
+                    ],
+                }));
+        });
+
         it('with promise', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await expectAsync(executableStubRunner.delay(4)).toBeResolved();

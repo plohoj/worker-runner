@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 export { IConnectControllerActions, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectCustomAction } from './connect/controller/connect-controller.actions';
 export { ConnectController, IConnectControllerConfig } from './connect/controller/connect.controller';
 export { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomResponseAction } from './connect/environment/connect-environment.actions';

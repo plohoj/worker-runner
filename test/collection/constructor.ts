@@ -69,14 +69,18 @@ each(resolverList, (mode, resolver) =>
             const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
+
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
             await localResolver.destroy();
         });
 
         it ('with destroyed Resolved Runner in arguments', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+
             await executableStubRunner.destroy();
-            await expectAsync(resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner))
+            const withOtherInstanceStubRunner$ = resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner);
+
+            await expectAsync(withOtherInstanceStubRunner$)
                 .toBeRejectedWith(errorContaining(RunnerInitError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                         token: WithOtherInstanceStubRunner.name,
@@ -92,6 +96,35 @@ each(resolverList, (mode, resolver) =>
                         name: ConnectionWasClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     })],
+                }));
+        });
+
+        it ('with destroyed Resolved Runner in arguments at runtime', async () => {
+            const storageData = {
+                id: 5326,
+                type: 'STORAGE_DATA',
+            };
+            const executableStubRunner = await resolver
+                .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
+                    ExecutableStubRunner<typeof storageData>
+                >;
+
+            const withOtherInstanceStubRunner$ = resolver
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as Promise<
+                    ResolvedRunner<WithOtherInstanceStubRunner<typeof storageData>>
+                >;
+            await executableStubRunner.destroy();
+            const withOtherInstanceStubRunner = await withOtherInstanceStubRunner$;
+
+            await expectAsync(withOtherInstanceStubRunner$).toBeResolved();
+            await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
+                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                        runnerName: ExecutableStubRunner.name,
+                    }),
+                    name: ConnectionWasClosedError.name,
+                    stack: jasmine.stringMatching(/.+/),
                 }));
         });
 

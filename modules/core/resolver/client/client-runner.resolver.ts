@@ -153,6 +153,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         });
     }
 
+    // TODO Need to implement the configuration token after adding constructing resolver/
     /**
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.

@@ -270,12 +270,9 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     }
 
     private getRunnerOwnData(): IRunnerEnvironmentOwnDataAction {
-        let responseAction: IRunnerEnvironmentOwnDataAction;
+        let methodsNames: string[];
         try {
-            responseAction = {
-                type: RunnerEnvironmentAction.RUNNER_OWN_DATA,
-                methodsNames: this.runnerIdentifierConfigCollection.getRunnerMethodsNames(this.token),
-            };
+            methodsNames = this.runnerIdentifierConfigCollection.getRunnerMethodsNames(this.token)
         } catch (error) { // TODO NEED TEST
             throw this.errorSerializer.normalize(error, RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND(
@@ -283,6 +280,10 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
                 ),
             });
         }
+        const responseAction: IRunnerEnvironmentOwnDataAction = {
+            type: RunnerEnvironmentAction.RUNNER_OWN_DATA,
+            methodsNames,
+        };
         return responseAction;
     }
 }
