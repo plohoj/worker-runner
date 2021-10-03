@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { IRunnerIdentifierConfig, RunnerIdentifier } from "@worker-runner/core";
-import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promise";
+import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promise";
 
 // Type check:
 () => {
@@ -10,7 +10,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // simple token
     async () => {
-        const check0 = await new LocalRunnerResolver({runners: [
+        const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
             Runner2,
         ]}).resolve('Runner1');
@@ -20,7 +20,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new LocalRunnerResolver({runners: [
+        const check1 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             Runner2,
         ]}).resolve('Runner1');
@@ -30,7 +30,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method2();
         check1.method12();
 
-        const check2 = await new LocalRunnerResolver({runners: [
+        const check2 = await new RunnerResolverLocal({runners: [
             Runner1,
             {token: 'Runner2', runner: Runner2},
         ]}).resolve('Runner1');
@@ -40,7 +40,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check2.method2();
         check2.method12();
 
-        const check3 = await new LocalRunnerResolver({runners: [
+        const check3 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             {token: 'Runner2', runner: Runner2},
         ]}).resolve('Runner1');
@@ -53,7 +53,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // literally token
     async () => {
-        const check0 = await new LocalRunnerResolver({runners: [
+        const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
             Runner2,
         ]}).resolve('Runner1');
@@ -63,7 +63,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new LocalRunnerResolver({runners: [
+        const check1 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1' as const, runner: Runner1},
             Runner2,
         ]}).resolve('Runner1');
@@ -72,7 +72,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method2();
         check1.method12();
 
-        const check2 = await new LocalRunnerResolver({runners: [
+        const check2 = await new RunnerResolverLocal({runners: [
             Runner1,
             {token: 'Runner2' as const, runner: Runner2}
         ]}).resolve('Runner1');
@@ -81,7 +81,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check2.method2();
         check2.method12();
 
-        const check3 = await new LocalRunnerResolver({runners: [
+        const check3 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1' as const, runner: Runner1},
             {token: 'Runner2' as const, runner: Runner2}
         ]}).resolve('Runner1');
@@ -93,7 +93,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // not exist literally token
     async () => {
-        const check0 = await new LocalRunnerResolver({runners: [
+        const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
             Runner2,
         ]}).resolve('Runner3');
@@ -103,7 +103,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new LocalRunnerResolver({runners: [
+        const check1 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1' as const, runner: Runner1},
             Runner2,
         ]}).resolve('Runner3');
@@ -112,7 +112,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method2();
         check1.method12();
 
-        const check2 = await new LocalRunnerResolver({runners: [
+        const check2 = await new RunnerResolverLocal({runners: [
             Runner1,
             {token: 'Runner2' as const, runner: Runner2}
         ]}).resolve('Runner3');
@@ -121,7 +121,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check2.method2();
         check2.method12();
 
-        const check3 = await new LocalRunnerResolver({runners: [
+        const check3 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1' as const, runner: Runner1},
             {token: 'Runner2' as const, runner: Runner2}
         ]}).resolve('Runner3');
@@ -135,7 +135,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // runner from list
     async () => {
-        const check0 = await new LocalRunnerResolver({runners: [
+        const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
             Runner2,
         ]}).resolve(Runner1);
@@ -144,7 +144,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new LocalRunnerResolver({runners: [
+        const check1 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             Runner2,
         ]}).resolve(Runner1);
@@ -153,7 +153,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method2();
         check1.method12();
 
-        const check2 = await new LocalRunnerResolver({runners: [
+        const check2 = await new RunnerResolverLocal({runners: [
             Runner1,
             {token: 'Runner2', runner: Runner2},
         ]}).resolve(Runner1);
@@ -162,7 +162,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check2.method2();
         check2.method12();
 
-        const check3 = await new LocalRunnerResolver({runners: [
+        const check3 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             {token: 'Runner2', runner: Runner2},
         ]}).resolve(Runner1);
@@ -174,7 +174,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // not exist runner
     async () => {
-        const check0 = await new LocalRunnerResolver({runners: [
+        const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
             Runner2,
         ]}).resolve(Runner3);
@@ -186,7 +186,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method12();
         check0.method3();
 
-        const check1 = await new LocalRunnerResolver({runners: [
+        const check1 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             Runner2,
         ]}).resolve(Runner3);
@@ -198,7 +198,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method12();
         check1.method3();
 
-        const check2 = await new LocalRunnerResolver({runners: [
+        const check2 = await new RunnerResolverLocal({runners: [
             Runner1,
             {token: 'Runner2', runner: Runner2},
         ]}).resolve(Runner3);
@@ -210,7 +210,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check2.method12();
         check2.method3();
 
-        const check3 = await new LocalRunnerResolver({runners: [
+        const check3 = await new RunnerResolverLocal({runners: [
             {token: 'Runner1', runner: Runner1},
             {token: 'Runner2', runner: Runner2},
         ]}).resolve(Runner3);
@@ -225,7 +225,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
 
     // soft token
     async () => {
-        const check0 = await new ClientRunnerResolver({
+        const check0 = await new RunnerResolverClient({
             connection: self,
             runners: [
                 {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1>,
@@ -237,7 +237,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new ClientRunnerResolver({
+        const check1 = await new RunnerResolverClient({
             connection: self,
             runners: [
                 {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1, 'Runner1'>,
@@ -253,7 +253,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
     // soft identifier
     async () => {
         const identifier = 'Runner1' as RunnerIdentifier<typeof Runner1>;
-        const check0 = await new ClientRunnerResolver({
+        const check0 = await new RunnerResolverClient({
             connection: self,
             runners: []
         }).resolve(identifier);
@@ -262,7 +262,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check0.method2();
         check0.method12();
 
-        const check1 = await new ClientRunnerResolver({
+        const check1 = await new RunnerResolverClient({
             connection: self,
             runners: [
                 {token: 'Runner1'},
@@ -274,7 +274,7 @@ import { ClientRunnerResolver, LocalRunnerResolver } from "@worker-runner/promis
         check1.method2();
         check1.method12();
 
-        const check2 = await new ClientRunnerResolver({
+        const check2 = await new RunnerResolverClient({
             connection: self,
             runners: [
                 {token: 'Runner1' as const},

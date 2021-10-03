@@ -1,28 +1,28 @@
-import { WorkerRunnerUnexpectedError } from "../../../errors/worker-runner-error";
-import { RunnerResolverPossibleConnection } from "../../../types/possible-connection";
-import { IPromiseMethods } from "../../../utils/promise-list.resolver";
-import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction, IHostResolverBridgeAction } from "../host/host-resolver-bridge.actions";
-import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction, IClientResolverBridgePingAction } from "./client-resolver-bridge.actions";
+import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
+import { RunnerResolverPossibleConnection } from "../../types/possible-connection";
+import { IPromiseMethods } from "../../utils/promise-list.resolver";
+import { IRunnerResolverBridgeHostConnectedAction, RunnerResolverBridgeHostAction, IRunnerResolverBridgeHostAction } from "../host/runner-resolver-bridge.client.actions";
+import { IRunnerResolverBridgeClientConnectAction, RunnerResolverBridgeClientAction, IRunnerResolverBridgeClientPingAction } from "./runner-resolver-bridge.client.actions";
 
-interface IClientResolverBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
+interface IRunnerResolverBridgeClientConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
     actionId?: number,
     messagePort?: MessagePort,
 }
 
-export interface IClientResolverBridgeConfig {
+export interface IRunnerResolverBridgeClientConfig {
     connection: RunnerResolverPossibleConnection;
 }
 
-export class ClientResolverBridge {
+export class RunnerResolverBridgeClient {
     private static readonly LAST_BRIDGE_ACTION_ID = '__workerRunner_lastActionId';
 
     protected readonly connection: RunnerResolverPossibleConnection;
 
     /** The bridge has a connection if the property exist */
-    private connectInfo?: IClientResolverBridgeConnectInfo;
+    private connectInfo?: IRunnerResolverBridgeClientConnectInfo;
     private readonly hostMessageHandler = this.onHostMessage.bind(this);
 
-    constructor(config: IClientResolverBridgeConfig) {
+    constructor(config: IRunnerResolverBridgeClientConfig) {
         this.connection = config.connection;
     }
 
@@ -33,7 +33,7 @@ export class ClientResolverBridge {
         const messagePort = await new Promise<MessagePort>((resolve, reject) => {
             this.connectInfo = { resolve, reject };
             this.connection.addEventListener('message', this.hostMessageHandler as EventListener);
-            const pingAction: IClientResolverBridgePingAction = { type: ClientResolverBridgeAction.PING };
+            const pingAction: IRunnerResolverBridgeClientPingAction = { type: RunnerResolverBridgeClientAction.PING };
             this.connection.postMessage(pingAction);
         });
         this.connection.removeEventListener('message', this.hostMessageHandler as EventListener);
@@ -41,18 +41,18 @@ export class ClientResolverBridge {
     }
 
     private onHostMessage(event: MessageEvent): void {
-        const action: IHostResolverBridgeAction = event.data;
+        const action: IRunnerResolverBridgeHostAction = event.data;
         switch (action.type) {
-            case HostResolverBridgeAction.PING:
-            case HostResolverBridgeAction.PONG:
+            case RunnerResolverBridgeHostAction.PING:
+            case RunnerResolverBridgeHostAction.PONG:
                 this.onPingOrPongAction();
                 break;
-            case HostResolverBridgeAction.CONNECTED:
+            case RunnerResolverBridgeHostAction.CONNECTED:
                 this.onConnected(action);
                 break;
             default:
                 throw new WorkerRunnerUnexpectedError({
-                    message: 'Unexpected action type in Client Resolver Bridge from Host Resolver Bridge',
+                    message: 'Unexpected action type in RunnerResolverBridgeClient from RunnerResolverBridgeHost',
                 });
         }
     }
@@ -67,14 +67,14 @@ export class ClientResolverBridge {
         }
         const actionId = this.resolveActionId();
         this.connectInfo.actionId = actionId;
-        const connectAction: IClientResolverBridgeConnectAction = {
+        const connectAction: IRunnerResolverBridgeClientConnectAction = {
             id: actionId,
-            type: ClientResolverBridgeAction.CONNECT,
+            type: RunnerResolverBridgeClientAction.CONNECT,
         };
         this.connection.postMessage(connectAction);
     }
 
-    private onConnected(action: IHostResolverBridgeConnectedAction): void {
+    private onConnected(action: IRunnerResolverBridgeHostConnectedAction): void {
         if (!this.connectInfo) {
             throw new WorkerRunnerUnexpectedError({ message: 'Connection was established before initiation' });
         }
@@ -85,14 +85,14 @@ export class ClientResolverBridge {
 
     private resolveActionId(): number {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let lastId = (this.connection as any)[ClientResolverBridge.LAST_BRIDGE_ACTION_ID];
+        let lastId = (this.connection as any)[RunnerResolverBridgeClient.LAST_BRIDGE_ACTION_ID];
         if (typeof lastId !== 'number') {
             lastId = 0;
         } else {
             lastId++;
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this.connection as any)[ClientResolverBridge.LAST_BRIDGE_ACTION_ID] = lastId;
+        (this.connection as any)[RunnerResolverBridgeClient.LAST_BRIDGE_ACTION_ID] = lastId;
         return lastId;
     }
 }

@@ -1,12 +1,12 @@
-import { IClientRunnerResolverConfigBase, IHostRunnerResolverConfigBase, RunnerIdentifierConfigList } from "@worker-runner/core";
-import { ClientRunnerResolver, HostRunnerResolver } from "@worker-runner/promise";
+import { IRunnerResolverClientBaseConfig, IRunnerResolverHostConfigBase, RunnerIdentifierConfigList } from "@worker-runner/core";
+import { RunnerResolverClient, RunnerResolverHost } from "@worker-runner/promise";
 
-interface IApartConfiguredLocalRunnerResolvers<
+interface IApartConfiguredRunnerResolvers<
     CL extends RunnerIdentifierConfigList,
     HL extends RunnerIdentifierConfigList,
 > {
-    client: ClientRunnerResolver<CL>;
-    host: HostRunnerResolver<HL>;
+    client: RunnerResolverClient<CL>;
+    host: RunnerResolverHost<HL>;
     run(): Promise<void>;
     destroy(): Promise<void>;
 }
@@ -15,33 +15,33 @@ export function createApartClientHostResolvers<
     CL extends RunnerIdentifierConfigList,
     HL extends RunnerIdentifierConfigList,
 >(config: {
-    clientConfig?: Omit<IClientRunnerResolverConfigBase<CL>, 'connection'>,
-    hostConfig: IHostRunnerResolverConfigBase<HL>,
-    clientResolverConstructor: typeof ClientRunnerResolver,
-    hostResolverConstructor: typeof HostRunnerResolver,
-}): IApartConfiguredLocalRunnerResolvers<CL, HL> {
+    clientConfig?: Omit<IRunnerResolverClientBaseConfig<CL>, 'connection'>,
+    hostConfig: IRunnerResolverHostConfigBase<HL>,
+    runnerResolverClientConstructor: typeof RunnerResolverClient,
+    runnerResolverHostConstructor: typeof RunnerResolverHost,
+}): IApartConfiguredRunnerResolvers<CL, HL> {
     const messageChanel = new MessageChannel();
-    const clientResolver = new config.clientResolverConstructor({
+    const runnerResolverClient = new config.runnerResolverClientConstructor({
         ...config.clientConfig,
         connection: messageChanel.port1,
     });
-    const hostResolver = new config.hostResolverConstructor({
+    const runnerResolverHost = new config.runnerResolverHostConstructor({
         ...config.hostConfig,
         connections: [messageChanel.port2],
     });
 
-    const result: IApartConfiguredLocalRunnerResolvers<CL, HL> = {
-        client: clientResolver,
-        host: hostResolver,
+    const result: IApartConfiguredRunnerResolvers<CL, HL> = {
+        client: runnerResolverClient,
+        host: runnerResolverHost,
         async run(): Promise<void> {
             messageChanel.port1.start();
             messageChanel.port2.start();
-            hostResolver.run();
-            await clientResolver.run();
+            runnerResolverHost.run();
+            await runnerResolverClient.run();
         },
         async destroy(): Promise<void> {
-            await clientResolver.destroy();
-            await hostResolver.destroy();
+            await runnerResolverClient.destroy();
+            await runnerResolverHost.destroy();
             messageChanel.port1.close();
             messageChanel.port2.close();
         },

@@ -18,7 +18,7 @@ each(resolverList, (mode, resolver) =>
 
         it ('when it was already destroyed', async () => {
             await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
                 name: ConnectionWasClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -27,7 +27,7 @@ each(resolverList, (mode, resolver) =>
         it ('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
@@ -35,7 +35,7 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} destroy resolver`, () => {
         it ('simple', async () => {
             class DestroyStub {
@@ -44,7 +44,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 }
             }
             const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners: [DestroyStub] });
+            const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyStub] });
             await localResolver.run();
             await localResolver.resolve(DestroyStub);
             await localResolver.destroy();

@@ -1,8 +1,8 @@
-import { HostRunnerResolverBase, RunnerIdentifierConfigList, AvailableRunnersFromList, IRunnerEnvironmentHostConfig } from '@worker-runner/core';
-import { RxWorkerRunnerErrorSerializer, RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RxRunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
+import { RunnerResolverHostBase, RunnerIdentifierConfigList, AvailableRunnersFromList, IRunnerEnvironmentHostConfig } from '@worker-runner/core';
+import { RxWorkerRunnerErrorSerializer, RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
+import { RxRunnerEnvironmentHost } from '../runner-environment/host/runner-environment.host';
 
-export class RxHostRunnerResolver<L extends RunnerIdentifierConfigList> extends HostRunnerResolverBase<L> {
+export class RxRunnerResolverHost<L extends RunnerIdentifierConfigList> extends RunnerResolverHostBase<L> {
 
     declare protected runnerEnvironmentHosts: Set<RxRunnerEnvironmentHost<AvailableRunnersFromList<L>>>;
 

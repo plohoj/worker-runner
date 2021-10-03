@@ -1,27 +1,27 @@
 import { RunnerToken } from "../../types/runner-identifier";
 import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 
-export enum ClientResolverAction {
+export enum RunnerResolverClientAction {
     INIT_RUNNER = 'INIT_RUNNER',
     /** Installing a runner whose methods are not yet known. */
     SOFT_INIT_RUNNER = 'SOFT_INIT_RUNNER',
 }
 
-export type IClientResolverInitRunnerAction = {
-    type: ClientResolverAction.INIT_RUNNER;
+export type IRunnerResolverClientInitRunnerAction = {
+    type: RunnerResolverClientAction.INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
     transfer: Transferable[]
 }
 
-export type IClientResolverSoftInitRunnerAction = {
-    type: ClientResolverAction.SOFT_INIT_RUNNER;
+export type IRunnerResolverClientSoftInitRunnerAction = {
+    type: RunnerResolverClientAction.SOFT_INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
     transfer: Transferable[]
 }
 
 
-export type IClientResolverAction
-    = IClientResolverInitRunnerAction
-    | IClientResolverSoftInitRunnerAction;
+export type IRunnerResolverClientAction
+    = IRunnerResolverClientInitRunnerAction
+    | IRunnerResolverClientSoftInitRunnerAction;

@@ -16,7 +16,7 @@ Worker Runner is a tool to assist use Web Worker.
     * [cloneControl](#clone-control)
     * [markForTransfer](#mark-for-transfer)
 1. [ResolvedRunner as argument](#resolved-runner-as-argument)
-1. [LocalRunnerResolver](#localrunnerresolver)
+1. [RunnerResolverLocal](#runnerresolverlocal)
 1. [ResolvedRunner as method result](#resolved-runner-as-method-result)
 1. [Transfer data](#transfer-data)
 1. [Usage with RxJs](#usage-with-rxjs)
@@ -49,31 +49,31 @@ export class LibraryRunner { // An example of your Runner implementation
     }
 }
 ```
-Declare your instance of `ClientRunnerResolver` in a **Client *(Main)* area**.
-* Creating a `ClientRunnerResolver` with a Runner list will slightly speed up the first resolving of the `ResolvedRunner`
+Declare your instance of `RunnerResolverClient` in a **Client *(Main)* area**.
+* Creating a `RunnerResolverClient` with a Runner list will slightly speed up the first resolving of the `ResolvedRunner`
 because the available methods will not be requested from the **Host area**.
 But this will also increase the size of the code loaded into the **Client area**.
 * You must wait until the **asynchronous** call to the `run()` method completes.
 ``` ts
 // Client area
-import { ClientRunnerResolver } from '@worker-runner/promise';
+import { RunnerResolverClient } from '@worker-runner/promise';
 
-const resolver = new ClientRunnerResolver({
+const resolver = new RunnerResolverClient({
     connection: new Worker('./worker.js'),
 });
 resolver.run(); // await asynchronous
 ```
-And also declare your instance of `HostRunnerResolver` in a **Host *(Worker)* area**.
-* The `HostRunnerResolver` instance must have a list of Runner classes. This list **may differ** from the list used in `ClientRunnerResolver`.
+And also declare your instance of `RunnerResolverHost` in a **Host *(Worker)* area**.
+* The `RunnerResolverHost` instance must have a list of Runner classes. This list **may differ** from the list used in `RunnerResolverClient`.
 * Call the `run()` method.
 ``` ts
 // Host area
-import { HostRunnerResolver } from '@worker-runner/promise';
+import { RunnerResolverHost } from '@worker-runner/promise';
 
-new HostRunnerResolver({ runners: [LibraryRunner] }).run();
+new RunnerResolverHost({ runners: [LibraryRunner] }).run();
 ```
 ## <a name="usage"></a> Usage
-After you initialized `ClientRunnerResolver` *(in client area)* and `HostRunnerResolver` *(in host area)*, you can use the `ClientRunnerResolver` instance to resolve instances of the Runner class that will be used in the client area and executed in the host area.
+After you initialized `RunnerResolverClient` *(in client area)* and `RunnerResolverHost` *(in host area)*, you can use the `RunnerResolverClient` instance to resolve instances of the Runner class that will be used in the client area and executed in the host area.
 ``` ts
 async function main() {
     await resolver.run();
@@ -90,12 +90,12 @@ async function main() {
 main();
 ```
 ## <a name="resolved-runner"></a> `ResolvedRunner`
-Runner that was resolved by `ClientRunnerResolver` has the same methods as the original Runner instance.
+Runner that was resolved by `RunnerResolverClient` has the same methods as the original Runner instance.
 All called methods will be executed asynchronously and the result of the calculation will be obtained using Promise.  
 `ResolvedRunner` also has a set of methods:
 
 *   <a name="destroy"></a> **`destroy()`**  
-    Destroying and remove Runner instance from resolved Runners list in `ClientRunnerResolver` and `HostRunnerResolver` instance.
+    Destroying and remove Runner instance from resolved Runners list in `RunnerResolverClient` and `RunnerResolverHost` instance.
 
 *   <a name="disconnect"></a> **`disconnect()`**  
     Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed.
@@ -133,13 +133,13 @@ const libraryPoolRunner = await resolver3
     .resolve(LibraryPoolRunner, libraryRunners[0]);
 await libraryPoolRunner.addLibrary(libraryRunners[1]);
 ```
-## <a name="localrunnerresolver"></a> `LocalRunnerResolver`
+## <a name="runnerresolverlocal"></a> `RunnerResolverLocal`
 The original Runner instance will run in the same area in which it was resolved / wrapped.
-`LocalRunnerResolver` can be used to replace `ClientRunnerResolver` to simplify debugging in development mode and for testing.  
+`RunnerResolverLocal` can be used to replace `RunnerResolverClient` to simplify debugging in development mode and for testing.  
 That allows to use a local Runner as [method result](#resolved-runner-as-method-result) or pass it [as argument](#resolved-runner-as-argument).
 ``` ts
 // ...
-const localResolver = new LocalRunnerResolver();
+const localResolver = new RunnerResolverLocal();
 const resolvedLibraryRunner = await localResolver.resolve(LibraryRunner, []);
 
 const resolvedLibraryPoolRunner = await resolver.resolve(LibraryPoolRunner);
@@ -205,7 +205,7 @@ export class LibraryRunner {
     }
 }
 // ...
-const resolver = new RxClientRunnerResolver({
+const resolver = new RxRunnerResolverClient({
     runners: [LibraryRunner],
     connection: new Worker('./worker.js'),
 });

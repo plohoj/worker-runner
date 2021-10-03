@@ -65,10 +65,10 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} disconnect runner`, () => {
         it ('with resolved another runner', async () => {
-            const localResolver = new IterateLocalRunnerResolver({
+            const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             await localResolver.run();
@@ -79,7 +79,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
                     WithOtherInstanceStubRunner>;
             const runnerEnvironmentHosts
-                = [...localResolver['resolverBridge']?.hostRunnerResolver['runnerEnvironmentHosts'] || []];
+                = [...localResolver['resolverBridge']?.runnerResolverHost['runnerEnvironmentHosts'] || []];
 
             const runnerEnvironmentHost = runnerEnvironmentHosts
                 .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);

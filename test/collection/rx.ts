@@ -1,7 +1,7 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
 import { lastValueFrom } from 'rxjs';
-import { rxLocalRunnerResolver, rxRunnerResolver } from '../client/resolver-list';
+import { rxRunnerResolverLocal, rxRunnerResolver } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
 import { each } from '../utils/each';
@@ -10,7 +10,7 @@ import { isIE } from '../utils/is-internet-explorer';
 
 each({
     Rx: rxRunnerResolver,
-    'Local Rx': rxLocalRunnerResolver as typeof rxRunnerResolver,
+    'Local Rx': rxRunnerResolverLocal as typeof rxRunnerResolver,
 }, (mode, resolver) => describe(mode, () => {
 
     beforeAll(async () => {

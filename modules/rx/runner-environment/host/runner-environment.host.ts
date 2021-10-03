@@ -5,7 +5,7 @@ import { RxConnectHost } from '../../connect/host/rx-connect.host';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
-import { IRxRunnerSerializedMethodResult } from '../../runners/resolved-runner';
+import { IRxRunnerSerializedMethodResult } from '../../runner/resolved-runner';
 import { RxRunnerEnvironmentClientCollection } from '../client/runner-environment.client.collection';
 import { IRxRunnerEnvironmentHostAction, IRxRunnerEnvironmentHostEmitAction, IRxRunnerEnvironmentHostEmitRunnerResultAction, RxRunnerEnvironmentHostAction } from './runner-environment.host.actions';
 

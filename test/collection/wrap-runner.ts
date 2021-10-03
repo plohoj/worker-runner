@@ -4,7 +4,7 @@ import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 
-each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} wrap runner`, () => {
         it ('after disconnect', async () => {
             const storageData = {
@@ -12,7 +12,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 type: 'STORAGE_DATA',
             };
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners });
+            const localResolver = new IterateRunnerResolverLocal({ runners });
             await localResolver.run();
             const executableStubRunner = new ExecutableStubRunner(storageData);
             const resolvedExecutableStubRunner = await localResolver.wrapRunner(executableStubRunner);
@@ -34,7 +34,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 type: 'STORAGE_DATA',
             };
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners });
+            const localResolver = new IterateRunnerResolverLocal({ runners });
             await localResolver.run();
             const executableStubRunner = new ExecutableStubRunner(storageData);
             const resolvedExecutableStubRunner = await localResolver.wrapRunner(executableStubRunner);
@@ -57,7 +57,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                     return helloMessage;
                 }
             }
-            const localResolver = new IterateLocalRunnerResolver();
+            const localResolver = new IterateRunnerResolverLocal();
             await localResolver.run();
 
             const resolvedRunnerSub = await localResolver.wrapRunner(runnerSub);

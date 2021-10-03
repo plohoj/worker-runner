@@ -5,24 +5,24 @@ import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../
 import { ConnectionWasClosedError, RunnerInitError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
+import { RunnerResolverBridgeClient } from '../../runner-resolver-bridge/client/runner-resolver-bridge.client';
+import { RunnerResolverBridgeLocal } from '../../runner-resolver-bridge/local/runner-resolver-bridge.local';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController } from '../../runner/runner.controller';
 import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IHostResolverRunnerInitedAction, HostResolverAction, IHostResolverSoftRunnerInitedAction } from '../host/host-resolver.actions';
-import { ClientResolverBridge } from '../resolver-bridge/client/client-resolver.bridge';
-import { LocalResolverBridge } from '../resolver-bridge/local/local-resolver.bridge';
-import { IClientResolverInitRunnerAction, ClientResolverAction, IClientResolverSoftInitRunnerAction } from './client-resolver.actions';
+import { IRunnerResolverHostRunnerInitedAction, RunnerResolverHostAction, IRunnerResolverHostSoftRunnerInitedAction } from '../host/runner-resolver.host.actions';
+import { IRunnerResolverClientInitRunnerAction, RunnerResolverClientAction, IRunnerResolverClientSoftInitRunnerAction } from './runner-resolver.client.actions';
 
-export type IClientRunnerResolverConfigBase<L extends RunnerIdentifierConfigList> = {
+export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList> = {
     connection: RunnerResolverPossibleConnection;
     runners?: L;
 }
 
-export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
+export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
 
-    protected resolverBridge?: ClientResolverBridge;
+    protected resolverBridge?: RunnerResolverBridgeClient;
     protected connectClient?: ConnectClient;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = this.buildErrorSerializer();
@@ -31,7 +31,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
     private readonly connection: RunnerResolverPossibleConnection;
     private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<L>;
 
-    constructor(config: IClientRunnerResolverConfigBase<L>) {
+    constructor(config: IRunnerResolverClientBaseConfig<L>) {
         this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({
             runners: config.runners || [],
         });
@@ -69,7 +69,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             }
         }
         const action = await this.sendInitAction(token, args);
-        if (action.type === HostResolverAction.SOFT_RUNNER_INITED) {
+        if (action.type === RunnerResolverHostAction.SOFT_RUNNER_INITED) {
             this.runnerIdentifierConfigCollection.defineRunnerController(token, action.methodsNames);
         }
         const runnerEnvironmentClient = await this.runnerEnvironmentClientCollection
@@ -89,13 +89,13 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             this.resolverBridge = undefined;
         } else {
             throw new ConnectionWasClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
             });
         }
     }
 
     protected buildResolverBridge(): void {
-        this.resolverBridge = new ClientResolverBridge({ connection: this.connection });
+        this.resolverBridge = new RunnerResolverBridgeClient({ connection: this.connection });
     }
 
     protected buildErrorSerializer(): WorkerRunnerErrorSerializer {
@@ -111,10 +111,10 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
     protected async sendInitAction(
         token: RunnerToken,
         args: IRunnerParameter[],
-    ): Promise<IHostResolverRunnerInitedAction | IHostResolverSoftRunnerInitedAction> {
+    ): Promise<IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction> {
         if (!this.connectClient) {
             throw new ConnectionWasClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
             });
         }
         try {
@@ -129,13 +129,13 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
                 }),
             });
             const hasControllerConstructor = this.runnerIdentifierConfigCollection.hasControllerConstructor(token);
-            const action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction = {
-                type: hasControllerConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.SOFT_INIT_RUNNER,
+            const action: IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction = {
+                type: hasControllerConstructor ? RunnerResolverClientAction.INIT_RUNNER : RunnerResolverClientAction.SOFT_INIT_RUNNER,
                 token: token,
                 args: serializedArguments.arguments,
                 transfer: serializedArguments.transfer,
             };
-            const responseAction: IHostResolverRunnerInitedAction | IHostResolverSoftRunnerInitedAction
+            const responseAction: IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction
                 = await this.connectClient.sendAction(action);
             return responseAction;
         } catch (error) {
@@ -162,7 +162,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
     protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerController {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
             });
         }
         const runnerConstructor: AvailableRunnersFromList<L> = Object.getPrototypeOf(runnerInstance).constructor;
@@ -172,8 +172,8 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             this.runnerIdentifierConfigCollection.defineRunnerConstructor(token, runnerConstructor);
         }
         const runnerControllerConstructor = this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(token);
-        const port = (this.resolverBridge as LocalResolverBridge<RunnerIdentifierConfigList>)
-            .hostRunnerResolver.wrapRunner(runnerInstance);
+        const port = (this.resolverBridge as RunnerResolverBridgeLocal<RunnerIdentifierConfigList>)
+            .runnerResolverHost.wrapRunner(runnerInstance);
         const runnerEnvironmentClient = this.runnerEnvironmentClientCollection.buildRunnerEnvironmentClientByPartConfig({
             token,
             port,

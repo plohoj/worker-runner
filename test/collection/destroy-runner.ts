@@ -70,7 +70,7 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateLocalRunnerResolver) =>
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} destroy runner`, () => {
         it ('with extended method', async () => {
             class DestroyableRunner {
@@ -79,7 +79,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 }
             }
             const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners: [DestroyableRunner] });
+            const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyableRunner] });
             await localResolver.run();
             const destroyableRunner = await localResolver.resolve(DestroyableRunner);
 
@@ -90,7 +90,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
         });
 
         it ('with resolved another runner', async () => {
-            const localResolver = new IterateLocalRunnerResolver({
+            const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             await localResolver.run();
@@ -101,7 +101,7 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
                     WithOtherInstanceStubRunner>;
             const runnerEnvironmentHosts
-                = [...localResolver['resolverBridge']?.hostRunnerResolver['runnerEnvironmentHosts'] || []];
+                = [...localResolver['resolverBridge']?.runnerResolverHost['runnerEnvironmentHosts'] || []];
 
             const runnerEnvironmentHost = runnerEnvironmentHosts
                 .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);
