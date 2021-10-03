@@ -1,7 +1,7 @@
 import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
 import { JsonObject, TransferableJsonObject } from '../types/json-object';
 import { TransferRunnerData } from '../utils/transfer-runner-data';
-import { RunnerBridge } from './runner.bridge';
+import { RunnerController } from './runner.controller';
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
     ? T extends TransferableJsonObject
@@ -33,4 +33,4 @@ type ResolvedRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolvedRunnerMethod<T[P]> : never;
 };
 
-export type ResolvedRunner<T> = ResolvedRunnerMethods<T> & RunnerBridge;
+export type ResolvedRunner<T> = ResolvedRunnerMethods<T> & RunnerController;

@@ -2,12 +2,12 @@ import { RunnerEnvironmentClient } from '../runner-environment/client/runner-env
 import { Constructor, RunnerConstructor } from '../types/constructor';
 import { ResolvedRunner } from './resolved-runner';
 
-export type IRunnerBridgeConstructor<T extends RunnerConstructor = RunnerConstructor>
-    = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
+export type IRunnerControllerConstructor<T extends RunnerConstructor = RunnerConstructor>
+    = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerController>>;
 
 export const RUNNER_ENVIRONMENT_CLIENT = '__workerRunner_runnerEnvironmentClient';
 
-export class RunnerBridge {
+export class RunnerController {
 
     private [RUNNER_ENVIRONMENT_CLIENT]: RunnerEnvironmentClient<RunnerConstructor>;
 
@@ -18,7 +18,7 @@ export class RunnerBridge {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-    public static isRunnerBridge(instance: any): instance is RunnerBridge {
+    public static isRunnerController(instance: any): instance is RunnerController {
         return !!instance && !!instance[RUNNER_ENVIRONMENT_CLIENT];
     }
 

@@ -1,4 +1,4 @@
-import { RunnerConstructor, RunnerEnvironmentHost , IRunnerMethodResult , IRunnerEnvironmentHostExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerEnvironmentClientCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironmentHost , IRunnerMethodResult , IRunnerEnvironmentHostExecuteResultAction, TransferRunnerData, RunnerController, RUNNER_ENVIRONMENT_CLIENT, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerEnvironmentClientCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectHost } from '../../connect/host/rx-connect.host';
@@ -50,8 +50,8 @@ export class RxRunnerEnvironmentHost<R extends RunnerConstructor> extends Runner
         } else {
             response = responseWithTransferData;
         }
-        if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerEnvironmentClient = await (response as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
+        if (RunnerController.isRunnerController(response)) {
+            const runnerEnvironmentClient = await (response as RunnerController)[RUNNER_ENVIRONMENT_CLIENT];
             const transferPort: MessagePort =  await runnerEnvironmentClient.resolveOrTransferControl();
             const runnerResultAction: IRxRunnerEnvironmentHostEmitRunnerResultAction = {
                 type: RxRunnerEnvironmentHostAction.RX_EMIT_RUNNER_RESULT,

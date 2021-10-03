@@ -5,14 +5,14 @@ import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerExecuteError } from '../../errors/runner-errors';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
-import { IRunnerBridgeConstructor } from '../../runner/runner.bridge';
+import { IRunnerControllerConstructor } from '../../runner/runner.controller';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { IRunnerEnvironmentHostOwnDataAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, IRunnerEnvironmentHostResolvedAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
 import { IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
 
 interface IRunnerEnvironmentClientInitSyncConfig {
-    runnerBridgeConstructor: IRunnerBridgeConstructor,
+    runnerControllerConstructor: IRunnerControllerConstructor,
 }
 
 interface IRunnerEnvironmentClientPartFactoryConfig {
@@ -70,19 +70,19 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
     }
 
     public initSync(config: IRunnerEnvironmentClientInitSyncConfig): void {
-        this.resolvedRunner = new config.runnerBridgeConstructor(this) as ResolvedRunner<InstanceType<R>>;
+        this.resolvedRunner = new config.runnerControllerConstructor(this) as ResolvedRunner<InstanceType<R>>;
     }
 
     public async initAsync(): Promise<void> { 
-        if (this.runnerIdentifierConfigCollection.hasBridgeConstructor(this.token)) {
+        if (this.runnerIdentifierConfigCollection.hasControllerConstructor(this.token)) {
             this.initSync({
-                runnerBridgeConstructor: this.runnerIdentifierConfigCollection.getRunnerBridgeConstructor(this.token)
+                runnerControllerConstructor: this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(this.token)
             });
         } else {
             const responseAction = await this.requestRunnerOwnData();
-            const runnerBridgeConstructor = this.runnerIdentifierConfigCollection
-                .defineRunnerBridge(this.token, responseAction.methodsNames);
-            this.initSync({ runnerBridgeConstructor });
+            const runnerControllerConstructor = this.runnerIdentifierConfigCollection
+                .defineRunnerController(this.token, responseAction.methodsNames);
+            this.initSync({ runnerControllerConstructor });
         }
     }
 

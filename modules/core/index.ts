@@ -21,7 +21,7 @@ export { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollec
 export { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
 export { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from './runner-environment/host/runner-environment.host';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from './runner/resolved-runner';
-export { RunnerBridge, RUNNER_ENVIRONMENT_CLIENT as RUNNER_BRIDGE_CONTROLLER } from './runner/runner.bridge';
+export { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from './runner/runner.controller';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonObject, TransferableJsonObject } from './types/json-object';

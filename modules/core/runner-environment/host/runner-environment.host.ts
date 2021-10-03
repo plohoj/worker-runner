@@ -5,7 +5,7 @@ import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
-import { RunnerBridge, RUNNER_ENVIRONMENT_CLIENT } from '../../runner/runner.bridge';
+import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../runner/runner.controller';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { TransferableJsonObject } from '../../types/json-object';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -220,7 +220,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
     protected async handleExecuteResponse(
         executeResult: IRunnerMethodResult,
     ): Promise<IRunnerEnvironmentHostExecuteResultAction> {
-        if (RunnerBridge.isRunnerBridge(executeResult)) {
+        if (RunnerController.isRunnerController(executeResult)) {
             const runnerEnvironmentClient = executeResult[RUNNER_ENVIRONMENT_CLIENT];
             const transferPort: MessagePort = await runnerEnvironmentClient.resolveOrTransferControl();
             return {

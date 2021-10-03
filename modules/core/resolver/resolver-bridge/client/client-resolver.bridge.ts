@@ -4,7 +4,7 @@ import { IPromiseMethods } from "../../../utils/promise-list.resolver";
 import { IHostResolverBridgeConnectedAction, HostResolverBridgeAction, IHostResolverBridgeAction } from "../host/host-resolver-bridge.actions";
 import { IClientResolverBridgeConnectAction, ClientResolverBridgeAction, IClientResolverBridgePingAction } from "./client-resolver-bridge.actions";
 
-interface IClientBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
+interface IClientResolverBridgeConnectInfo extends Readonly<IPromiseMethods<MessagePort>>{
     actionId?: number,
     messagePort?: MessagePort,
 }
@@ -19,7 +19,7 @@ export class ClientResolverBridge {
     protected readonly connection: RunnerResolverPossibleConnection;
 
     /** The bridge has a connection if the property exist */
-    private connectInfo?: IClientBridgeConnectInfo;
+    private connectInfo?: IClientResolverBridgeConnectInfo;
     private readonly hostMessageHandler = this.onHostMessage.bind(this);
 
     constructor(config: IClientResolverBridgeConfig) {

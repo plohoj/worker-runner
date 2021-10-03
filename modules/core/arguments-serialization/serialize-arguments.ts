@@ -1,6 +1,6 @@
 import { ConnectClient } from "../connect/client/connect.client";
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
-import { RunnerBridge, RUNNER_ENVIRONMENT_CLIENT } from "../runner/runner.bridge";
+import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "../runner/runner.controller";
 import { IRunnerParameter, IRunnerSerializedParameter } from "../types/constructor";
 import { JsonObject } from "../types/json-object";
 import { IRunnerSerializedArgument, IRunnerSerializedResolvedRunnerArgument, RunnerSerializedArgumentType } from "../types/runner-serialized-argument";
@@ -25,7 +25,7 @@ export async function serializeArguments(config: {
             } else {
                 argument = argumentWithTransferData;
             }
-            if (RunnerBridge.isRunnerBridge(argument)) {
+            if (RunnerController.isRunnerController(argument)) {
                 const controller = argument[RUNNER_ENVIRONMENT_CLIENT];
                 const transferPort = await controller.resolveOrTransferControl();
                 transfer.push(transferPort);
@@ -49,13 +49,13 @@ export async function serializeArguments(config: {
         const disconnectedOrErrors =  await allPromisesCollectErrors([
             ...serializedArgumentsWithPossibleErrors.rest
                 .filter(restArgument => {
-                    if (RunnerBridge.isRunnerBridge(restArgument)) {
+                    if (RunnerController.isRunnerController(restArgument)) {
                         const controller = restArgument[RUNNER_ENVIRONMENT_CLIENT];
                         return controller.isMarkedForTransfer;
                     }
                     return false
                 })
-                .map(bridge => (bridge as RunnerBridge)[RUNNER_ENVIRONMENT_CLIENT].disconnect()),
+                .map(controller => (controller as RunnerController)[RUNNER_ENVIRONMENT_CLIENT].disconnect()),
             ...serializedArgumentsWithPossibleErrors.mapped
                 .filter(serializeArgument => serializeArgument.type === RunnerSerializedArgumentType.RESOLVED_RUNNER)
                 .map(runnerSerializedArgument =>

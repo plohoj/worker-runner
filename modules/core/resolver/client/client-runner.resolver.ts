@@ -6,7 +6,7 @@ import { ConnectionWasClosedError, RunnerInitError } from '../../errors/runner-e
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
-import { RunnerBridge } from '../../runner/runner.bridge';
+import { RunnerController } from '../../runner/runner.controller';
 import { IRunnerParameter } from '../../types/constructor';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, RunnerToken, AvailableRunnerIdentifier, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -55,7 +55,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
     }
 
     /** Returns a runner control object that will call the methods of the source instance */
-    public async resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerBridge> {
+    public async resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerController> {
         let token: RunnerToken;
         if (typeof identifier === 'string') {
             token = identifier;
@@ -70,7 +70,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         }
         const action = await this.sendInitAction(token, args);
         if (action.type === HostResolverAction.SOFT_RUNNER_INITED) {
-            this.runnerIdentifierConfigCollection.defineRunnerBridge(token, action.methodsNames);
+            this.runnerIdentifierConfigCollection.defineRunnerController(token, action.methodsNames);
         }
         const runnerEnvironmentClient = await this.runnerEnvironmentClientCollection
             .initRunnerEnvironmentClientByPartConfigAndAttachToList({
@@ -128,9 +128,9 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
                     originalErrors: errors,
                 }),
             });
-            const hasBridgeConstructor = this.runnerIdentifierConfigCollection.hasBridgeConstructor(token);
+            const hasControllerConstructor = this.runnerIdentifierConfigCollection.hasControllerConstructor(token);
             const action: IClientResolverInitRunnerAction | IClientResolverSoftInitRunnerAction = {
-                type: hasBridgeConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.SOFT_INIT_RUNNER,
+                type: hasControllerConstructor ? ClientResolverAction.INIT_RUNNER : ClientResolverAction.SOFT_INIT_RUNNER,
                 token: token,
                 args: serializedArguments.arguments,
                 transfer: serializedArguments.transfer,
@@ -159,7 +159,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
-    protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerBridge {
+    protected wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): RunnerController {
         if (!this.resolverBridge) {
             throw new ConnectionWasClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
@@ -171,7 +171,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             token = this.runnerIdentifierConfigCollection.generateTokenNameByRunnerConstructor(runnerConstructor);
             this.runnerIdentifierConfigCollection.defineRunnerConstructor(token, runnerConstructor);
         }
-        const runnerBridgeConstructor = this.runnerIdentifierConfigCollection.getRunnerBridgeConstructor(token);
+        const runnerControllerConstructor = this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(token);
         const port = (this.resolverBridge as LocalResolverBridge<RunnerIdentifierConfigList>)
             .hostRunnerResolver.wrapRunner(runnerInstance);
         const runnerEnvironmentClient = this.runnerEnvironmentClientCollection.buildRunnerEnvironmentClientByPartConfig({
@@ -179,7 +179,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
             port,
         });
         this.runnerEnvironmentClientCollection.add(runnerEnvironmentClient);
-        runnerEnvironmentClient.initSync({ runnerBridgeConstructor });
+        runnerEnvironmentClient.initSync({ runnerControllerConstructor });
 
         return runnerEnvironmentClient.resolvedRunner;
     }
