@@ -1,42 +1,41 @@
-import { Constructor, IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../types/constructor';
-import { RunnerController } from './controller/runner.controller';
+import { RunnerEnvironmentClient } from '../runner-environment/client/runner-environment.client';
+import { Constructor, RunnerConstructor } from '../types/constructor';
 import { ResolvedRunner } from './resolved-runner';
 
 export type IRunnerBridgeConstructor<T extends RunnerConstructor = RunnerConstructor>
     = Constructor<ResolvedRunner<InstanceType<T>>, ConstructorParameters<typeof RunnerBridge>>;
 
-export const EXECUTE_RUNNER_CONTROLLER_METHOD = '__workerRunner_executeControllerMethod';
-export const RUNNER_BRIDGE_CONTROLLER = '__workerRunner_bridgeController';
+export const RUNNER_ENVIRONMENT_CLIENT = '__workerRunner_runnerEnvironmentClient';
 
 export class RunnerBridge {
 
-    private [RUNNER_BRIDGE_CONTROLLER]: RunnerController<RunnerConstructor>;
+    private [RUNNER_ENVIRONMENT_CLIENT]: RunnerEnvironmentClient<RunnerConstructor>;
 
     constructor(
-        controller: RunnerController<RunnerConstructor>,
+        controller: RunnerEnvironmentClient<RunnerConstructor>,
     ) {
-        this[RUNNER_BRIDGE_CONTROLLER] = controller;
+        this[RUNNER_ENVIRONMENT_CLIENT] = controller;
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     public static isRunnerBridge(instance: any): instance is RunnerBridge {
-        return !!instance && !!instance[RUNNER_BRIDGE_CONTROLLER];
+        return !!instance && !!instance[RUNNER_ENVIRONMENT_CLIENT];
     }
 
     /** Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed */
     public async disconnect(): Promise<void> {
-        await this[RUNNER_BRIDGE_CONTROLLER].disconnect();
+        await this[RUNNER_ENVIRONMENT_CLIENT].disconnect();
     }
 
     /** Destroying and remove Runner instance from resolved Runners list in `RunnerResolver` instance */
     public async destroy(): Promise<void> {
-        await this[RUNNER_BRIDGE_CONTROLLER].destroy();
+        await this[RUNNER_ENVIRONMENT_CLIENT].destroy();
     }
 
     /** Returns a new control object for the same Runner instance */
     public async cloneControl(): Promise<this> {
-        const runnerController = await this[RUNNER_BRIDGE_CONTROLLER].cloneControl();
-        return runnerController.resolvedRunner as this;
+        const runnerEnvironmentClient = await this[RUNNER_ENVIRONMENT_CLIENT].cloneControl();
+        return runnerEnvironmentClient.resolvedRunner as this;
     }
     /**
      * When a Runner is flagged for transfer, if it is used as argument or as method result,
@@ -46,14 +45,7 @@ export class RunnerBridge {
      * It is convenient to use as an automatic disconnect after returning the result of a method.
      */
     public markForTransfer(): this {
-        this[RUNNER_BRIDGE_CONTROLLER].markForTransfer();
+        this[RUNNER_ENVIRONMENT_CLIENT].markForTransfer();
         return this;
-    }
-    
-    protected async [EXECUTE_RUNNER_CONTROLLER_METHOD](
-        methodName: string,
-        args: IRunnerParameter[],
-    ): Promise<IRunnerSerializedMethodResult> {
-        return this[RUNNER_BRIDGE_CONTROLLER].execute(methodName, args);
     }
 }

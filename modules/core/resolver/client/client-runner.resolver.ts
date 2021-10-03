@@ -4,7 +4,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerInitError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
-import { IRunnerControllerCollectionConfig, RunnerControllerCollection } from '../../runner/controller/runner.controller.collection';
+import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerBridge } from '../../runner/runner.bridge';
 import { IRunnerParameter } from '../../types/constructor';
@@ -29,14 +29,14 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
 
     private readonly connection: RunnerResolverPossibleConnection;
-    private readonly runnerControllerCollection: RunnerControllerCollection<L>;
+    private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<L>;
 
     constructor(config: IClientRunnerResolverConfigBase<L>) {
         this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({
             runners: config.runners || [],
         });
         this.connection = config.connection || self;
-        this.runnerControllerCollection = this.buildRunnerControllerCollection({
+        this.runnerEnvironmentClientCollection = this.buildRunnerEnvironmentClientCollection({
             errorSerializer: this.errorSerializer,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
         });
@@ -72,18 +72,19 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         if (action.type === HostResolverAction.SOFT_RUNNER_INITED) {
             this.runnerIdentifierConfigCollection.defineRunnerBridge(token, action.methodsNames);
         }
-        const runnerController = await this.runnerControllerCollection.initRunnerControllerByPartConfigAndAttachToList({
-            token,
-            port: action.port,
-        });
-        return runnerController.resolvedRunner;
+        const runnerEnvironmentClient = await this.runnerEnvironmentClientCollection
+            .initRunnerEnvironmentClientByPartConfigAndAttachToList({
+                token,
+                port: action.port,
+            });
+        return runnerEnvironmentClient.resolvedRunner;
     }
 
     /** Destroying of all resolved Runners instance */
     public async destroy(): Promise<void> {
         if (this.connectClient) {
             await this.connectClient.destroy();
-            this.stopListenAndClearAllRunnerControllerCollection();
+            this.stopListenAndClearAllRunnerEnvironmentClientCollection();
             this.connectClient = undefined;
             this.resolverBridge = undefined;
         } else {
@@ -101,10 +102,10 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         return WORKER_RUNNER_ERROR_SERIALIZER;
     }
 
-    protected buildRunnerControllerCollection(
-        config: IRunnerControllerCollectionConfig<L>
-    ): RunnerControllerCollection<L> {
-        return new RunnerControllerCollection(config);
+    protected buildRunnerEnvironmentClientCollection(
+        config: IRunnerEnvironmentClientCollectionConfig<L>
+    ): RunnerEnvironmentClientCollection<L> {
+        return new RunnerEnvironmentClientCollection(config);
     }
 
     protected async sendInitAction(
@@ -173,20 +174,20 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         const runnerBridgeConstructor = this.runnerIdentifierConfigCollection.getRunnerBridgeConstructor(token);
         const port = (this.resolverBridge as LocalResolverBridge<RunnerIdentifierConfigList>)
             .hostRunnerResolver.wrapRunner(runnerInstance);
-        const runnerController = this.runnerControllerCollection.buildRunnerControllerByPartConfig({
+        const runnerEnvironmentClient = this.runnerEnvironmentClientCollection.buildRunnerEnvironmentClientByPartConfig({
             token,
             port,
         });
-        this.runnerControllerCollection.add(runnerController);
-        runnerController.initSync({ runnerBridgeConstructor });
+        this.runnerEnvironmentClientCollection.add(runnerEnvironmentClient);
+        runnerEnvironmentClient.initSync({ runnerBridgeConstructor });
 
-        return runnerController.resolvedRunner;
+        return runnerEnvironmentClient.resolvedRunner;
     }
 
-    private stopListenAndClearAllRunnerControllerCollection(): void {
-        for (const runnerController of this.runnerControllerCollection.runnerControllers) {
-            runnerController.stopListen();
+    private stopListenAndClearAllRunnerEnvironmentClientCollection(): void {
+        for (const runnerEnvironmentClient of this.runnerEnvironmentClientCollection.runnerEnvironmentClients) {
+            runnerEnvironmentClient.stopListen();
         }
-        this.runnerControllerCollection.runnerControllers.clear();
+        this.runnerEnvironmentClientCollection.runnerEnvironmentClients.clear();
     }
 }

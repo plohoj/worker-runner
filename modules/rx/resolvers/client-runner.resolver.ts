@@ -1,6 +1,6 @@
-import { ClientRunnerResolverBase, Constructor, RunnerConstructor, RunnerIdentifierConfigList, RunnerIdentifier, RunnerByIdentifier, InstanceTypeOrUnknown, IRunnerControllerCollectionConfig } from '@worker-runner/core';
+import { ClientRunnerResolverBase, Constructor, RunnerConstructor, RunnerIdentifierConfigList, RunnerIdentifier, RunnerByIdentifier, InstanceTypeOrUnknown, IRunnerEnvironmentClientCollectionConfig } from '@worker-runner/core';
 import { RxWorkerRunnerErrorSerializer, RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
-import { RxRunnerControllerCollection } from '../runners/controller/runner.controller.collection';
+import { RxRunnerEnvironmentClientCollection } from '../runner-environment/client/runner-environment.client.collection';
 import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runners/resolved-runner';
 
 export type RxRunnerArguments<R extends RunnerConstructor>
@@ -18,10 +18,10 @@ export class RxClientRunnerResolver<L extends RunnerIdentifierConfigList = []> e
         ...args: RxRunnerArguments<RunnerByIdentifier<L, I>>
     ) => Promise<RxResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;
 
-    protected override buildRunnerControllerCollection(
-        config: IRunnerControllerCollectionConfig<L>
-    ): RxRunnerControllerCollection<L> {
-        return new RxRunnerControllerCollection(config);
+    protected override buildRunnerEnvironmentClientCollection(
+        config: IRunnerEnvironmentClientCollectionConfig<L>
+    ): RxRunnerEnvironmentClientCollection<L> {
+        return new RxRunnerEnvironmentClientCollection(config);
     }
 
     protected override buildErrorSerializer(): RxWorkerRunnerErrorSerializer {

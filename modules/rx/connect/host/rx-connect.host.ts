@@ -2,8 +2,8 @@ import { ConnectHost, IConnectClientActions, IConnectHostActions, IMessagePortCo
 import { from, Observable, Subscription } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from "../../errors/runner-errors";
-import { IRxConnectClientActions, RxConnectClientAction } from "../client/rx-connect-client.actions";
-import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "./rx-connect-host.actions";
+import { IRxConnectClientActions, RxConnectClientAction } from "../client/rx-connect.client.actions";
+import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "./rx-connect.host.actions";
 
 interface IRxListeningInterrupter extends IListeningInterrupter {
     observable: Observable<void>;

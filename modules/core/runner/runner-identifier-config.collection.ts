@@ -3,7 +3,7 @@ import { RunnerNotFound } from "../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../types/constructor";
 import { JsonObject } from "../types/json-object";
 import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
-import { EXECUTE_RUNNER_CONTROLLER_METHOD, IRunnerBridgeConstructor, RunnerBridge } from "./runner.bridge";
+import { IRunnerBridgeConstructor, RunnerBridge, RUNNER_ENVIRONMENT_CLIENT } from "./runner.bridge";
 
 interface IRunnerIdentifierConfigCollectionOptoins<M extends RunnerIdentifierConfigList> {
     runners: M;
@@ -152,7 +152,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
     private attachUndeclaredMethod(bridgeConstructor: Constructor, methodName: string): void {
         if (!(methodName in bridgeConstructor.prototype)) {
             bridgeConstructor.prototype[methodName] = function(this: RunnerBridge, ...args: JsonObject[]) {
-                return this[EXECUTE_RUNNER_CONTROLLER_METHOD](methodName, args);
+                return this[RUNNER_ENVIRONMENT_CLIENT].execute(methodName, args);
             };
         }
     }

@@ -1,5 +1,5 @@
 import { ISerializedError } from "../../errors/error.serializer";
-import { IConnectCustomAction } from "../client/connect-client.actions";
+import { IConnectCustomAction } from "../client/connect.client.actions";
 
 export enum ConnectHostAction {
     DISCONNECTED = 'DISCONNECTED',

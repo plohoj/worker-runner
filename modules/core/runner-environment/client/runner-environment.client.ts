@@ -3,39 +3,39 @@ import { ConnectClient, IConnectClientConfig } from '../../connect/client/connec
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerExecuteError } from '../../errors/runner-errors';
+import { ResolvedRunner } from '../../runner/resolved-runner';
+import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
+import { IRunnerBridgeConstructor } from '../../runner/runner.bridge';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IRunnerEnvironmentOwnDataAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, IRunnerEnvironmentResolvedAction, RunnerEnvironmentAction } from '../environment/runner-environment.actions';
-import { ResolvedRunner } from '../resolved-runner';
-import { RunnerIdentifierConfigCollection } from '../runner-identifier-config.collection';
-import { IRunnerBridgeConstructor } from '../runner.bridge';
-import { IRunnerControllerExecuteAction, IRunnerControllerRequestRunnerOwnDataAction, RunnerControllerAction } from './runner-controller.actions';
+import { IRunnerEnvironmentHostOwnDataAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, IRunnerEnvironmentHostResolvedAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
+import { IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
 
-interface IRunnerControllerInitSyncConfig {
+interface IRunnerEnvironmentClientInitSyncConfig {
     runnerBridgeConstructor: IRunnerBridgeConstructor,
 }
 
-interface IRunnerControllerPartFactoryConfig {
+interface IRunnerEnvironmentClientPartFactoryConfig {
     token: RunnerToken,
     port: MessagePort,
 }
 
-export type RunnerControllerPartFactory<R extends RunnerConstructor>
-    = (config: IRunnerControllerPartFactoryConfig) => Promise<RunnerController<R>>;
+export type RunnerEnvironmentClientPartFactory<R extends RunnerConstructor>
+    = (config: IRunnerEnvironmentClientPartFactoryConfig) => Promise<RunnerEnvironmentClient<R>>;
 
-export interface IRunnerControllerConfig<R extends RunnerConstructor> extends IRunnerControllerPartFactoryConfig {
+export interface IRunnerEnvironmentClientConfig<R extends RunnerConstructor> extends IRunnerEnvironmentClientPartFactoryConfig {
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    runnerControllerPartFactory: RunnerControllerPartFactory<R>;
+    runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<R>;
     errorSerializer: WorkerRunnerErrorSerializer,
     onDestroyed: () => void;
 }
 
-export class RunnerController<R extends RunnerConstructor> {
+export class RunnerEnvironmentClient<R extends RunnerConstructor> {
     public readonly token: RunnerToken;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
     protected readonly connectClient: ConnectClient;
-    protected readonly runnerControllerPartFactory: RunnerControllerPartFactory<R>;
+    protected readonly runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<R>;
     protected readonly onDestroyed: () => void;
 
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
@@ -43,11 +43,11 @@ export class RunnerController<R extends RunnerConstructor> {
     private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
     private _isMarkedForTransfer = false;
 
-    constructor(config: Readonly<IRunnerControllerConfig<R>>) {
+    constructor(config: Readonly<IRunnerEnvironmentClientConfig<R>>) {
         this.token = config.token;
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.onDestroyed = config.onDestroyed;
-        this.runnerControllerPartFactory = config.runnerControllerPartFactory;
+        this.runnerEnvironmentClientPartFactory = config.runnerEnvironmentClientPartFactory;
         this.errorSerializer = config.errorSerializer;
         this.connectClient = this.buildConnectClientByPartConfig({ port: config.port });
     }
@@ -69,7 +69,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this._isMarkedForTransfer = value;
     }
 
-    public initSync(config: IRunnerControllerInitSyncConfig): void {
+    public initSync(config: IRunnerEnvironmentClientInitSyncConfig): void {
         this.resolvedRunner = new config.runnerBridgeConstructor(this) as ResolvedRunner<InstanceType<R>>;
     }
 
@@ -99,13 +99,13 @@ export class RunnerController<R extends RunnerConstructor> {
                 originalErrors: errors,
             }),
         });
-        const action: IRunnerControllerExecuteAction = {
-            type: RunnerControllerAction.EXECUTE,
+        const action: IRunnerEnvironmentClientExecuteAction = {
+            type: RunnerEnvironmentClientAction.EXECUTE,
             args: serializedArgumentsData.arguments,
             method: methodName,
             transfer: serializedArgumentsData.transfer,
         };
-        const actionResult: IRunnerEnvironmentExecuteResultAction
+        const actionResult: IRunnerEnvironmentHostExecuteResultAction
             = await this.connectClient.sendAction(action);
         return this.handleExecuteResult(actionResult);
     }
@@ -127,7 +127,7 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public async cloneControl(): Promise<this> {
-        return await this.runnerControllerPartFactory({
+        return await this.runnerEnvironmentClientPartFactory({
             token: this.token,
             port: await this.resolveControl(),
         }) as this;
@@ -156,10 +156,10 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     protected async handleExecuteResult(
-        action: IRunnerEnvironmentExecuteResultAction
+        action: IRunnerEnvironmentHostExecuteResultAction
     ): Promise<IRunnerSerializedMethodResult> {
         switch (action.type) {
-            case RunnerEnvironmentAction.EXECUTED_WITH_RUNNER_RESULT:
+            case RunnerEnvironmentHostAction.EXECUTED_WITH_RUNNER_RESULT:
                 return this.handleExecuteWithRunnerResult(action);
             default:
                 return action.response;
@@ -180,8 +180,8 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     private async resolveControl(): Promise<MessagePort> {
-        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectClient.sendAction({
-            type: RunnerControllerAction.RESOLVE,
+        const actionResult: IRunnerEnvironmentHostResolvedAction = await this.connectClient.sendAction({
+            type: RunnerEnvironmentClientAction.RESOLVE,
         });
         return actionResult.port;
     }
@@ -198,20 +198,20 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     private async handleExecuteWithRunnerResult(
-        action: IRunnerEnvironmentExecutedWithRunnerResultAction,
+        action: IRunnerEnvironmentHostExecutedWithRunnerResultAction,
     ): Promise<ResolvedRunner<InstanceType<R>>> {
-        const runnerController = await this.runnerControllerPartFactory({
+        const runnerEnvironmentClient = await this.runnerEnvironmentClientPartFactory({
             token: action.token,
             port: action.port,
         });
-        return runnerController.resolvedRunner;
+        return runnerEnvironmentClient.resolvedRunner;
     }
 
-    private async requestRunnerOwnData(): Promise<IRunnerEnvironmentOwnDataAction> {
-        const action: IRunnerControllerRequestRunnerOwnDataAction = {
-            type: RunnerControllerAction.REQUEST_RUNNER_OWN_DATA,
+    private async requestRunnerOwnData(): Promise<IRunnerEnvironmentHostOwnDataAction> {
+        const action: IRunnerEnvironmentClientRequestRunnerOwnDataAction = {
+            type: RunnerEnvironmentClientAction.REQUEST_RUNNER_OWN_DATA,
         }
-        const environmentData: IRunnerEnvironmentOwnDataAction
+        const environmentData: IRunnerEnvironmentHostOwnDataAction
             = await this.connectClient.sendAction(action);
 
         return environmentData;

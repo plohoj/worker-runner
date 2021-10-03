@@ -3,7 +3,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
-import { IRunnerEnvironmentConfig, RunnerEnvironment } from '../../runner/environment/runner.environment';
+import { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerResolverPossibleConnection } from '../../types/possible-connection';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -18,7 +18,7 @@ export type IHostRunnerResolverConfigBase<L extends RunnerIdentifierConfigList> 
 
 export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigList> {
     
-    protected runnerEnvironments = new Set<RunnerEnvironment<AvailableRunnersFromList<L>>>();
+    protected runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<AvailableRunnersFromList<L>>>();
     protected resolverBridge: HostResolverBridge;
     
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
@@ -79,20 +79,20 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     public wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): MessagePort {
         const messageChanel = new MessageChannel();
 
-        const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
+        const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
             token: this.runnerIdentifierConfigCollection.getRunnerTokenByInstance(runnerInstance),
             port: messageChanel.port1,
         });
-        runnerEnvironment.initSync({ runnerInstance });
+        runnerEnvironmentHost.initSync({ runnerInstance });
 
-        this.runnerEnvironments.add(runnerEnvironment);
+        this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
         return messageChanel.port2;
     }
 
-    protected buildRunnerEnvironment(
-        config: IRunnerEnvironmentConfig
-    ): RunnerEnvironment<AvailableRunnersFromList<L>> {
-        return new RunnerEnvironment(config);
+    protected buildRunnerEnvironmentHost(
+        config: IRunnerEnvironmentHostConfig
+    ): RunnerEnvironmentHost<AvailableRunnersFromList<L>> {
+        return new RunnerEnvironmentHost(config);
     }
 
     protected buildWorkerErrorSerializer(): WorkerRunnerErrorSerializer {
@@ -105,10 +105,10 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
 
     private async clearEnvironment(): Promise<void> {
         const possibleErrors = await allPromisesCollectErrors(
-            [...this.runnerEnvironments]
-                .map(runnerEnvironment => runnerEnvironment.handleDestroy())
+            [...this.runnerEnvironmentHosts]
+                .map(runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy())
         )
-        this.runnerEnvironments.clear();
+        this.runnerEnvironmentHosts.clear();
         if ('errors' in possibleErrors) {
             throw new HostResolverDestroyError({ 
                 originalErrors: possibleErrors.errors,
@@ -128,12 +128,12 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     > {
         try {
             const messageChanel = new MessageChannel();
-            const runnerEnvironment = this.buildRunnerEnvironmentByPartConfig({
+            const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
                 token: action.token,
                 port: messageChanel.port1,
             });
-            await runnerEnvironment.initAsync({ arguments: action.args });
-            this.runnerEnvironments.add(runnerEnvironment);
+            await runnerEnvironmentHost.initAsync({ arguments: action.args });
+            this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
 
             const partOfResponseAction = {
                 port: messageChanel.port2,
@@ -161,15 +161,15 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
         }
     }
 
-    private buildRunnerEnvironmentByPartConfig(
-        config: Pick<IRunnerEnvironmentConfig, 'token' | 'port'>
-    ): RunnerEnvironment<AvailableRunnersFromList<L>> {
-        const runnerEnvironment = this.buildRunnerEnvironment({
+    private buildRunnerEnvironmentHostByPartConfig(
+        config: Pick<IRunnerEnvironmentHostConfig, 'token' | 'port'>
+    ): RunnerEnvironmentHost<AvailableRunnersFromList<L>> {
+        const runnerEnvironmentHost = this.buildRunnerEnvironmentHost({
             errorSerializer: this.errorSerializer,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            onDestroyed: () => this.runnerEnvironments.delete(runnerEnvironment),
+            onDestroyed: () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost),
             ...config,
         });
-        return runnerEnvironment;
+        return runnerEnvironmentHost;
     }
 }

@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 
-export { IConnectClientActions, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectCustomAction } from './connect/client/connect-client.actions';
+export { IConnectClientActions, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectCustomAction } from './connect/client/connect.client.actions';
 export { ConnectClient, IConnectClientConfig } from './connect/client/connect.client';
-export { ConnectHostAction, IConnectHostActions, IConnectHostCustomResponseAction } from './connect/host/connect-host.actions';
+export { ConnectHostAction, IConnectHostActions, IConnectHostCustomResponseAction } from './connect/host/connect.host.actions';
 export { ConnectHost, IConnectHostConfig, IListeningInterrupter, IMessagePortConnectHostData } from './connect/host/connect.host';
 export { WorkerRunnerErrorCode } from './errors/error-code';
 export { CODE_TO_ERROR_MAP, ICodeToErrorMap } from './errors/error-code-map';
@@ -15,13 +15,13 @@ export { ClientRunnerResolverBase, IClientRunnerResolverConfigBase } from './res
 export { HostResolverAction, IHostResolverAction } from './resolver/host/host-resolver.actions';
 export { HostRunnerResolverBase, IHostRunnerResolverConfigBase } from './resolver/host/host-runner.resolver';
 export { LocalResolverBridge } from './resolver/resolver-bridge/local/local-resolver.bridge';
-export { IRunnerControllerAction, IRunnerControllerExecuteAction, IRunnerControllerResolveAction, RunnerControllerAction } from './runner/controller/runner-controller.actions';
-export { IRunnerControllerConfig, RunnerController } from './runner/controller/runner.controller';
-export { IRunnerControllerCollectionConfig, RunnerControllerCollection } from './runner/controller/runner.controller.collection';
-export { IRunnerEnvironmentAction, IRunnerEnvironmentExecutedWithRunnerResultAction, IRunnerEnvironmentExecuteResultAction, RunnerEnvironmentAction } from './runner/environment/runner-environment.actions';
-export { IRunnerEnvironmentConfig, RunnerEnvironment } from './runner/environment/runner.environment';
+export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientResolveAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
+export { IRunnerEnvironmentClientConfig, RunnerEnvironmentClient } from './runner-environment/client/runner-environment.client';
+export { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
+export { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
+export { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from './runner-environment/host/runner-environment.host';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from './runner/resolved-runner';
-export { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from './runner/runner.bridge';
+export { RunnerBridge, RUNNER_ENVIRONMENT_CLIENT as RUNNER_BRIDGE_CONTROLLER } from './runner/runner.bridge';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonObject, TransferableJsonObject } from './types/json-object';

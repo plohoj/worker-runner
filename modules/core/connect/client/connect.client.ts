@@ -2,8 +2,8 @@ import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
-import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction } from "../host/connect-host.actions";
-import { ConnectClientAction, IConnectClientActions, IConnectClientConnectAction, IConnectClientCustomAction, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectClientInterruptListeningAction, IConnectCustomAction,  } from "./connect-client.actions";
+import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction } from "../host/connect.host.actions";
+import { ConnectClientAction, IConnectClientActions, IConnectClientConnectAction, IConnectClientCustomAction, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectClientInterruptListeningAction, IConnectCustomAction,  } from "./connect.client.actions";
 
 type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
 

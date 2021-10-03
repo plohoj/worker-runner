@@ -2,8 +2,8 @@ import { ConnectClient, IConnectHostActions, ConnectionWasClosedError, WorkerRun
 import { Observable, Subscriber } from "rxjs";
 import { share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
-import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "../host/rx-connect-host.actions";
-import { IRxConnectClientUnsubscribeAction, RxConnectClientAction  } from "./rx-connect-client.actions";
+import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "../host/rx-connect.host.actions";
+import { IRxConnectClientUnsubscribeAction, RxConnectClientAction  } from "./rx-connect.client.actions";
 
 export class RxConnectClient extends ConnectClient {    
 

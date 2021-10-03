@@ -1,8 +1,8 @@
 import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
-import { ConnectClientAction, IConnectClientActions, IConnectClientCustomAction, IConnectCustomAction } from "../client/connect-client.actions";
-import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction, IConnectHostDestroyedByForceAction, IConnectHostDestroyedByRequestAction, IConnectHostDestroyedWithErrorAction, IConnectHostDisconnectedAction } from "./connect-host.actions";
+import { ConnectClientAction, IConnectClientActions, IConnectClientCustomAction, IConnectCustomAction } from "../client/connect.client.actions";
+import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction, IConnectHostDestroyedByForceAction, IConnectHostDestroyedByRequestAction, IConnectHostDestroyedWithErrorAction, IConnectHostDisconnectedAction } from "./connect.host.actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ConnectHostActionsHandler<

@@ -1,15 +1,15 @@
-import { HostRunnerResolverBase, RunnerIdentifierConfigList, AvailableRunnersFromList, IRunnerEnvironmentConfig } from '@worker-runner/core';
+import { HostRunnerResolverBase, RunnerIdentifierConfigList, AvailableRunnersFromList, IRunnerEnvironmentHostConfig } from '@worker-runner/core';
 import { RxWorkerRunnerErrorSerializer, RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RxRunnerEnvironment } from '../../runners/environment/runner.environment';
+import { RxRunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 
 export class RxHostRunnerResolver<L extends RunnerIdentifierConfigList> extends HostRunnerResolverBase<L> {
 
-    declare protected runnerEnvironments: Set<RxRunnerEnvironment<AvailableRunnersFromList<L>>>;
+    declare protected runnerEnvironmentHosts: Set<RxRunnerEnvironmentHost<AvailableRunnersFromList<L>>>;
 
-    protected override buildRunnerEnvironment(
-        config: IRunnerEnvironmentConfig
-    ): RxRunnerEnvironment<AvailableRunnersFromList<L>> {
-        return new RxRunnerEnvironment(config);
+    protected override buildRunnerEnvironmentHost(
+        config: IRunnerEnvironmentHostConfig
+    ): RxRunnerEnvironmentHost<AvailableRunnersFromList<L>> {
+        return new RxRunnerEnvironmentHost(config);
     }
 
     protected override buildWorkerErrorSerializer(): RxWorkerRunnerErrorSerializer {

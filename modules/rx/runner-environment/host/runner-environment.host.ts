@@ -1,20 +1,20 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironmentHost , IRunnerMethodResult , IRunnerEnvironmentHostExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerEnvironmentClientCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectHost } from '../../connect/host/rx-connect.host';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
-import { RxRunnerControllerCollection } from '../controller/runner.controller.collection';
-import { IRxRunnerSerializedMethodResult } from '../resolved-runner';
-import { IRxRunnerEnvironmentAction, IRxRunnerEnvironmentEmitAction, IRxRunnerEnvironmentEmitRunnerResultAction, RxRunnerEnvironmentAction } from './runner-environment.actions';
+import { IRxRunnerSerializedMethodResult } from '../../runners/resolved-runner';
+import { RxRunnerEnvironmentClientCollection } from '../client/runner-environment.client.collection';
+import { IRxRunnerEnvironmentHostAction, IRxRunnerEnvironmentHostEmitAction, IRxRunnerEnvironmentHostEmitRunnerResultAction, RxRunnerEnvironmentHostAction } from './runner-environment.host.actions';
 
-export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvironment<R> {
+export class RxRunnerEnvironmentHost<R extends RunnerConstructor> extends RunnerEnvironmentHost<R> {
     protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
 
     protected override async handleExecuteResponse(
         executeResult: IRunnerMethodResult,
-    ): Promise<IRunnerEnvironmentExecuteResultAction> {
+    ): Promise<IRunnerEnvironmentHostExecuteResultAction> {
         if (executeResult instanceof Observable) {
             return executeResult.pipe(
                 mergeMap(this.mapRxEmit),
@@ -32,16 +32,16 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return new RxConnectHost(config);
     }
 
-    protected override buildRunnerControllerCollection(
-        config: IRunnerControllerCollectionConfig<RunnerIdentifierConfigList>
-    ): RxRunnerControllerCollection<RunnerIdentifierConfigList> {
-        return new RxRunnerControllerCollection(config);
+    protected override buildRunnerEnvironmentClientCollection(
+        config: IRunnerEnvironmentClientCollectionConfig<RunnerIdentifierConfigList>
+    ): RxRunnerEnvironmentClientCollection<RunnerIdentifierConfigList> {
+        return new RxRunnerEnvironmentClientCollection(config);
     }
 
     private async mapRxEmit(
         this: never,
         responseWithTransferData: IRunnerMethodResult
-    ): Promise<IRxRunnerEnvironmentAction> {
+    ): Promise<IRxRunnerEnvironmentHostAction> {
         let response: IRxRunnerSerializedMethodResult;
         const transferable = new Array<Transferable>();
         if (responseWithTransferData instanceof TransferRunnerData) {
@@ -51,18 +51,18 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
             response = responseWithTransferData;
         }
         if (RunnerBridge.isRunnerBridge(response)) {
-            const runnerController = await (response as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
-            const transferPort: MessagePort =  await runnerController.resolveOrTransferControl();
-            const runnerResultAction: IRxRunnerEnvironmentEmitRunnerResultAction = {
-                type: RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT,
-                token: runnerController.token,
+            const runnerEnvironmentClient = await (response as RunnerBridge)[RUNNER_BRIDGE_CONTROLLER];
+            const transferPort: MessagePort =  await runnerEnvironmentClient.resolveOrTransferControl();
+            const runnerResultAction: IRxRunnerEnvironmentHostEmitRunnerResultAction = {
+                type: RxRunnerEnvironmentHostAction.RX_EMIT_RUNNER_RESULT,
+                token: runnerEnvironmentClient.token,
                 port: transferPort,
                 transfer: [transferPort],
             }
             return runnerResultAction;
         } else {
-            const emitAction: IRxRunnerEnvironmentEmitAction = {
-                type: RxRunnerEnvironmentAction.RX_EMIT,
+            const emitAction: IRxRunnerEnvironmentHostEmitAction = {
+                type: RxRunnerEnvironmentHostAction.RX_EMIT,
                 response: response as TransferableJsonObject,
                 transfer: transferable
             }

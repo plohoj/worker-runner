@@ -78,15 +78,15 @@ each(localResolvers, (mode, IterateLocalRunnerResolver) =>
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
                     WithOtherInstanceStubRunner>;
-            const runnerEnvironments
-                = [...localResolver['resolverBridge']?.hostRunnerResolver['runnerEnvironments'] || []];
+            const runnerEnvironmentHosts
+                = [...localResolver['resolverBridge']?.hostRunnerResolver['runnerEnvironmentHosts'] || []];
 
-            const runnerEnvironment = runnerEnvironments
-                .find(runnerEnvironment => runnerEnvironment.token === WithOtherInstanceStubRunner.name);
+            const runnerEnvironmentHost = runnerEnvironmentHosts
+                .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironment?.['runnerControllerCollection'].runnerControllers.size).toBe(1);
+            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
             await withOtherInstanceStubRunner.disconnect();
-            expect(runnerEnvironment?.['runnerControllerCollection'].runnerControllers.size).toBe(0);
+            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(0);
 
             await localResolver.destroy();
         });

@@ -1,6 +1,6 @@
 import { ConnectClient } from "../connect/client/connect.client";
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
-import { RunnerController, RunnerControllerPartFactory } from "../runner/controller/runner.controller";
+import { RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from "../runner-environment/client/runner-environment.client";
 import { IRunnerSerializedParameter } from "../types/constructor";
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../types/runner-identifier";
 import { IRunnerSerializedArgument, RunnerSerializedArgumentType } from "../types/runner-serialized-argument";
@@ -8,21 +8,21 @@ import { allPromisesCollectErrors, mapPromisesAndAwaitMappedWhenError } from "..
 
 export async function deserializeArguments<L extends RunnerIdentifierConfigList>(config: {
     arguments: IRunnerSerializedArgument[],
-    runnerControllerPartFactory: RunnerControllerPartFactory<AvailableRunnersFromList<L>>;
+    runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<AvailableRunnersFromList<L>>;
     combinedErrorsFactory(errors: unknown[]): WorkerRunnerMultipleError,
 }): Promise<{
     arguments: Array<IRunnerSerializedParameter>,
-    controllers: Array<RunnerController<AvailableRunnersFromList<L>>>,
+    controllers: Array<RunnerEnvironmentClient<AvailableRunnersFromList<L>>>,
 }> {
-    const controllers = new Array<RunnerController<AvailableRunnersFromList<L>>>();
+    const controllers = new Array<RunnerEnvironmentClient<AvailableRunnersFromList<L>>>();
     const deserializedArgumentsWithPossibleErrors = await mapPromisesAndAwaitMappedWhenError(
         config.arguments,
         async (argument): Promise<IRunnerSerializedParameter> => {
             switch (argument.type) {
                 case RunnerSerializedArgumentType.RESOLVED_RUNNER: {
-                    let controller: RunnerController<AvailableRunnersFromList<L>>;
+                    let controller: RunnerEnvironmentClient<AvailableRunnersFromList<L>>;
                     try {
-                        controller = await config.runnerControllerPartFactory({
+                        controller = await config.runnerEnvironmentClientPartFactory({
                             port: argument.port,
                             token: argument.token,
                         });

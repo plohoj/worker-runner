@@ -1,11 +1,11 @@
-import { IConnectClientConfig, IRunnerParameter, RunnerConstructor, RunnerController, IRunnerSerializedMethodResult, IRunnerEnvironmentExecuteResultAction, WorkerRunnerUnexpectedError, WorkerRunnerError } from '@worker-runner/core';
+import { IConnectClientConfig, IRunnerParameter, RunnerConstructor, RunnerEnvironmentClient, IRunnerSerializedMethodResult, IRunnerEnvironmentHostExecuteResultAction, WorkerRunnerUnexpectedError, WorkerRunnerError } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectClient } from '../../connect/client/rx-connect.client';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { IRxRunnerEnvironmentAction, RxRunnerEnvironmentAction } from '../environment/runner-environment.actions';
+import { IRxRunnerEnvironmentHostAction, RxRunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
 
-export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
+export class RxRunnerEnvironmentClient<R extends RunnerConstructor> extends RunnerEnvironmentClient<R> {
 
     protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
     protected declare readonly connectClient: RxConnectClient;
@@ -26,7 +26,7 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
     protected override async handleExecuteResult(
-        actionResult: IRunnerEnvironmentExecuteResultAction | Observable<unknown>
+        actionResult: IRunnerEnvironmentHostExecuteResultAction | Observable<unknown>
     ): Promise<IRunnerSerializedMethodResult> {
         if (actionResult instanceof Observable) {
             return actionResult as unknown as IRunnerSerializedMethodResult;
@@ -39,19 +39,19 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
     }
 
     private async mapRxEmit(
-        action: IRxRunnerEnvironmentAction
+        action: IRxRunnerEnvironmentHostAction
     ): Promise<IRunnerSerializedMethodResult> {
         switch (action.type) {
-            case RxRunnerEnvironmentAction.RX_EMIT:
+            case RxRunnerEnvironmentHostAction.RX_EMIT:
                 return action.response;
-            case RxRunnerEnvironmentAction.RX_EMIT_RUNNER_RESULT:
-                return (await this.runnerControllerPartFactory({
+            case RxRunnerEnvironmentHostAction.RX_EMIT_RUNNER_RESULT:
+                return (await this.runnerEnvironmentClientPartFactory({
                     token: action.token,
                     port: action.port,
                 })).resolvedRunner;
             default:
                 throw new WorkerRunnerUnexpectedError({
-                    message: 'Unexpected action type was emitted in Runner controller via Rx Observable',
+                    message: 'Unexpected action type was emitted in RxRunnerEnvironmentClient via Rx Observable',
                 });
         }
     }
