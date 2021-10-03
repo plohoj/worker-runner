@@ -1,6 +1,6 @@
 {
   "name": "worker-runner",
-  "version": "0.9.2",
+  "version": "1.0.0",
   "scripts": {
     "start": "karma start --debug",
     "build": "node build.js",

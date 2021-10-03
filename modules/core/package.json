@@ -1,6 +1,6 @@
 {
   "name": "@worker-runner/core",
-  "version": "0.9.2",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/plohoj/worker-runner.git"
