@@ -9,12 +9,13 @@ Worker Runner is a tool to assist use Web Worker.
 
 ## Table of contents
 1. [Initialization](#initialization)
-1. [Usage](#usage)
+1. [Usage example](#usage-example)
 1. [ResolvedRunner](#resolved-runner)
     * [destroy](#destroy)
     * [disconnect](#disconnect)
     * [cloneControl](#clone-control)
     * [markForTransfer](#mark-for-transfer)
+1. [Runner token](#runner-token)
 1. [ResolvedRunner as argument](#resolved-runner-as-argument)
 1. [RunnerResolverLocal](#runnerresolverlocal)
 1. [ResolvedRunner as method result](#resolved-runner-as-method-result)
@@ -72,10 +73,13 @@ import { RunnerResolverHost } from '@worker-runner/promise';
 
 new RunnerResolverHost({ runners: [LibraryRunner] }).run();
 ```
-## <a name="usage"></a> Usage
+## <a name="usage-example"></a> Usage example
 After you initialized `RunnerResolverClient` *(in client area)* and `RunnerResolverHost` *(in host area)*, you can use the `RunnerResolverClient` instance to resolve instances of the Runner class that will be used in the client area and executed in the host area.
 ``` ts
 async function main() {
+    const resolver = new RunnerResolverClient({
+        connection: new Worker('./worker.js'),
+    });
     await resolver.run();
     const libraryRunner = await resolver.resolve(LibraryRunner, ['Book №1']);
 
@@ -110,6 +114,26 @@ All called methods will be executed asynchronously and the result of the calcula
     In this case, the transfer of the `ResolvedRunner` will be faster
     because it will not take time to request a copy of the control.
     It is convenient to use as an automatic disconnect after returning the result of a method.
+
+## <a name="runner-token"></a> Runner token
+`RunnerResolver` takes a list of Runners as a parameter. For each such Runner, you can set your own identifier - a token. To do this, add an object with parameters to the list, for example:
+``` ts
+const resolver = new RunnerResolverClient({
+    // ...
+    runners: [
+        {
+            runner: LibraryRunner,
+            token: 'LibraryRunnerToken',
+        },
+        {
+            token: 'LibraryPoolRunnerToken',
+        }
+    ],
+});
+```
+You can resolve the `ResolvedRunner` instance, by token. This will **reduce the bundle size** and load only the code you need into each area. *(This configuration is optional for the ``RunnerResolverClient``. You can use a token without preconfiguration.)*  
+By default, if you have not set a token, then the **class name will be used**.  
+**WARNING:** It is recommended to set a token. Using the class name is not recommended, because after minification, the names of the same class may differ for different bundles (areas).
 
 ## <a name="resolved-runner-as-argument"></a> `ResolvedRunner` as argument
 You can use the resolved instance as constructor or methods arguments. Resolved instance **can be declared in another `RunnerResolver` and area**.
