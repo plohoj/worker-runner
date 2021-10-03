@@ -1,11 +1,17 @@
 import { TransferableJsonObject } from "../../types/json-object";
 
 export enum ConnectControllerAction {
+    /** The action requires no response. If the connection was terminated, a notification will be received */
+    CONNECT = "CONNECT",
     INTERRUPT_LISTENING = 'INTERRUPT_LISTENING',
     DISCONNECT = 'DISCONNECT',
     DESTROY = 'DESTROY',
 
     CUSTOM = 'CUSTOM',
+}
+
+export interface IConnectControllerConnectAction {
+    type: ConnectControllerAction.CONNECT;
 }
 
 export interface IConnectControllerInterruptListeningAction {
@@ -31,6 +37,7 @@ export interface IConnectControllerCustomAction {
 
 
 export type IConnectControllerActions =
+    | IConnectControllerConnectAction
     | IConnectControllerInterruptListeningAction
     | IConnectControllerDisconnectAction
     | IConnectControllerDestroyAction

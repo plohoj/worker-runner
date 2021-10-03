@@ -19,6 +19,7 @@ export interface IListeningInterrupter {
 
 export interface IMessagePortConnectEnvironmentData {
     handler: (event: MessageEvent) => void;
+    wasConnected: boolean;
     listeningInterrupter: IListeningInterrupter;
 } 
 
@@ -58,17 +59,32 @@ export class ConnectEnvironment<
         port.start();
         this.createMessagePortData(port, {
             handler,
+            wasConnected: false,
             listeningInterrupter: this.buildListeningInterrupter(),
         });
         this.connectedPorts.add(port);
     }
 
     public closeConnection(port: MessagePort): void {
-        const handler = this.getMessagePortData(port)?.handler;
+        const portData = this.getMessagePortData(port);
+        const handler = portData?.handler;
         if (handler) {
             port.removeEventListener('message', handler);
         }
-        port.close();
+        if (portData && !portData.wasConnected) {
+            // eslint-disable-next-line no-inner-declarations
+            function afterDisconnectHandler() {
+                const destroyAction: IConnectEnvironmentDestroyedByForceAction = {
+                    type: ConnectEnvironmentAction.DESTROYED_BY_FORCE,
+                };
+                port.postMessage(destroyAction);
+                port.removeEventListener('message', afterDisconnectHandler);
+                port.close();
+            }
+            port.addEventListener('message', afterDisconnectHandler)
+        } else {
+            port.close();
+        }
         this.connectedPorts.delete(port);
         this.deleteMessagePortData(port);
     }
@@ -89,6 +105,8 @@ export class ConnectEnvironment<
                 break;
             case ConnectControllerAction.CUSTOM:
                 await this.onCustomAction(port, action);
+                break;
+            case ConnectControllerAction.CONNECT:
                 break;
             default:
                 throw new WorkerRunnerUnexpectedError({
@@ -119,8 +137,8 @@ export class ConnectEnvironment<
             throw new ConnectionWasClosedError();
         }
         portData.listeningInterrupter.resolve();
-        const listeningInterrupter = this.buildListeningInterrupter();
-        portData.listeningInterrupter = listeningInterrupter;
+        portData.listeningInterrupter = this.buildListeningInterrupter();
+        portData.wasConnected = false;
     }
     
     protected onDisconnect(port: MessagePort, actionId: number): void {
@@ -171,7 +189,7 @@ export class ConnectEnvironment<
                 this.actionsHandler(action.payload as I),
             ])
             if (isListeningInterrupt) {
-                // Aborting the action because the connection was closed
+                // Aborting the action because the connection was transfer
                 return;
             }
             this.handleCustomActionResponse(port, result as O, action.id);
@@ -236,6 +254,10 @@ export class ConnectEnvironment<
         port: MessagePort,
         event: MessageEvent<IConnectControllerActions>,
     ): Promise<void> {
+        const portData = this.getMessagePortData(port);
+        if (portData) {
+            portData.wasConnected = true;
+        }
         this.handleAction(port, event.data)
     }
 }

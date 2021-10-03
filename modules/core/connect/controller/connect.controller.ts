@@ -3,7 +3,7 @@ import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
 import { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomErrorAction, IConnectEnvironmentCustomResponseAction } from "../environment/connect-environment.actions";
-import { ConnectControllerAction, IConnectControllerActions, IConnectControllerCustomAction, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction, IConnectCustomAction,  } from "./connect-controller.actions";
+import { ConnectControllerAction, IConnectControllerActions, IConnectControllerConnectAction, IConnectControllerCustomAction, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction, IConnectCustomAction,  } from "./connect-controller.actions";
 
 type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
 
@@ -33,6 +33,7 @@ export class ConnectController {
         this.port = config.port;
         this.port.addEventListener('message', this.messageHandler);
         this.port.start();
+        this.sendConnectAction();
     }
 
     // TODO NEED TEST
@@ -163,5 +164,12 @@ export class ConnectController {
 
     private defaultDisconnectErrorFactory(this: never, error: ConnectionWasClosedError): ConnectionWasClosedError {
         return error;
+    }
+
+    private sendConnectAction(): void {
+        const connectAction: IConnectControllerConnectAction = {
+            type: ConnectControllerAction.CONNECT,
+        };
+        this.port.postMessage(connectAction);
     }
 }

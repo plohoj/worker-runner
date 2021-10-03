@@ -140,13 +140,6 @@ export class RunnerController<R extends RunnerConstructor> {
         this.isMarkedForTransfer = true;
     }
 
-    public async resolveControl(): Promise<MessagePort> {
-        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectController.sendAction({
-            type: RunnerControllerAction.RESOLVE,
-        });
-        return actionResult.port;
-    }
-
     public async resolveOrTransferControl(): Promise<MessagePort> {
         if (this.isMarkedForTransfer) {
             return this.transferControl();
@@ -184,6 +177,13 @@ export class RunnerController<R extends RunnerConstructor> {
             token: this.token,
             runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(this.token)?.name,
         }
+    }
+
+    private async resolveControl(): Promise<MessagePort> {
+        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectController.sendAction({
+            type: RunnerControllerAction.RESOLVE,
+        });
+        return actionResult.port;
     }
 
     private buildConnectControllerByPartConfig(
