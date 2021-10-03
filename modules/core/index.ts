@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 
-export { IConnectControllerActions, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectCustomAction } from './connect/controller/connect-controller.actions';
-export { ConnectController, IConnectControllerConfig } from './connect/controller/connect.controller';
-export { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomResponseAction } from './connect/environment/connect-environment.actions';
-export { ConnectEnvironment, IConnectEnvironmentConfig, IListeningInterrupter, IMessagePortConnectEnvironmentData } from './connect/environment/connect.environment';
+export { IConnectClientActions, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectCustomAction } from './connect/client/connect-client.actions';
+export { ConnectClient, IConnectClientConfig } from './connect/client/connect.client';
+export { ConnectHostAction, IConnectHostActions, IConnectHostCustomResponseAction } from './connect/host/connect-host.actions';
+export { ConnectHost, IConnectHostConfig, IListeningInterrupter, IMessagePortConnectHostData } from './connect/host/connect.host';
 export { WorkerRunnerErrorCode } from './errors/error-code';
 export { CODE_TO_ERROR_MAP, ICodeToErrorMap } from './errors/error-code-map';
 export { IRunnerExecuteMessageConfig, IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';

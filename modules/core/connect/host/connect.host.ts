@@ -1,42 +1,42 @@
 import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
-import { ConnectControllerAction, IConnectControllerActions, IConnectControllerCustomAction, IConnectCustomAction } from "../controller/connect-controller.actions";
-import { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomErrorAction, IConnectEnvironmentCustomResponseAction, IConnectEnvironmentDestroyedByForceAction, IConnectEnvironmentDestroyedByRequestAction, IConnectEnvironmentDestroyedWithErrorAction, IConnectEnvironmentDisconnectedAction } from "./connect-environment.actions";
+import { ConnectClientAction, IConnectClientActions, IConnectClientCustomAction, IConnectCustomAction } from "../client/connect-client.actions";
+import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction, IConnectHostDestroyedByForceAction, IConnectHostDestroyedByRequestAction, IConnectHostDestroyedWithErrorAction, IConnectHostDisconnectedAction } from "./connect-host.actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ConnectEnvironmentActionsHandler<
+type ConnectHostActionsHandler<
     I extends IConnectCustomAction,
     O extends IConnectCustomAction
 > = (action: I) => Promise<O>;
 
-const MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA = '__workerRunner_connectEnvironmentData';
+const MESSAGE_PORT_CONNECT_HOST_DATA = '__workerRunner_connectHostData';
 
 export interface IListeningInterrupter {
     promise: Promise<void>;
     resolve: () => void;
 }
 
-export interface IMessagePortConnectEnvironmentData {
+export interface IMessagePortConnectHostData {
     handler: (event: MessageEvent) => void;
     wasConnected: boolean;
     listeningInterrupter: IListeningInterrupter;
 } 
 
-interface IMessagePortWithConnectEnvironmentData {
-    [MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA]?: IMessagePortConnectEnvironmentData;
+interface IMessagePortWithConnectHostData {
+    [MESSAGE_PORT_CONNECT_HOST_DATA]?: IMessagePortConnectHostData;
 }
 
-export type IConnectEnvironmentConfig<
+export type IConnectHostConfig<
     I extends IConnectCustomAction,
     O extends IConnectCustomAction
 > = {
     errorSerializer: WorkerRunnerErrorSerializer;
-    actionsHandler: ConnectEnvironmentActionsHandler<I, O>;
+    actionsHandler: ConnectHostActionsHandler<I, O>;
     destroyHandler: () => Promise<void> | void;
 }
 
-export class ConnectEnvironment<
+export class ConnectHost<
     I extends IConnectCustomAction = IConnectCustomAction,
     O extends IConnectCustomAction = IConnectCustomAction
 > {
@@ -44,10 +44,10 @@ export class ConnectEnvironment<
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
 
-    private readonly actionsHandler: ConnectEnvironmentActionsHandler<I, O>;
+    private readonly actionsHandler: ConnectHostActionsHandler<I, O>;
     private readonly destroyHandler: () => void;
 
-    constructor(config: IConnectEnvironmentConfig<I, O>) {
+    constructor(config: IConnectHostConfig<I, O>) {
         this.errorSerializer = config.errorSerializer;
         this.actionsHandler = config.actionsHandler;
         this.destroyHandler = config.destroyHandler;
@@ -74,8 +74,8 @@ export class ConnectEnvironment<
         if (portData && !portData.wasConnected) {
             // eslint-disable-next-line no-inner-declarations
             function afterDisconnectHandler() {
-                const destroyAction: IConnectEnvironmentDestroyedByForceAction = {
-                    type: ConnectEnvironmentAction.DESTROYED_BY_FORCE,
+                const destroyAction: IConnectHostDestroyedByForceAction = {
+                    type: ConnectHostAction.DESTROYED_BY_FORCE,
                 };
                 port.postMessage(destroyAction);
                 port.removeEventListener('message', afterDisconnectHandler);
@@ -91,26 +91,26 @@ export class ConnectEnvironment<
 
     protected async handleAction(
         port: MessagePort,
-        action: IConnectControllerActions
+        action: IConnectClientActions
     ): Promise<void> {
         switch (action.type) {
-            case ConnectControllerAction.INTERRUPT_LISTENING:
+            case ConnectClientAction.INTERRUPT_LISTENING:
                 this.onInterruptListening(port);
                 break;
-            case ConnectControllerAction.DISCONNECT:
+            case ConnectClientAction.DISCONNECT:
                 this.onDisconnect(port, action.id);
                 break;
-            case ConnectControllerAction.DESTROY:
+            case ConnectClientAction.DESTROY:
                 await this.onDestroy(port, action.id);
                 break;
-            case ConnectControllerAction.CUSTOM:
+            case ConnectClientAction.CUSTOM:
                 await this.onCustomAction(port, action);
                 break;
-            case ConnectControllerAction.CONNECT:
+            case ConnectClientAction.CONNECT:
                 break;
             default:
                 throw new WorkerRunnerUnexpectedError({
-                    message: 'Unexpected Action type for Connect Environment',
+                    message: 'Unexpected Action type for Connect Host',
                 });
         }
     }
@@ -119,8 +119,8 @@ export class ConnectEnvironment<
         try {
             await this.destroyHandler();
         } finally {
-            const destroyAction: IConnectEnvironmentDestroyedByForceAction = {
-                type: ConnectEnvironmentAction.DESTROYED_BY_FORCE,
+            const destroyAction: IConnectHostDestroyedByForceAction = {
+                type: ConnectHostAction.DESTROYED_BY_FORCE,
             };
             for (const port of this.connectedPorts) {
                 if (port !== exceptPort) {
@@ -146,9 +146,9 @@ export class ConnectEnvironment<
             this.onDestroy(port, actionId);
             return;
         }
-        const disconnectAction: IConnectEnvironmentDisconnectedAction = {
+        const disconnectAction: IConnectHostDisconnectedAction = {
             id: actionId,
-            type: ConnectEnvironmentAction.DISCONNECTED,
+            type: ConnectHostAction.DISCONNECTED,
         };
         this.sendAction(port, disconnectAction);
         this.closeConnection(port);
@@ -160,24 +160,24 @@ export class ConnectEnvironment<
             await this.forceDestroy(port);
         } catch(error) {
             hasError = true;
-            const errorAction: IConnectEnvironmentDestroyedWithErrorAction = {
+            const errorAction: IConnectHostDestroyedWithErrorAction = {
                 id: actionId,
-                type: ConnectEnvironmentAction.DESTROYED_WITH_ERROR,
+                type: ConnectHostAction.DESTROYED_WITH_ERROR,
                 error: this.errorSerializer.serialize(error),
             }
             this.sendAction(port, errorAction);
         }
         if (!hasError) {
-            const destroyAction: IConnectEnvironmentDestroyedByRequestAction = {
+            const destroyAction: IConnectHostDestroyedByRequestAction = {
                 id: actionId,
-                type: ConnectEnvironmentAction.DESTROYED_BY_REQUEST,
+                type: ConnectHostAction.DESTROYED_BY_REQUEST,
             };
             this.sendAction(port, destroyAction);
         }
         this.closeConnection(port);
     }
 
-    protected async onCustomAction(port: MessagePort, action: IConnectControllerCustomAction): Promise<void> {
+    protected async onCustomAction(port: MessagePort, action: IConnectClientCustomAction): Promise<void> {
         try {
             const portData = this.getMessagePortData(port);
             if (!portData) {
@@ -194,9 +194,9 @@ export class ConnectEnvironment<
             }
             this.handleCustomActionResponse(port, result as O, action.id);
         } catch (error: unknown) {
-            const customErrorAction: IConnectEnvironmentCustomErrorAction = {
+            const customErrorAction: IConnectHostCustomErrorAction = {
                 id: action.id,
-                type: ConnectEnvironmentAction.CUSTOM_ERROR,
+                type: ConnectHostAction.CUSTOM_ERROR,
                 error: this.errorSerializer.serialize(error)
             }
             this.sendAction(port, customErrorAction);
@@ -205,7 +205,7 @@ export class ConnectEnvironment<
 
     protected sendAction(
         port: MessagePort,
-        action: IConnectEnvironmentActions,
+        action: IConnectHostActions,
         transfer?: Transferable[]
     ): void {
         if (!this.connectedPorts.has(port)) {
@@ -221,9 +221,9 @@ export class ConnectEnvironment<
         actionId: number,
     ): Promise<void> {
         const {transfer, ...responseWithoutTransfer} = response; 
-        const responseAction: IConnectEnvironmentCustomResponseAction = {
+        const responseAction: IConnectHostCustomResponseAction = {
             id: actionId,
-            type: ConnectEnvironmentAction.CUSTOM_RESPONSE,
+            type: ConnectHostAction.CUSTOM_RESPONSE,
             payload: responseWithoutTransfer,
         };
         this.sendAction(port, responseAction, transfer);
@@ -238,21 +238,21 @@ export class ConnectEnvironment<
         return {promise, resolve: resolver!};
     }
 
-    protected createMessagePortData(port: MessagePort, data: IMessagePortConnectEnvironmentData): void {
-        (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA] = data;
+    protected createMessagePortData(port: MessagePort, data: IMessagePortConnectHostData): void {
+        (port as unknown as IMessagePortWithConnectHostData)[MESSAGE_PORT_CONNECT_HOST_DATA] = data;
     }
 
-    protected getMessagePortData(port: MessagePort): IMessagePortConnectEnvironmentData | undefined {
-        return (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA];
+    protected getMessagePortData(port: MessagePort): IMessagePortConnectHostData | undefined {
+        return (port as unknown as IMessagePortWithConnectHostData)[MESSAGE_PORT_CONNECT_HOST_DATA];
     }
 
     protected deleteMessagePortData(port: MessagePort): void {
-        (port as unknown as IMessagePortWithConnectEnvironmentData)[MESSAGE_PORT_CONNECT_ENVIRONMENT_DATA] = undefined;
+        (port as unknown as IMessagePortWithConnectHostData)[MESSAGE_PORT_CONNECT_HOST_DATA] = undefined;
     }
     
     private async onMessage(
         port: MessagePort,
-        event: MessageEvent<IConnectControllerActions>,
+        event: MessageEvent<IConnectClientActions>,
     ): Promise<void> {
         const portData = this.getMessagePortData(port);
         if (portData) {

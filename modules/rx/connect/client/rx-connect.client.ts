@@ -1,11 +1,11 @@
-import { ConnectController, IConnectEnvironmentActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, IConnectCustomAction, IConnectEnvironmentCustomResponseAction, ConnectEnvironmentAction } from "@worker-runner/core";
+import { ConnectClient, IConnectHostActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, IConnectCustomAction, IConnectHostCustomResponseAction, ConnectHostAction } from "@worker-runner/core";
 import { Observable, Subscriber } from "rxjs";
 import { share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
-import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "../environment/rx-connect-environment.actions";
-import { IRxConnectControllerUnsubscribeAction, RxConnectControllerAction  } from "./rx-connect-controller.actions";
+import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "../host/rx-connect-host.actions";
+import { IRxConnectClientUnsubscribeAction, RxConnectClientAction  } from "./rx-connect-client.actions";
 
-export class RxConnectController extends ConnectController {    
+export class RxConnectClient extends ConnectClient {    
 
     /** List of action ids that can subscribe to */
     private readonly canSubscribedList = new Set<number>();
@@ -25,24 +25,24 @@ export class RxConnectController extends ConnectController {
 
     protected override handleAction(
         action:
-            | IConnectEnvironmentActions
-            | IRxConnectEnvironmentActions
+            | IConnectHostActions
+            | IRxConnectHostActions
     ): void {
         switch (action.type) {
-            case RxConnectEnvironmentAction.RX_INIT:
-                this.runnerObservableInit(action as IRxConnectEnvironmentInitAction);
+            case RxConnectHostAction.RX_INIT:
+                this.runnerObservableInit(action as IRxConnectHostInitAction);
                 break;
-            case RxConnectEnvironmentAction.RX_EMIT:
-                this.runnerObservableEmit(action as IRxConnectEnvironmentEmitAction);
+            case RxConnectHostAction.RX_EMIT:
+                this.runnerObservableEmit(action as IRxConnectHostEmitAction);
                 break;
-            case RxConnectEnvironmentAction.RX_ERROR:
-                this.runnerObservableError(action as IRxConnectEnvironmentErrorAction);
+            case RxConnectHostAction.RX_ERROR:
+                this.runnerObservableError(action as IRxConnectHostErrorAction);
                 break;
-            case RxConnectEnvironmentAction.RX_COMPLETED:
-                this.runnerObservableCompleted(action as IRxConnectEnvironmentCompletedAction);
+            case RxConnectHostAction.RX_COMPLETED:
+                this.runnerObservableCompleted(action as IRxConnectHostCompletedAction);
                 break;
-            case RxConnectEnvironmentAction.RX_NOT_FOUND:
-                this.runnerObservableNotFound(action as IRxConnectEnvironmentNotFoundAction);
+            case RxConnectHostAction.RX_NOT_FOUND:
+                this.runnerObservableNotFound(action as IRxConnectHostNotFoundAction);
                 break;
             default:
                 super.handleAction(action);
@@ -50,7 +50,7 @@ export class RxConnectController extends ConnectController {
         }
     }
 
-    private runnerObservableInit(action: IRxConnectEnvironmentInitAction): void {
+    private runnerObservableInit(action: IRxConnectHostInitAction): void {
         let isComplete = false;
         const observable = new Observable<IConnectCustomAction>(subscriber => {
             if (!this.canSubscribedList.has(action.id)) {
@@ -65,14 +65,14 @@ export class RxConnectController extends ConnectController {
             this.subscribersMap.set(action.id, subscriber);
             this.canSubscribedList.delete(action.id)
             this.port.postMessage({
-                type: RxConnectControllerAction.RX_SUBSCRIBE,
+                type: RxConnectClientAction.RX_SUBSCRIBE,
                 id: action.id,
             });
             return () => {
                 // TODO NEED TEST
                 if (!isComplete) {
-                    const unsubscribeAction: IRxConnectControllerUnsubscribeAction = {
-                        type: RxConnectControllerAction.RX_UNSUBSCRIBE,
+                    const unsubscribeAction: IRxConnectClientUnsubscribeAction = {
+                        type: RxConnectClientAction.RX_UNSUBSCRIBE,
                         id: action.id,
                     }
                     this.port.postMessage(unsubscribeAction);
@@ -83,32 +83,32 @@ export class RxConnectController extends ConnectController {
             share(),
         );
         this.canSubscribedList.add(action.id);
-        const responseAction: IConnectEnvironmentCustomResponseAction = {
+        const responseAction: IConnectHostCustomResponseAction = {
             id: action.id,
-            type: ConnectEnvironmentAction.CUSTOM_RESPONSE,
+            type: ConnectHostAction.CUSTOM_RESPONSE,
             // Types hack :(
             payload: observable as unknown as IConnectCustomAction,
         }
         this.promiseListResolver.resolve(action.id, responseAction);
     }
 
-    private runnerObservableEmit(action: IRxConnectEnvironmentEmitAction): void {
+    private runnerObservableEmit(action: IRxConnectHostEmitAction): void {
         this.getSubscriber(action.id).next(action.response);
     }
 
-    private runnerObservableError(action: IRxConnectEnvironmentErrorAction): void {
+    private runnerObservableError(action: IRxConnectHostErrorAction): void {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.getSubscriber(action.id).error(
             this.errorSerializer.deserialize(action.error)
         );
     }
 
-    private runnerObservableCompleted(action: IRxConnectEnvironmentCompletedAction): void {
+    private runnerObservableCompleted(action: IRxConnectHostCompletedAction): void {
         this.getSubscriber(action.id).complete();
         this.subscribersMap.delete(action.id);
     }
 
-    private runnerObservableNotFound(action: IRxConnectEnvironmentNotFoundAction): void {
+    private runnerObservableNotFound(action: IRxConnectHostNotFoundAction): void {
         const subscriber =  this.getSubscriber(action.id);
         subscriber.error(new RxSubscriptionNotFoundError()); // TODO NEED TEST
         subscriber.complete();

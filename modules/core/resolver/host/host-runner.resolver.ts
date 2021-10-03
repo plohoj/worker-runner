@@ -1,4 +1,4 @@
-import { ConnectEnvironment } from '../../connect/environment/connect.environment';
+import { ConnectHost } from '../../connect/host/connect.host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RunnerInitError, HostResolverDestroyError } from '../../errors/runner-errors';
@@ -24,7 +24,7 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     protected readonly errorSerializer = this.buildWorkerErrorSerializer();
     protected readonly newConnectionHandler = this.handleNewConnection.bind(this);
-    protected readonly connectEnvironment = new ConnectEnvironment({
+    protected readonly connectHost = new ConnectHost({
         errorSerializer: this.errorSerializer,
         actionsHandler: this.handleAction.bind(this),
         destroyHandler: this.onAllDisconnect.bind(this),
@@ -117,7 +117,7 @@ export abstract class HostRunnerResolverBase<L extends RunnerIdentifierConfigLis
     }
 
     private handleNewConnection(port: MessagePort): void {
-        this.connectEnvironment.addPort(port);
+        this.connectHost.addPort(port);
     }
     
     private async initRunnerInstance(

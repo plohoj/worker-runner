@@ -1,7 +1,7 @@
-import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectEnvironmentConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironment , IRunnerMethodResult , IRunnerEnvironmentExecuteResultAction, TransferRunnerData, RunnerBridge, RUNNER_BRIDGE_CONTROLLER, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerControllerCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
-import { RxConnectEnvironment } from '../../connect/environment/rx-connect.environment';
+import { RxConnectHost } from '../../connect/host/rx-connect.host';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-messages';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { RxRunnerEmitError } from '../../errors/runner-errors';
@@ -25,11 +25,11 @@ export class RxRunnerEnvironment<R extends RunnerConstructor> extends RunnerEnvi
         return super.handleExecuteResponse(executeResult);
     }
 
-    protected override buildConnectEnvironment<
+    protected override buildConnectHost<
         I extends IConnectCustomAction,
         O extends IConnectCustomAction
-    >(config: IConnectEnvironmentConfig<I, O>): RxConnectEnvironment<I, O> {
-        return new RxConnectEnvironment(config);
+    >(config: IConnectHostConfig<I, O>): RxConnectHost<I, O> {
+        return new RxConnectHost(config);
     }
 
     protected override buildRunnerControllerCollection(

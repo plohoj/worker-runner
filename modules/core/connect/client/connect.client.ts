@@ -2,23 +2,23 @@ import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
-import { ConnectEnvironmentAction, IConnectEnvironmentActions, IConnectEnvironmentCustomErrorAction, IConnectEnvironmentCustomResponseAction } from "../environment/connect-environment.actions";
-import { ConnectControllerAction, IConnectControllerActions, IConnectControllerConnectAction, IConnectControllerCustomAction, IConnectControllerDestroyAction, IConnectControllerDisconnectAction, IConnectControllerInterruptListeningAction, IConnectCustomAction,  } from "./connect-controller.actions";
+import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction } from "../host/connect-host.actions";
+import { ConnectClientAction, IConnectClientActions, IConnectClientConnectAction, IConnectClientCustomAction, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectClientInterruptListeningAction, IConnectCustomAction,  } from "./connect-client.actions";
 
 type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
 
-export interface IConnectControllerConfig {
+export interface IConnectClientConfig {
     port: MessagePort,
     errorSerializer: WorkerRunnerErrorSerializer;
     forceDestroyHandler?: () => void;
     disconnectErrorFactory?: DisconnectErrorFactory;
 }
 
-export class ConnectController {
+export class ConnectClient {
     public readonly port: MessagePort;
     public disconnectStatus?: ConnectionWasClosedError;
 
-    protected readonly promiseListResolver = new PromiseListResolver<IConnectEnvironmentActions | IConnectCustomAction>();
+    protected readonly promiseListResolver = new PromiseListResolver<IConnectHostActions | IConnectCustomAction>();
     protected readonly disconnectErrorFactory: DisconnectErrorFactory;
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
 
@@ -26,7 +26,7 @@ export class ConnectController {
     private readonly forceDestroyHandler?: () => void;
     private lastActionId = 0;
 
-    constructor(config: IConnectControllerConfig) {
+    constructor(config: IConnectClientConfig) {
         this.errorSerializer = config.errorSerializer;
         this.forceDestroyHandler = config.forceDestroyHandler;
         this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
@@ -40,24 +40,24 @@ export class ConnectController {
     public static disconnectPort(port: MessagePort): Promise<void> {
         return new Promise(resolve => {
             function disconnectHandler(event: MessageEvent): void {
-                if ((event.data as IConnectEnvironmentActions).type === ConnectEnvironmentAction.DISCONNECTED) {
+                if ((event.data as IConnectHostActions).type === ConnectHostAction.DISCONNECTED) {
                     port.removeEventListener('message', disconnectHandler);
                     resolve();
                 }
             }
             port.addEventListener('message', disconnectHandler);
             port.start();
-            const disconnectAction: IConnectControllerDisconnectAction = {
+            const disconnectAction: IConnectClientDisconnectAction = {
                 id: -1,
-                type: ConnectControllerAction.DISCONNECT,
+                type: ConnectClientAction.DISCONNECT,
             }
             port.postMessage(disconnectAction)
         })
     }
 
     public async destroy(): Promise<void> {
-        const destroyAction: Omit<IConnectControllerDestroyAction, 'id'> = {
-            type: ConnectControllerAction.DESTROY,
+        const destroyAction: Omit<IConnectClientDestroyAction, 'id'> = {
+            type: ConnectClientAction.DESTROY,
         };
         try {
             await this.innerSendAction(destroyAction);
@@ -67,8 +67,8 @@ export class ConnectController {
     }
 
     public async disconnect(): Promise<void> {
-        const disconnectAction: Omit<IConnectControllerDisconnectAction, 'id'> = {
-            type: ConnectControllerAction.DISCONNECT,
+        const disconnectAction: Omit<IConnectClientDisconnectAction, 'id'> = {
+            type: ConnectClientAction.DISCONNECT,
         };
         await this.innerSendAction(disconnectAction);
         this.stopListen();
@@ -79,28 +79,28 @@ export class ConnectController {
         I extends IConnectCustomAction,
     >(action: O): Promise<I> {
         const {transfer, ...actionWithoutTransfer} = action; 
-        const wrappedAction: Omit<IConnectControllerCustomAction, 'id'> = {
-            type: ConnectControllerAction.CUSTOM,
+        const wrappedAction: Omit<IConnectClientCustomAction, 'id'> = {
+            type: ConnectClientAction.CUSTOM,
             payload: actionWithoutTransfer,
         };
-        const response: IConnectEnvironmentCustomResponseAction | IConnectEnvironmentCustomErrorAction
+        const response: IConnectHostCustomResponseAction | IConnectHostCustomErrorAction
             = await this.innerSendAction(wrappedAction, transfer);
-        if (response.type === ConnectEnvironmentAction.CUSTOM_RESPONSE) {
+        if (response.type === ConnectHostAction.CUSTOM_RESPONSE) {
             return response.payload as I;
         }
         throw this.errorSerializer.deserialize(response.error);
     }
 
-    /** Stop listening on the port without notifying *ConnectEnvironment* */
+    /** Stop listening on the port without notifying *ConnectHost* */
     public stopListen(isClosingPort = true): void {
         this.disconnectStatus ||= this.disconnectErrorFactory(new ConnectionWasClosedError());
         this.port.removeEventListener('message', this.messageHandler);
         if (isClosingPort) {
             this.port.close();
         } else {
-            const interruptListeningAction: IConnectControllerInterruptListeningAction = {
+            const interruptListeningAction: IConnectClientInterruptListeningAction = {
                 id: this.resolveActionId(),
-                type: ConnectControllerAction.INTERRUPT_LISTENING,
+                type: ConnectClientAction.INTERRUPT_LISTENING,
             }
             this.port.postMessage(interruptListeningAction);
         }
@@ -111,34 +111,34 @@ export class ConnectController {
         this.promiseListResolver.promises.clear();
     }
 
-    protected handleAction(action: IConnectEnvironmentActions): void {
+    protected handleAction(action: IConnectHostActions): void {
         switch (action.type) {
-            case ConnectEnvironmentAction.DESTROYED_BY_FORCE:
+            case ConnectHostAction.DESTROYED_BY_FORCE:
                 this.stopListen();
                 this.forceDestroyHandler?.();
                 break;
-            case ConnectEnvironmentAction.CUSTOM_ERROR:
-            case ConnectEnvironmentAction.DESTROYED_WITH_ERROR: {
+            case ConnectHostAction.CUSTOM_ERROR:
+            case ConnectHostAction.DESTROYED_WITH_ERROR: {
                 const error = this.errorSerializer.deserialize(action.error);
                 this.promiseListResolver.reject(action.id, error);
                 break;
             }
-            case ConnectEnvironmentAction.CUSTOM_RESPONSE:
-            case ConnectEnvironmentAction.DISCONNECTED:
-            case ConnectEnvironmentAction.DESTROYED_BY_REQUEST: {
+            case ConnectHostAction.CUSTOM_RESPONSE:
+            case ConnectHostAction.DISCONNECTED:
+            case ConnectHostAction.DESTROYED_BY_REQUEST: {
                 this.promiseListResolver.resolve(action.id, action);
                 break;
             }
             default:
                 throw new WorkerRunnerUnexpectedError({
-                    message: 'Unexpected Action type for Connect Controller',
+                    message: 'Unexpected Action type for Connect Client',
                 });
         }
     }
 
     private innerSendAction<
-        O extends Omit<IConnectControllerActions, 'id'>,
-        I extends IConnectEnvironmentActions,
+        O extends Omit<IConnectClientActions, 'id'>,
+        I extends IConnectHostActions,
     >(action: O, transfer?: Transferable[]): Promise<I> {
         if (this.disconnectStatus) {
             throw this.disconnectStatus;
@@ -147,14 +147,14 @@ export class ConnectController {
         const actionWidthId = {
             ...action,
             id: actionId,
-        } as IConnectControllerActions;
+        } as IConnectClientActions;
         const response$ = this.promiseListResolver.promise(actionId);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.port.postMessage(actionWidthId, transfer!);
         return response$ as unknown as Promise<I>;
     }
 
-    private onMessage(event: MessageEvent<IConnectEnvironmentActions>): void {
+    private onMessage(event: MessageEvent<IConnectHostActions>): void {
         this.handleAction(event.data);
     }
 
@@ -167,8 +167,8 @@ export class ConnectController {
     }
 
     private sendConnectAction(): void {
-        const connectAction: IConnectControllerConnectAction = {
-            type: ConnectControllerAction.CONNECT,
+        const connectAction: IConnectClientConnectAction = {
+            type: ConnectClientAction.CONNECT,
         };
         this.port.postMessage(connectAction);
     }

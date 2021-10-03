@@ -1,4 +1,4 @@
-import { ConnectController } from "../connect/controller/connect.controller";
+import { ConnectClient } from "../connect/client/connect.client";
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
 import { RunnerBridge, RUNNER_BRIDGE_CONTROLLER } from "../runner/runner.bridge";
 import { IRunnerParameter, IRunnerSerializedParameter } from "../types/constructor";
@@ -59,7 +59,7 @@ export async function serializeArguments(config: {
             ...serializedArgumentsWithPossibleErrors.mapped
                 .filter(serializeArgument => serializeArgument.type === RunnerSerializedArgumentType.RESOLVED_RUNNER)
                 .map(runnerSerializedArgument =>
-                    ConnectController.disconnectPort(
+                    ConnectClient.disconnectPort(
                         (runnerSerializedArgument as IRunnerSerializedResolvedRunnerArgument).port
                     ),
                 ),

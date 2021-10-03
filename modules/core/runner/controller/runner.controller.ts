@@ -1,5 +1,5 @@
 import { serializeArguments } from '../../arguments-serialization/serialize-arguments';
-import { ConnectController, IConnectControllerConfig } from '../../connect/controller/connect.controller';
+import { ConnectClient, IConnectClientConfig } from '../../connect/client/connect.client';
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerExecuteError } from '../../errors/runner-errors';
@@ -34,7 +34,7 @@ export class RunnerController<R extends RunnerConstructor> {
     public readonly token: RunnerToken;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
-    protected readonly connectController: ConnectController;
+    protected readonly connectClient: ConnectClient;
     protected readonly runnerControllerPartFactory: RunnerControllerPartFactory<R>;
     protected readonly onDestroyed: () => void;
 
@@ -49,7 +49,7 @@ export class RunnerController<R extends RunnerConstructor> {
         this.onDestroyed = config.onDestroyed;
         this.runnerControllerPartFactory = config.runnerControllerPartFactory;
         this.errorSerializer = config.errorSerializer;
-        this.connectController = this.buildConnectControllerByPartConfig({ port: config.port });
+        this.connectClient = this.buildConnectClientByPartConfig({ port: config.port });
     }
 
     public get resolvedRunner(): ResolvedRunner<InstanceType<R>> {
@@ -106,13 +106,13 @@ export class RunnerController<R extends RunnerConstructor> {
             transfer: serializedArgumentsData.transfer,
         };
         const actionResult: IRunnerEnvironmentExecuteResultAction
-            = await this.connectController.sendAction(action);
+            = await this.connectClient.sendAction(action);
         return this.handleExecuteResult(actionResult);
     }
 
     public async disconnect(): Promise<void> {
         try {
-            await this.connectController.disconnect();
+            await this.connectClient.disconnect();
         } finally {
             this.onDestroyed();
         }
@@ -120,7 +120,7 @@ export class RunnerController<R extends RunnerConstructor> {
 
     public async destroy(): Promise<void> {
         try {
-            await this.connectController.destroy();
+            await this.connectClient.destroy();
         } finally {
             this.onDestroyed();
         }
@@ -134,8 +134,8 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public markForTransfer(): void {
-        if (this.connectController.disconnectStatus) {
-            throw this.connectController.disconnectStatus;
+        if (this.connectClient.disconnectStatus) {
+            throw this.connectClient.disconnectStatus;
         }
         this.isMarkedForTransfer = true;
     }
@@ -148,10 +148,10 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     public stopListen(isClosePort = true): void {
-        if (this.connectController.disconnectStatus) {
-            throw this.connectController.disconnectStatus;
+        if (this.connectClient.disconnectStatus) {
+            throw this.connectClient.disconnectStatus;
         }
-        this.connectController.stopListen(isClosePort);
+        this.connectClient.stopListen(isClosePort);
         this.onDestroyed();
     }
 
@@ -166,10 +166,10 @@ export class RunnerController<R extends RunnerConstructor> {
         }
     }
 
-    protected buildConnectController(
-        config: IConnectControllerConfig,
-    ): ConnectController {
-        return new ConnectController(config);
+    protected buildConnectClient(
+        config: IConnectClientConfig,
+    ): ConnectClient {
+        return new ConnectClient(config);
     }
 
     protected getErrorMessageConfig(): IRunnerMessageConfig {
@@ -180,16 +180,16 @@ export class RunnerController<R extends RunnerConstructor> {
     }
 
     private async resolveControl(): Promise<MessagePort> {
-        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectController.sendAction({
+        const actionResult: IRunnerEnvironmentResolvedAction = await this.connectClient.sendAction({
             type: RunnerControllerAction.RESOLVE,
         });
         return actionResult.port;
     }
 
-    private buildConnectControllerByPartConfig(
-        config: Pick<IConnectControllerConfig, 'port'>,
-    ): ConnectController {
-        return this.buildConnectController({
+    private buildConnectClientByPartConfig(
+        config: Pick<IConnectClientConfig, 'port'>,
+    ): ConnectClient {
+        return this.buildConnectClient({
             errorSerializer: this.errorSerializer,
             forceDestroyHandler: () => this.onDestroyed(),
             disconnectErrorFactory: this.disconnectErrorFactory.bind(this),
@@ -212,14 +212,14 @@ export class RunnerController<R extends RunnerConstructor> {
             type: RunnerControllerAction.REQUEST_RUNNER_OWN_DATA,
         }
         const environmentData: IRunnerEnvironmentOwnDataAction
-            = await this.connectController.sendAction(action);
+            = await this.connectClient.sendAction(action);
 
         return environmentData;
     }
 
     private transferControl(): MessagePort {
         this.stopListen(false);
-        return this.connectController.port;
+        return this.connectClient.port;
     }
 
     private disconnectErrorFactory(error: ConnectionWasClosedError): ConnectionWasClosedError {

@@ -1,4 +1,4 @@
-import { ConnectController } from "../connect/controller/connect.controller";
+import { ConnectClient } from "../connect/client/connect.client";
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
 import { RunnerController, RunnerControllerPartFactory } from "../runner/controller/runner.controller";
 import { IRunnerSerializedParameter } from "../types/constructor";
@@ -27,7 +27,7 @@ export async function deserializeArguments<L extends RunnerIdentifierConfigList>
                             token: argument.token,
                         });
                     } catch (error: unknown) {
-                        await ConnectController.disconnectPort(argument.port);
+                        await ConnectClient.disconnectPort(argument.port);
                         throw error;
                     }
                     controllers.push(controller);
@@ -45,7 +45,7 @@ export async function deserializeArguments<L extends RunnerIdentifierConfigList>
         const disconnectedOrErrors =  await allPromisesCollectErrors([
             ...deserializedArgumentsWithPossibleErrors.rest.map(async restArgument => {
                 if (restArgument.type === RunnerSerializedArgumentType.RESOLVED_RUNNER) {
-                    await ConnectController.disconnectPort(restArgument.port);
+                    await ConnectClient.disconnectPort(restArgument.port);
                 }
             }),
             ...controllers.map(controller => controller.disconnect()),

@@ -1,6 +1,6 @@
 import { deserializeArguments } from '../../arguments-serialization/deserialize-arguments';
-import { IConnectCustomAction } from '../../connect/controller/connect-controller.actions';
-import { ConnectEnvironment, IConnectEnvironmentConfig } from '../../connect/environment/connect.environment';
+import { IConnectCustomAction } from '../../connect/client/connect-client.actions';
+import { ConnectHost, IConnectHostConfig } from '../../connect/host/connect.host';
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
@@ -36,7 +36,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
     public readonly token: RunnerToken;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer;
-    protected readonly connectEnvironment: ConnectEnvironment<IRunnerControllerAction, IRunnerEnvironmentAction>;
+    protected readonly connectHost: ConnectHost<IRunnerControllerAction, IRunnerEnvironmentAction>;
 
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     private readonly runnerControllerCollection: RunnerControllerCollection<RunnerIdentifierConfigList>;
@@ -53,12 +53,12 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
         });
         this.onDestroyed = config.onDestroyed;
-        this.connectEnvironment = this.buildConnectEnvironment({
+        this.connectHost = this.buildConnectHost({
             errorSerializer: this.errorSerializer,
             actionsHandler: this.handleAction.bind(this),
             destroyHandler: this.handleDestroy.bind(this),
         });
-        this.connectEnvironment.addPort(config.port);
+        this.connectHost.addPort(config.port);
     }
 
     public get runnerInstance(): InstanceType<R> {
@@ -246,11 +246,11 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
         }
     }
 
-    protected buildConnectEnvironment<
+    protected buildConnectHost<
         I extends IConnectCustomAction,
         O extends IConnectCustomAction
-    >(config: IConnectEnvironmentConfig<I, O>): ConnectEnvironment<I, O> {
-        return new ConnectEnvironment(config);
+    >(config: IConnectHostConfig<I, O>): ConnectHost<I, O> {
+        return new ConnectHost(config);
     }
 
     protected buildRunnerControllerCollection(
@@ -261,7 +261,7 @@ export class RunnerEnvironment<R extends RunnerConstructor> {
 
     private async resolve(): Promise<IRunnerEnvironmentResolvedAction> {
         const messageChanel = new MessageChannel();
-        this.connectEnvironment.addPort(messageChanel.port1);
+        this.connectHost.addPort(messageChanel.port1);
         return {
             type: RunnerEnvironmentAction.RESOLVED,
             port: messageChanel.port2,

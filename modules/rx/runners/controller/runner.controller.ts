@@ -1,14 +1,14 @@
-import { IConnectControllerConfig, IRunnerParameter, RunnerConstructor, RunnerController, IRunnerSerializedMethodResult, IRunnerEnvironmentExecuteResultAction, WorkerRunnerUnexpectedError, WorkerRunnerError } from '@worker-runner/core';
+import { IConnectClientConfig, IRunnerParameter, RunnerConstructor, RunnerController, IRunnerSerializedMethodResult, IRunnerEnvironmentExecuteResultAction, WorkerRunnerUnexpectedError, WorkerRunnerError } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
-import { RxConnectController } from '../../connect/controller/rx-connect.controller';
+import { RxConnectClient } from '../../connect/client/rx-connect.client';
 import { RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { IRxRunnerEnvironmentAction, RxRunnerEnvironmentAction } from '../environment/runner-environment.actions';
 
 export class RxRunnerController<R extends RunnerConstructor> extends RunnerController<R> {
 
     protected override readonly errorSerializer = RX_WORKER_RUNNER_ERROR_SERIALIZER;
-    protected declare readonly connectController: RxConnectController;
+    protected declare readonly connectClient: RxConnectClient;
 
     public override async execute(
         methodName: string,
@@ -34,8 +34,8 @@ export class RxRunnerController<R extends RunnerConstructor> extends RunnerContr
         return super.handleExecuteResult(actionResult);
     }
 
-    protected override buildConnectController(config: IConnectControllerConfig): RxConnectController {
-        return new RxConnectController(config);
+    protected override buildConnectClient(config: IConnectClientConfig): RxConnectClient {
+        return new RxConnectClient(config);
     }
 
     private async mapRxEmit(

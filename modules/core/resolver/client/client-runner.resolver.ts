@@ -1,5 +1,5 @@
 import { serializeArguments } from '../../arguments-serialization/serialize-arguments';
-import { ConnectController } from '../../connect/controller/connect.controller';
+import { ConnectClient } from '../../connect/client/connect.client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WorkerRunnerErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionWasClosedError, RunnerInitError } from '../../errors/runner-errors';
@@ -23,7 +23,7 @@ export type IClientRunnerResolverConfigBase<L extends RunnerIdentifierConfigList
 export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
 
     protected resolverBridge?: ClientResolverBridge;
-    protected connectController?: ConnectController;
+    protected connectClient?: ConnectClient;
 
     protected readonly errorSerializer: WorkerRunnerErrorSerializer = this.buildErrorSerializer();
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
@@ -47,7 +47,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         this.buildResolverBridge();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const port = await this.resolverBridge!.connect();
-        this.connectController = new ConnectController({
+        this.connectClient = new ConnectClient({
             port,
             errorSerializer: this.errorSerializer,
             forceDestroyHandler: this.destroyByForce.bind(this),
@@ -81,10 +81,10 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
 
     /** Destroying of all resolved Runners instance */
     public async destroy(): Promise<void> {
-        if (this.connectController) {
-            await this.connectController.destroy();
+        if (this.connectClient) {
+            await this.connectClient.destroy();
             this.stopListenAndClearAllRunnerControllerCollection();
-            this.connectController = undefined;
+            this.connectClient = undefined;
             this.resolverBridge = undefined;
         } else {
             throw new ConnectionWasClosedError({
@@ -111,7 +111,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
         token: RunnerToken,
         args: IRunnerParameter[],
     ): Promise<IHostResolverRunnerInitedAction | IHostResolverSoftRunnerInitedAction> {
-        if (!this.connectController) {
+        if (!this.connectClient) {
             throw new ConnectionWasClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.HOST_RESOLVER_NOT_INIT(),
             });
@@ -135,7 +135,7 @@ export class ClientRunnerResolverBase<L extends RunnerIdentifierConfigList>  {
                 transfer: serializedArguments.transfer,
             };
             const responseAction: IHostResolverRunnerInitedAction | IHostResolverSoftRunnerInitedAction
-                = await this.connectController.sendAction(action);
+                = await this.connectClient.sendAction(action);
             return responseAction;
         } catch (error) {
             throw this.errorSerializer.normalize(error, RunnerInitError, {

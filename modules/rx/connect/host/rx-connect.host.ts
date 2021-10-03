@@ -1,42 +1,42 @@
-import { ConnectEnvironment, IConnectControllerActions, IConnectEnvironmentActions, IMessagePortConnectEnvironmentData, WorkerRunnerUnexpectedError, IListeningInterrupter, ConnectionWasClosedError, IConnectCustomAction } from "@worker-runner/core";
+import { ConnectHost, IConnectClientActions, IConnectHostActions, IMessagePortConnectHostData, WorkerRunnerUnexpectedError, IListeningInterrupter, ConnectionWasClosedError, IConnectCustomAction } from "@worker-runner/core";
 import { from, Observable, Subscription } from "rxjs";
 import { takeUntil, tap } from "rxjs/operators";
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from "../../errors/runner-errors";
-import { IRxConnectControllerActions, RxConnectControllerAction } from "../controller/rx-connect-controller.actions";
-import { IRxConnectEnvironmentActions, IRxConnectEnvironmentCompletedAction, IRxConnectEnvironmentEmitAction, IRxConnectEnvironmentErrorAction, IRxConnectEnvironmentInitAction, IRxConnectEnvironmentNotFoundAction, RxConnectEnvironmentAction } from "./rx-connect-environment.actions";
+import { IRxConnectClientActions, RxConnectClientAction } from "../client/rx-connect-client.actions";
+import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "./rx-connect-host.actions";
 
 interface IRxListeningInterrupter extends IListeningInterrupter {
     observable: Observable<void>;
 }
 
-interface IMessagePortRxConnectEnvironmentData extends IMessagePortConnectEnvironmentData{
+interface IMessagePortRxConnectHostData extends IMessagePortConnectHostData{
     subscriptionsMap: Map<number, Subscription>;
     observablesMap: Map<number, Observable<IConnectCustomAction>>
     listeningInterrupter: IRxListeningInterrupter;
 }
 
-export class RxConnectEnvironment<
+export class RxConnectHost<
     I extends IConnectCustomAction = IConnectCustomAction,
     O extends IConnectCustomAction = IConnectCustomAction
-> extends ConnectEnvironment<I, O> {
+> extends ConnectHost<I, O> {
         
     declare protected sendAction: (
         port: MessagePort,
-        action: IConnectEnvironmentActions | IRxConnectEnvironmentActions,
+        action: IConnectHostActions | IRxConnectHostActions,
         transfer?: Transferable[]
     ) => void;
 
-    declare protected getMessagePortData: (port: MessagePort) => IMessagePortRxConnectEnvironmentData | undefined;
+    declare protected getMessagePortData: (port: MessagePort) => IMessagePortRxConnectHostData | undefined;
 
     protected override async handleAction(
         port: MessagePort,
-        actionWithId: IConnectControllerActions | IRxConnectControllerActions
+        actionWithId: IConnectClientActions | IRxConnectClientActions
     ): Promise<void> {
         switch (actionWithId.type) {
-            case RxConnectControllerAction.RX_SUBSCRIBE:
+            case RxConnectClientAction.RX_SUBSCRIBE:
                 this.onSubscribeAction(port, actionWithId.id);
                 break;
-            case RxConnectControllerAction.RX_UNSUBSCRIBE:
+            case RxConnectClientAction.RX_UNSUBSCRIBE:
                 this.onUnsubscribeAction(port, actionWithId.id);
                 break;
             default: 
@@ -57,9 +57,9 @@ export class RxConnectEnvironment<
                 });
             }
             portRxData.observablesMap.set(actionId, response);
-            const initObservableAction: IRxConnectEnvironmentInitAction = {
+            const initObservableAction: IRxConnectHostInitAction = {
                 id: actionId,
-                type: RxConnectEnvironmentAction.RX_INIT,
+                type: RxConnectHostAction.RX_INIT,
             }
             this.sendAction(port, initObservableAction);
         } else {
@@ -67,8 +67,8 @@ export class RxConnectEnvironment<
         }
     }
 
-    protected override createMessagePortData(port: MessagePort, data: IMessagePortRxConnectEnvironmentData): void {
-        const portData: IMessagePortRxConnectEnvironmentData = {
+    protected override createMessagePortData(port: MessagePort, data: IMessagePortRxConnectHostData): void {
+        const portData: IMessagePortRxConnectHostData = {
             ...data,
             observablesMap: new Map(),
             subscriptionsMap: new Map(),
@@ -103,9 +103,9 @@ export class RxConnectEnvironment<
     ): void {
         const observable = this.extractObservable(port, actionId);
         if (!observable) {
-            const notFoundAction: IRxConnectEnvironmentNotFoundAction = {
+            const notFoundAction: IRxConnectHostNotFoundAction = {
                 id: actionId,
-                type: RxConnectEnvironmentAction.RX_NOT_FOUND,
+                type: RxConnectHostAction.RX_NOT_FOUND,
             };
             this.sendAction(port, notFoundAction);
             return;
@@ -139,10 +139,10 @@ export class RxConnectEnvironment<
         data: IConnectCustomAction
     ): void {
         const {transfer, ...dataWithoutTransfer} = data
-        const emitAction: IRxConnectEnvironmentEmitAction = {
+        const emitAction: IRxConnectHostEmitAction = {
             response: dataWithoutTransfer,
             id: actionId,
-            type: RxConnectEnvironmentAction.RX_EMIT,
+            type: RxConnectHostAction.RX_EMIT,
         }
         this.sendAction(port, emitAction, transfer);
     }
@@ -152,20 +152,20 @@ export class RxConnectEnvironment<
         actionId: number,
         error: unknown,
     ): void {
-        const errorAction: IRxConnectEnvironmentErrorAction = {
+        const errorAction: IRxConnectHostErrorAction = {
             error: this.errorSerializer.serialize(
                 this.errorSerializer.normalize(error, RxRunnerEmitError),
             ),
             id: actionId,
-            type: RxConnectEnvironmentAction.RX_ERROR,
+            type: RxConnectHostAction.RX_ERROR,
         }
         this.sendAction(port, errorAction);
     }
 
     private onObservableComplete(port: MessagePort, actionId: number): void {
-        const completeAction: IRxConnectEnvironmentCompletedAction = {
+        const completeAction: IRxConnectHostCompletedAction = {
             id: actionId,
-            type: RxConnectEnvironmentAction.RX_COMPLETED,
+            type: RxConnectHostAction.RX_COMPLETED,
         }
         this.sendAction(port, completeAction);
     }
