@@ -1,4 +1,4 @@
-import { RunnerToken } from "../runner/runner-bridge/runners-list.controller";
+import { RunnerToken } from "../types/runner-identifier";
 
 export interface IRunnerMessageConfig {
     token?: RunnerToken;
@@ -57,11 +57,11 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     EXECUTE_ERROR(config: Readonly<IRunnerExecuteMessageConfig> = {}): string {
         return `Runtime Error${this.formatRunnerInfo(config, 'for')}`;
     },
-    HOST_RESOLVER_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
+    RUNNER_RESOLVER_HOST_DESTROY_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
         return `An error occurred while destroying Runner${this.formatRunnerInfo(config)}`;
     },
-    HOST_RESOLVER_NOT_INIT(): string {
-        return 'Host Resolver not init';
+    RUNNER_RESOLVER_HOST_NOT_INIT(): string {
+        return 'RunnerResolverHost not init';
     },
 
     UNEXPECTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {

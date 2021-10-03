@@ -1,11 +1,10 @@
 import { ResolvedRunner } from '@worker-runner/core';
-import { LocalRunnerResolver } from '@worker-runner/promise';
-import { RxLocalRunnerResolver } from '@worker-runner/rx';
-import { resolverList } from 'test/common/resolver-list';
-import { runners } from 'test/common/runner-list';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { WithLocalResolverStub } from 'test/common/stubs/with-local-resolver-stub.runner';
-import { each } from 'test/utils/each';
+import { apartHostClientResolvers, localResolvers, resolverList } from '../client/resolver-list';
+import { runners } from '../common/runner-list';
+import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
+import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';
+import { createApartClientHostResolvers } from '../utils/apart-client-host-resolvers';
+import { each } from '../utils/each';
 
 each(resolverList, (mode, resolver) =>
     describe(`${mode} return Resolved Runner`, () => {
@@ -32,14 +31,11 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each({
-        Local: LocalRunnerResolver,
-        'Rx Local': RxLocalRunnerResolver as unknown as typeof LocalRunnerResolver,
-    },
-    (mode, IterateLocalRunnerResolver) => describe(`${mode} return resolved runner`, () => {
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+    describe(`${mode} return resolved runner`, () => {
         it ('with mark for transfer and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners });
+            const localResolver = new IterateRunnerResolverLocal({ runners });
             await localResolver.run();
             const withLocalResolverStub = await localResolver
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +50,7 @@ each({
 
         it ('without mark for transfer and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
-            const localResolver = new IterateLocalRunnerResolver({ runners });
+            const localResolver = new IterateRunnerResolverLocal({ runners });
             await localResolver.run();
             const withLocalResolverStub = await localResolver
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +62,50 @@ each({
             expect(destroySpy).not.toHaveBeenCalled();
             await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();
+        });
+    }),
+);
+
+each(apartHostClientResolvers, (mode, resolvers) => 
+    describe(`${mode} return resolved runner`, () => {
+        it ('without Client configuration', async () => {
+            const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
+                hostConfig: {
+                    runners: [
+                        WithLocalResolverStub,
+                        {
+                            token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                            runner: ExecutableStubRunner,
+                        }
+                    ],
+                },
+                runnerResolverClientConstructor: resolvers.client,
+                runnerResolverHostConstructor: resolvers.host,
+            });
+            await apartConfiguredRunnerResolvers.run();
+            const withLocalResolverStub = await apartConfiguredRunnerResolvers.client.resolve(WithLocalResolverStub);
+            await withLocalResolverStub.run({});
+
+            await expectAsync(withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()).toBeResolved();
+
+            await apartConfiguredRunnerResolvers.destroy();
+        });
+
+        it ('without Client and Host configuration', async () => {
+            const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
+                hostConfig: {
+                    runners: [WithLocalResolverStub],
+                },
+                runnerResolverClientConstructor: resolvers.client,
+                runnerResolverHostConstructor: resolvers.host,
+            });
+            await apartConfiguredRunnerResolvers.run();
+            const withLocalResolverStub = await apartConfiguredRunnerResolvers.client.resolve(WithLocalResolverStub);
+            await withLocalResolverStub.run({});
+
+            await expectAsync(withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()).toBeResolved();
+
+            await apartConfiguredRunnerResolvers.destroy();
         });
     }),
 );

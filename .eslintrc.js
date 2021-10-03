@@ -39,7 +39,7 @@ module.exports = {
         "unicorn/prevent-abbreviations": [
             "error",
             {
-                "whitelist": {
+                "allowList": {
                     "args": true
                 }
             }
@@ -52,7 +52,15 @@ module.exports = {
         'no-restricted-imports': [
             'error',
             {
-                patterns: ['rxjs/Rx', '@worker-runner/*/**', '**/modules', '**/../core', '**/../promise', '**/../rx'],
+                patterns: [
+                    'rxjs/Rx',
+                    '@worker-runner/*/**',
+                    '**/modules',
+                    '**/../core',
+                    '**/../promise',
+                    '**/../rx',
+                    'test/'
+                ],
             },
         ],
     },
@@ -65,6 +73,8 @@ module.exports = {
             },
             rules: {
                 '@typescript-eslint/no-var-requires': 'off',
+                'unicorn/prefer-module': 'off',
+                'unicorn/prefer-node-protocol': 'off'
             },
         },
     ],

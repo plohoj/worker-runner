@@ -2,10 +2,15 @@
     "peacock.color": "#00FFCC",
     "peacock.affectActivityBar": false,
     "peacock.affectTitleBar": false,
+    "peacock.affectTabActiveBorder": false,
+    "peacock.affectAccentBorders": false,
+    "peacock.affectStatusAndTitleBorders": false,
     "workbench.colorCustomizations": {
         "statusBar.background": "#00ffcc",
         "statusBarItem.hoverBackground": "#00cca3",
-        "statusBar.foreground": "#15202b"
+        "statusBar.foreground": "#15202b",
+        "statusBarItem.remoteBackground": "#00ffcc",
+        "statusBarItem.remoteForeground": "#15202b"
     },
     "typescript.tsdk": "node_modules\\typescript\\lib",
     "cSpell.words": [
@@ -15,4 +20,5 @@
         "inited",
         "preprocessors"
     ],
+    "typescript.preferences.importModuleSpecifier": "project-relative",
 }

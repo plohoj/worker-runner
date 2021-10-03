@@ -1,10 +1,9 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { resolverList } from 'test/common/resolver-list';
-import { EXECUTABLE_STUB_RUNNER_TOKEN } from 'test/common/runner-list';
-import { ExecutableStubRunner } from 'test/common/stubs/executable-stub.runner';
-import { WithOtherInstanceStubRunner } from 'test/common/stubs/with-other-instance-stub.runner';
-import { each } from 'test/utils/each';
-import { errorContaining } from 'test/utils/error-containing';
+import { localResolvers, resolverList } from '../client/resolver-list';
+import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
+import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
+import { each } from '../utils/each';
+import { errorContaining } from '../utils/error-containing';
 
 each(resolverList, (mode, resolver) =>
     describe(`${mode} disconnect runner`, () => {
@@ -66,3 +65,30 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
+each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+    describe(`${mode} disconnect runner`, () => {
+        it ('with resolved another runner', async () => {
+            const localResolver = new IterateRunnerResolverLocal({
+                runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
+            });
+            await localResolver.run();
+
+            const executableStubRunner = await localResolver
+                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+            const withOtherInstanceStubRunner = await localResolver
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
+                    WithOtherInstanceStubRunner>;
+            const runnerEnvironmentHosts
+                = [...localResolver['resolverBridge']?.runnerResolverHost['runnerEnvironmentHosts'] || []];
+
+            const runnerEnvironmentHost = runnerEnvironmentHosts
+                .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);
+
+            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
+            await withOtherInstanceStubRunner.disconnect();
+            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(0);
+
+            await localResolver.destroy();
+        });
+    }),
+);

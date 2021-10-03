@@ -3,7 +3,7 @@
   "version": "0.9.2",
   "repository": {
     "type": "git",
-    "url": "git+https://plohoj@github.com/plohoj/worker-runner.git"
+    "url": "git+https://github.com/plohoj/worker-runner.git"
   },
   "author": "Alexandr Plokhikh",
   "license": "MIT",
@@ -12,21 +12,22 @@
   },
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
-  "types": "./declarations/index.d.ts",
+  "types": "./declarations/index.ts",
   "main": "./umd/rx.js",
   "module": "./esm/rx.js",
+  "sideEffects": false,
   "keywords": [
     "worker-runner",
     "worker",
     "webworker",
     "rx",
     "rxjs",
-    "runner"
+    "runner",
+    "asynchronous"
   ],
   "dependencies": {
-    "@worker-runner/core": "^0.9.0"
-  },
-  "peerDependencies": {
-    "rxjs": ">=6.0.0"
+    "@worker-runner/core": "^0.9.0",
+    "rxjs": ">=6.0.0",
+    "tslib": "^2.2.0"
   }
 }

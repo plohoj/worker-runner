@@ -5,6 +5,32 @@ on:
     branches: [master]
 
 jobs:
+  update-major-version:
+
+    name: Updating major version
+    if: |
+      startsWith(github.event.head_commit.message, 'Merge ')
+      && contains(github.event.head_commit.message, '[major version]')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout to commit
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.PUSH_TOKEN }}
+    - name: Set up node
+      uses: actions/setup-node@v2
+    - name: Install npm dependencies
+      run: npm ci
+    - name: Configure commit author
+      run: |
+        git config --local user.email "$(git log -1 --format='%ae')"
+        git config --local user.name "$(git log -1 --format='%an')"
+    - name: Updating version
+      run: npm run version:major
+    - name: Push to a branch
+      run: git push origin HEAD
+
   update-minor-version:
 
     name: Updating minor version
@@ -19,7 +45,7 @@ jobs:
       with:
         token: ${{ secrets.PUSH_TOKEN }}
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
     - name: Install npm dependencies
       run: npm ci
     - name: Configure commit author
@@ -45,7 +71,7 @@ jobs:
       with:
         token: ${{ secrets.PUSH_TOKEN }}
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
     - name: Install npm dependencies
       run: npm ci
     - name: Configure commit author
@@ -67,7 +93,7 @@ jobs:
     - name: Checkout to commit
       uses: actions/checkout@v2
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
     - name: Get version from package.json
       run: echo "::set-output name=version::$(node -pe "require('./package.json').version")"
       id: get_version

@@ -1,6 +1,3 @@
-export { ClientRunnerResolver } from './resolvers/client-runner.resolver';
-export { HostRunnerResolver } from './resolvers/host-runner.resolver';
-export { LocalRunnerResolver } from './resolvers/local-runner.resolver';
-export { NodeRunnerResolver } from './resolvers/node-runner.resolver';
-export { RunnerResolver } from './resolvers/runner.resolver';
-export { WorkerRunnerResolver } from './resolvers/worker-runner.resolver';
+export { RunnerResolverClient } from './resolvers/runner-resolver.client';
+export { RunnerResolverHost } from './resolvers/runner-resolver.host';
+export { RunnerResolverLocal } from './resolvers/runner-resolver.local';

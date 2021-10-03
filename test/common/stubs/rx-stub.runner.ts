@@ -1,22 +1,24 @@
 import { JsonObject, ResolvedRunner } from '@worker-runner/core';
-import { LocalRunnerResolver } from '@worker-runner/promise';
+import { RunnerResolverLocal } from '@worker-runner/promise';
 import { RxResolvedRunner } from '@worker-runner/rx';
-import { from, Observable, of, throwError } from 'rxjs';
-import { concatAll, delay as rxDelay } from 'rxjs/operators';
+import { from, Observable, of, throwError, timer } from 'rxjs';
+import { concatAll, mergeMap } from 'rxjs/operators';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
 export class RxStubRunner {
-    private localResolver?: LocalRunnerResolver<typeof runners>;
+    private localResolver?: RunnerResolverLocal<typeof runners>;
 
     public async run(): Promise<void> {
-        this.localResolver = new LocalRunnerResolver({runners});
+        this.localResolver = new RunnerResolverLocal({runners});
         await this.localResolver.run();
     }
 
     public emitMessages(messages: string[], delay?: number): Observable<string> {
         if (delay) {
-            return of(...messages).pipe((rxDelay(delay)));
+            return timer(delay).pipe(
+                mergeMap(() => of(...messages))
+            );
         }
         return of(...messages);
     }

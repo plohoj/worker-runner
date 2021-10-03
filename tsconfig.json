@@ -2,18 +2,16 @@
     "compilerOptions": {
         "baseUrl": "./",
         "module": "ESNext",
-        "lib": [
-            "webworker"
-        ],
         "target": "ES2015",
         "outDir": "./dist",
-        "strictNullChecks": true,
         "strict": true,
         "moduleResolution": "Node",
         "sourceMap": true,
         "paths": {
             "@worker-runner/*": ["./modules/*"]
-        }
+        },
+        "importHelpers": true,
+        "noImplicitOverride": true
     },
     "exclude": [
         "node_modules",

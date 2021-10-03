@@ -1,6 +1,5 @@
 # Worker Runner
 
-[![Build](https://github.com/plohoj/worker-runner/workflows/Build%20CI/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Build+CI%22+branch%3Amaster)
 [![Test in Chrome](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Chrome/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Chrome%22+branch%3Amaster)
 [![Test in Firefox](https://github.com/plohoj/worker-runner/workflows/Test%20in%20Firefox/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test+in+Firefox%22+branch%3Amaster)
 [![Test in IE11](https://github.com/plohoj/worker-runner/workflows/Test%20in%20IE11/badge.svg?branch=master)](https://github.com/plohoj/worker-runner/actions?query=workflow%3A%22Test%20in%20IE11%22+branch%3Amaster)

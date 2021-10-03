@@ -1,10 +1,22 @@
 import { readdirSync } from 'fs';
 import path from "path";
-import typescript from 'rollup-plugin-typescript2';
+import typescriptPlugin from 'rollup-plugin-typescript2';
 
 const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
-    .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
 const moduleFormats = ["umd", "esm"];
+
+/** @type {import('rollup').GlobalsOption} */
+const globalLibs = {
+    'rxjs': 'rxjs',
+    'tslib': 'tslib',
+
+    'rxjs/operators': 'rxjs.operators',
+    '@worker-runner/core': 'WorkerRunnerCore',
+    '@worker-runner/promise': 'WorkerRunnerPromise',
+    '@worker-runner/rx': 'WorkerRunnerRx',
+};
 
 function generateBuildConfig(moduleName, moduleFormat) {
     /** @type {import('rollup').RollupOptions} */
@@ -12,20 +24,14 @@ function generateBuildConfig(moduleName, moduleFormat) {
         input: `modules/${moduleName}/index.ts`,
         output: {
             name: `@worker-runner/${moduleName}`,
-            globals: {
-                rxjs: 'rxjs',
-                'rxjs/operators': 'rxjs.operators',
-                '@worker-runner/core': 'WorkerRunnerCore',
-                '@worker-runner/promise': 'WorkerRunnerPromise',
-                '@worker-runner/rx': 'WorkerRunnerRx',
-            },
+            globals: globalLibs,
             file: `dist/${moduleName}/${moduleFormat}/${moduleName}.js`,
             sourcemap: true,
             format: moduleFormat,
         },
-        external: ['rxjs', 'rxjs/operators', '@worker-runner/core'],
+        external: Object.keys(globalLibs),
         plugins: [
-            typescript(),
+            typescriptPlugin(),
         ]
     };
     return config;
