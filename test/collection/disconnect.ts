@@ -1,11 +1,11 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { localResolvers, resolverList } from '../client/resolver-list';
+import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(resolverList, (mode, resolver) =>
+each(allResolvers, (mode, resolver) =>
     describe(`${mode} disconnect runner`, () => {
 
         beforeAll(async () => {
@@ -65,7 +65,7 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} disconnect runner`, () => {
         it ('with resolved another runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({

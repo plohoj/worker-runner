@@ -25,7 +25,7 @@ export type AvailableRunnersFromList<L extends RunnerIdentifierConfigList>
         : never;
 
 export type AvailableRunnerIdentifier<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList>
-     = RunnerToken | AvailableRunnersFromList<L> | RunnerConstructor;
+     = AvailableRunnersFromList<L> | RunnerIdentifier;
 
 export type AnyRunnerFromList<L extends RunnerIdentifierConfigList>
     = L extends ArrayLike<infer TOR>

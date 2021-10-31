@@ -1,4 +1,4 @@
-import { RunnerResolverClientBase, Constructor, RunnerConstructor, RunnerIdentifierConfigList, RunnerIdentifier, RunnerByIdentifier, InstanceTypeOrUnknown, IRunnerEnvironmentClientCollectionConfig } from '@worker-runner/core';
+import { RunnerResolverClientBase, Constructor, RunnerConstructor, RunnerIdentifierConfigList, RunnerByIdentifier, InstanceTypeOrUnknown, IRunnerEnvironmentClientCollectionConfig, AvailableRunnerIdentifier } from '@worker-runner/core';
 import { RxWorkerRunnerErrorSerializer, RX_WORKER_RUNNER_ERROR_SERIALIZER } from '../errors/error.serializer';
 import { RxRunnerEnvironmentClientCollection } from '../runner-environment/client/runner-environment.client.collection';
 import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runner/resolved-runner';
@@ -13,7 +13,7 @@ export type RxRunnerArguments<R extends RunnerConstructor>
 
 export class RxRunnerResolverClient<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClientBase<L> {
 
-    declare public resolve: <I extends RunnerIdentifier>(
+    declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
         ...args: RxRunnerArguments<RunnerByIdentifier<L, I>>
     ) => Promise<RxResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;

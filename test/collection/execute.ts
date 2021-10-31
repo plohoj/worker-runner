@@ -1,6 +1,6 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
-import { apartHostClientResolvers, resolverClientList, resolverList } from '../client/resolver-list';
+import { apartHostClientResolvers, resolverClientList, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -11,7 +11,7 @@ import { createApartClientHostResolvers } from '../utils/apart-client-host-resol
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(resolverList, (mode, resolver) =>
+each(allResolvers, (mode, resolver) =>
     describe(`${mode} execute`, () => {
 
         beforeAll(async () => {

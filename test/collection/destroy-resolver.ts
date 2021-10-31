@@ -1,10 +1,10 @@
 import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { localResolvers, resolverList } from '../client/resolver-list';
+import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(resolverList, (mode, resolver) =>
+each(allResolvers, (mode, resolver) =>
     describe(`${mode} destroy resolver`, () => {
         it ('for restart', async () => {
             await resolver.run();
@@ -35,7 +35,7 @@ each(resolverList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} destroy resolver`, () => {
         it ('simple', async () => {
             class DestroyStub {
