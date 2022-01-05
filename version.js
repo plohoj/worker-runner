@@ -72,7 +72,7 @@ function errorLog(directory) {
     ]);
     try {
         await new Promise((resolve, reject) => {
-            exec(`git commit -m "v${newVersion}" -m "[prepare release]" -a`,
+            exec(`git commit -m "v${newVersion}" -a`,
                 (error, stdout) => error ? reject(error) : resolve(stdout))
         });
     } catch(error)  {
