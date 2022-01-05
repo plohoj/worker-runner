@@ -50,10 +50,6 @@ function successLog(directory) {
     console.log(`${directory}\t-->\t ${newVersion.replace('\n', '')}`);
 }
 
-function errorLog(directory) {
-    console.warn(`${directory}\t--x\t [Not found]`);
-}
-
 (async function main() {
     await Promise.all([
         updateVersion(path.resolve(`./package.json`), versionType)
@@ -63,11 +59,6 @@ function errorLog(directory) {
         ... moduleNames.map(moduleName => 
             updateVersion(path.resolve(`modules/${moduleName}/package.json`))
                 .then(() => successLog(`modules/${moduleName}/package.json`)),
-        ),
-        ... moduleNames.map(moduleName => 
-            updateVersion(path.resolve(`dist/${moduleName}/package.json`))
-                .then(() => successLog(`dist/${moduleName}/package.json`))
-                .catch(() => errorLog(`dist/${moduleName}/package.json`))
         ),
     ]);
     try {

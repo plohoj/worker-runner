@@ -62,6 +62,8 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
         this._resolvedRunner = value;
     }
 
+    // TODO Fix rule
+    // eslint-disable-next-line @typescript-eslint/member-ordering
     public get isMarkedForTransfer(): boolean {
         return this._isMarkedForTransfer;
     }

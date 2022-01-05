@@ -9,11 +9,6 @@ export interface IRunnerResolverBridgeHostBridgeConfigBase {
 }
 
 export class RunnerResolverBridgeHost {
-
-    public get isRunning(): boolean {
-        return this._isRunning;
-    }
-
     private _isRunning = false;
     private onNewConnection: IRunnerResolverBridgeHostBridgeConfigBase['newConnectionHandler'];
     private connections = new Array<RunnerResolverPossibleConnection>();
@@ -22,6 +17,10 @@ export class RunnerResolverBridgeHost {
     constructor (config: IRunnerResolverBridgeHostBridgeConfigBase) {
         this.onNewConnection = config.newConnectionHandler;
         this.addConnections([...config.connections]);
+    }
+
+    public get isRunning(): boolean {
+        return this._isRunning;
     }
 
     public run(): void {

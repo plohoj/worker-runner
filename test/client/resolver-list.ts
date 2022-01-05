@@ -4,8 +4,8 @@ import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } f
 import { runners } from "../common/runner-list";
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from "../common/stubs/extended-stub.runner";
 
-const clientWorker = new Worker('base/test/host/host.js');
-const clientRxWorker = new Worker('base/test/host/rx-host.js');
+const clientWorker = new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'});
+const clientRxWorker = new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'});
 
 const resolvers = {
     Client: new RunnerResolverClient({ runners, connection: clientWorker }),

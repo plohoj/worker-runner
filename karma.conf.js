@@ -7,15 +7,14 @@ const isCoverage = process.argv.some(argument => /--coverage/.test(argument));
 /** @type {import('karma').ConfigOptions} */
 const karmaConfig = {
   files: [
-    { pattern: './test/main.ts', watched: false },
-    { pattern: './test/host/host.ts', watched: false, included: false },
-    { pattern: './test/host/rx-host.ts', watched: false, included: false },
+    { pattern: './test/main.ts' },
+    // TODO Crutch due to internal karma-webpack implementation
+    { pattern: './dist/HostWorker.js', included: false },
+    { pattern: './dist/RxHostWorker.js', included: false },
   ],
-  frameworks: ['jasmine'],
+  frameworks: ['jasmine', 'webpack'],
   preprocessors: {
     './test/main.ts': ['webpack'],
-    './test/host/host.ts': ['webpack'],
-    './test/host/rx-host.ts': ['webpack'],
   },
   webpack: webpackConfig,
   reporters: isCoverage ? ['coverage-istanbul']: ['progress'],

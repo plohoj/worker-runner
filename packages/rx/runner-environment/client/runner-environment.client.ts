@@ -44,11 +44,13 @@ export class RxRunnerEnvironmentClient<R extends RunnerConstructor> extends Runn
         switch (action.type) {
             case RxRunnerEnvironmentHostAction.RX_EMIT:
                 return action.response;
-            case RxRunnerEnvironmentHostAction.RX_EMIT_RUNNER_RESULT:
-                return (await this.runnerEnvironmentClientPartFactory({
+            case RxRunnerEnvironmentHostAction.RX_EMIT_RUNNER_RESULT: {
+                const runnerEnvironmentClient = await this.runnerEnvironmentClientPartFactory({
                     token: action.token,
                     port: action.port,
-                })).resolvedRunner;
+                });
+                return runnerEnvironmentClient.resolvedRunner;
+            }
             default:
                 throw new WorkerRunnerUnexpectedError({
                     message: 'Unexpected action type was emitted in RxRunnerEnvironmentClient via Rx Observable',

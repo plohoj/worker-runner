@@ -15,7 +15,7 @@ export class ExecutableStubRunner<T extends JsonObject = JsonObject> {
     }
 
     public async amountAsync(x: number, y: number): Promise<number> {
-        return Promise.resolve(this.amount(x, y));
+        return this.amount(x, y);
     }
 
     public delay(duration: number): Promise<void> {

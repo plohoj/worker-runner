@@ -27,7 +27,8 @@ async function copyDeclarations() {
                 path.resolve(`dist/${moduleName}/declarations`),
                 {
                     async filter(source) {
-                        if ((await stat(source)).isDirectory()) {
+                        const stats = await stat(source);
+                        if (stats.isDirectory()) {
                             return true;
                         }
                         return /.*\.ts$/.test(source)

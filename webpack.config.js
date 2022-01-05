@@ -1,4 +1,5 @@
 const path = require('path');
+const ESLintPlugin = require('eslint-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 // Debug mode
@@ -25,10 +26,6 @@ const babelLoader = {
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
-    entry: {
-        host: './test/host/host.ts',
-        'rx-host': './test/host/rx-host.ts',
-    },
     context: path.resolve(),
     module: {
         rules: [
@@ -46,16 +43,16 @@ module.exports = {
                             }
                         }
                     },
-                    ...(!isDebugMode || isCoverage) ? [] : [{
-                        loader: 'eslint-loader',
-                        options: {
-                            emitError: true,
-                            emitWarning: true,
-                        }
-                    }],
                 ]
             },
         ],
+    },
+    plugins: [new ESLintPlugin({
+        extensions: ["ts", "tsx"],
+    })],
+    output: {
+        path: path.resolve('dist'),
+        clean: true,
     },
     mode: 'development',
     resolve: {

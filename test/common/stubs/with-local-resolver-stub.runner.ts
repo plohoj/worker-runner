@@ -22,7 +22,8 @@ export class WithLocalResolverStub<T extends JsonObject> {
     }
 
     public async resolveExecutableRunnerWithMarkForTransfer(): Promise<ResolvedRunner<ExecutableStubRunner<T>>> {
-        return (await this.resolveExecutableRunnerWithoutMarkForTransfer()).markForTransfer();
+        const executableStubRunner = await this.resolveExecutableRunnerWithoutMarkForTransfer();
+        return executableStubRunner.markForTransfer();
     }
 
     public async destroy(): Promise<void> {
