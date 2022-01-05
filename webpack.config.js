@@ -1,9 +1,5 @@
-const { readdirSync } = require('fs');
 const path = require('path');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-
-const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
-  .filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 // Debug mode
 const isDebugMode = process.argv.some(argument => /--debug/.test(argument));
@@ -13,13 +9,6 @@ if (isDebugMode) {
 
 // Coverage mode
 const isCoverage = process.argv.some(argument => /--coverage/.test(argument));
-
-// Modules entry files
-/** @type {Record<string, string} */
-const modulesEntry = {};
-for (const moduleName of moduleNames) {
-  modulesEntry[moduleName] = `./modules/${moduleName}/index.ts`;
-}
 
 /** @type {import('webpack').RuleSetRule['use']} */
 const babelLoader = {
@@ -37,7 +26,6 @@ const babelLoader = {
 /** @type {import('webpack').Configuration} */
 module.exports = {
     entry: {
-        ...modulesEntry,
         host: './test/host/host.ts',
         'rx-host': './test/host/rx-host.ts',
     },

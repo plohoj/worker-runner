@@ -2,7 +2,7 @@ const { exec } = require('child_process');
 const path = require("path");
 const { copy, rm, readdirSync, stat } = require('fs-extra');
 
-const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
+const packagesNames = readdirSync(path.resolve('packages'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
 
@@ -10,7 +10,7 @@ async function removeDistFolder() {
     await rm(path.resolve('dist'), {recursive: true, force: true});
 }
 
-async function buildModules() {
+async function buildPackages() {
     await new Promise((resolve, reject) =>
         exec(
             `npx rollup --config`,
@@ -21,9 +21,9 @@ async function buildModules() {
 
 async function copyDeclarations() {
     await Promise
-        .all(moduleNames
+        .all(packagesNames
             .map(moduleName => copy(
-                path.resolve(`modules/${moduleName}`),
+                path.resolve(`packages/${moduleName}`),
                 path.resolve(`dist/${moduleName}/declarations`),
                 {
                     async filter(source) {
@@ -37,21 +37,21 @@ async function copyDeclarations() {
         );
 }
 
-async function copyModulesPackage() {
+async function copyPackagesPackageJSON() {
     await Promise
-        .all(moduleNames
+        .all(packagesNames
             .map(moduleName => copy(
-                path.resolve(`modules/${moduleName}/package.json`),
+                path.resolve(`packages/${moduleName}/package.json`),
                 path.resolve(`dist/${moduleName}/package.json`),
             )),
         );
 }
 
-async function copyModulesReadme() {
+async function copyPackagesReadme() {
     await Promise
-        .all(moduleNames
+        .all(packagesNames
             .map(async moduleName => {
-                const readmeFilePath = moduleName == 'core' ? `modules/core/README.md` : `README.md`;
+                const readmeFilePath = moduleName == 'core' ? `packages/core/README.md` : `README.md`;
                 await copy(
                     path.resolve(readmeFilePath),
                     path.resolve(`dist/${moduleName}/README.md`)
@@ -64,14 +64,14 @@ async function copyModulesReadme() {
     try {
         console.log('Remove "./dist" folder ...');
         await removeDistFolder();
-        console.log('Build modules ...');
-        await buildModules();
+        console.log('Build packages ...');
+        await buildPackages();
         console.log('Copy declarations ...');
         await copyDeclarations();
-        console.log('Copy modules "package.json" ...');
-        await copyModulesPackage()
-        console.log('Copy modules "README.md" ...');
-        await copyModulesReadme();
+        console.log('Copy packages "package.json" ...');
+        await copyPackagesPackageJSON()
+        console.log('Copy packages "README.md" ...');
+        await copyPackagesReadme();
     } catch (error) {
         console.error(error);
         process.on('SIGINT', () => process.exit(1));

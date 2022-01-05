@@ -20,8 +20,8 @@ export function errorContaining<T extends {}>(
                 && jasmine.objectContaining(sample as any).asymmetricMatch(compareTo, customTesters);
             return check;
         },
-        jasmineToString() {
-            return `<${errorContaining.name}(${errorConstructor.name}, ${jasmine.pp(sample)})>`;
+        jasmineToString(prettyPrint) {
+            return `<${errorContaining.name}(${errorConstructor.name}, ${prettyPrint(sample)})>`;
         },
     };
 }

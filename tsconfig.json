@@ -7,9 +7,6 @@
         "strict": true,
         "moduleResolution": "Node",
         "sourceMap": true,
-        "paths": {
-            "@worker-runner/*": ["./modules/*"]
-        },
         "importHelpers": true,
         "noImplicitOverride": true
     },
@@ -19,5 +16,5 @@
         "coverage/",
         ".history/"
     ],
-    "include": ["./*", "./.*.*", "./test/**/*", "./modules/**/*"]
+    "include": ["./*", "./.*.*", "./test/**/*", "packages/**/*"]
 }

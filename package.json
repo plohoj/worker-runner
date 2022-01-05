@@ -26,6 +26,9 @@
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "sideEffects": false,
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
     "@babel/core": "^7.15.5",
     "@babel/preset-env": "^7.15.6",
@@ -59,9 +62,5 @@
     "tsconfig-paths-webpack-plugin": "^3.5.1",
     "typescript": "^4.4.3",
     "webpack": "^4.46.0"
-  },
-  "dependencies": {
-    "rxjs": "^7.3.1",
-    "tslib": "^2.3.1"
   }
 }

@@ -2,7 +2,7 @@ import { readdirSync } from 'fs';
 import path from "path";
 import typescriptPlugin from 'rollup-plugin-typescript2';
 
-const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('packages'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
 const moduleFormats = ["umd", "esm"];
@@ -21,7 +21,7 @@ const globalLibs = {
 function generateBuildConfig(moduleName, moduleFormat) {
     /** @type {import('rollup').RollupOptions} */
     const config = {
-        input: `modules/${moduleName}/index.ts`,
+        input: `packages/${moduleName}/index.ts`,
         output: {
             name: `@worker-runner/${moduleName}`,
             globals: globalLibs,

@@ -2,7 +2,7 @@ const { exec } = require('child_process');
 const { readdirSync } = require('fs');
 const path = require("path");
 
-const moduleNames = readdirSync(path.resolve('modules'), {withFileTypes: true})
+const moduleNames = readdirSync(path.resolve('dist'), {withFileTypes: true})
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
 
