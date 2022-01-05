@@ -126,6 +126,11 @@ each(allResolvers, (mode, resolver) =>
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+
+            // TODO Without this piece of code, an error occurs in IE11.
+            await withOtherInstanceStubRunner.destroy().catch(() => {
+                // stub
+            });
         });
 
         it('with extended class', async () => {
