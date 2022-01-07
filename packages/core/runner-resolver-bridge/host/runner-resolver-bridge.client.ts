@@ -61,6 +61,7 @@ export class RunnerResolverBridgeHost {
         connection.addEventListener('message',  messageHandler);
         this.connectionsHandlers.set(connection, messageHandler);
         const pingAction: IRunnerResolverBridgeHostPingAction = { type: RunnerResolverBridgeHostAction.PING };
+        console.log('C>>>', pingAction.type, pingAction);
         connection.postMessage(pingAction);
     }
 
@@ -74,6 +75,7 @@ export class RunnerResolverBridgeHost {
 
     private onMessage(connection: RunnerResolverPossibleConnection, event: MessageEvent): void {
         const action: IRunnerResolverBridgeClientAction = event.data;
+        console.log('H<<<', action.type, action);
         switch (action.type) {
             case RunnerResolverBridgeClientAction.CONNECT:
                 this.onConnectAction(action, connection);
@@ -93,6 +95,7 @@ export class RunnerResolverBridgeHost {
         const pongAction: IRunnerResolverBridgeHostPongAction = {
             type: RunnerResolverBridgeHostAction.PONG,
         }
+        console.log('C>>>', pongAction.type, pongAction);
         connection.postMessage(pongAction);
     }
 
@@ -104,6 +107,7 @@ export class RunnerResolverBridgeHost {
             type: RunnerResolverBridgeHostAction.CONNECTED,
             port: messageChannel.port2,
         }
+        console.log('C>>>', connectedAction.type, connectedAction);
         connection.postMessage(connectedAction, [messageChannel.port2]);
     }
 }

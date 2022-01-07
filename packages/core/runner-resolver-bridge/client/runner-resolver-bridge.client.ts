@@ -34,6 +34,7 @@ export class RunnerResolverBridgeClient {
             this.connectInfo = { resolve, reject };
             this.connection.addEventListener('message', this.hostMessageHandler as EventListener);
             const pingAction: IRunnerResolverBridgeClientPingAction = { type: RunnerResolverBridgeClientAction.PING };
+            console.log('C>>>', pingAction.type, pingAction);
             this.connection.postMessage(pingAction);
         });
         this.connection.removeEventListener('message', this.hostMessageHandler as EventListener);
@@ -42,6 +43,7 @@ export class RunnerResolverBridgeClient {
 
     private onHostMessage(event: MessageEvent): void {
         const action: IRunnerResolverBridgeHostAction = event.data;
+        console.log('C<<<', action.type, action);
         switch (action.type) {
             case RunnerResolverBridgeHostAction.PING:
             case RunnerResolverBridgeHostAction.PONG:
@@ -71,6 +73,7 @@ export class RunnerResolverBridgeClient {
             id: actionId,
             type: RunnerResolverBridgeClientAction.CONNECT,
         };
+        console.log('C>>>', connectAction.type, connectAction);
         this.connection.postMessage(connectAction);
     }
 

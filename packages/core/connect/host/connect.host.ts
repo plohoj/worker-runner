@@ -74,9 +74,11 @@ export class ConnectHost<
         if (portData && !portData.wasConnected) {
             // eslint-disable-next-line no-inner-declarations
             function afterDisconnectHandler() {
+                console.log('H<<<', 'afterDisconnectHandler');
                 const destroyAction: IConnectHostDestroyedByForceAction = {
                     type: ConnectHostAction.DESTROYED_BY_FORCE,
                 };
+                console.log('H>>>', destroyAction.type, destroyAction);
                 port.postMessage(destroyAction);
                 port.removeEventListener('message', afterDisconnectHandler);
                 port.close();
@@ -93,6 +95,7 @@ export class ConnectHost<
         port: MessagePort,
         action: IConnectClientActions
     ): Promise<void> {
+        console.log('H<<<', action.type, action);
         switch (action.type) {
             case ConnectClientAction.INTERRUPT_LISTENING:
                 this.onInterruptListening(port);
@@ -211,6 +214,7 @@ export class ConnectHost<
         if (!this.connectedPorts.has(port)) {
             throw new ConnectionWasClosedError();
         }
+        console.log('H>>>', action.type, action);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         port.postMessage(action, transfer!);
     }
