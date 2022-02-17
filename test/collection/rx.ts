@@ -1,6 +1,6 @@
 import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, ConnectHost } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { lastValueFrom, noop, timer } from 'rxjs';
+import { lastValueFrom, noop } from 'rxjs';
 import { rxResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
@@ -123,9 +123,19 @@ each({'Rx Local': rxResolvers['Rx Local']}, (mode, resolver) => {
         });
 
         it('subscribe and destroy runner', async () => {
-            await resolver.run();
             const rxStubRunner = await resolver.resolve(RxStubRunner);
             const observable = await rxStubRunner.emitMessages([], 1000);
+            const originalSendActionFunction = ConnectHost.prototype['sendAction'];
+            spyOn(
+                ConnectHost.prototype as unknown as {sendAction: ConnectHost['sendAction']},
+                'sendAction',
+            ).and.callFake(function (this: ConnectHost, ...parameters) {
+                try {
+                    originalSendActionFunction.apply(this, parameters);
+                } catch {
+                    // expected error
+                }
+            });
 
             observable.subscribe({error: noop});
             rxStubRunner.destroy();
@@ -141,20 +151,8 @@ each({'Rx Local': rxResolvers['Rx Local']}, (mode, resolver) => {
                 stack: jasmine.stringMatching(/.+/),
             }));
 
-            // catch expected error log
-            let sendActionSpy: jasmine.Spy;
-            const sendActionSpyWaiting = new Promise<void>((resolve) => {
-                sendActionSpy = spyOn(
-                    ConnectHost.prototype as unknown as {sendAction: ConnectHost['sendAction']},
-                    'sendAction',
-                ).and.callFake(() => resolve());
-            });
-            await Promise.race([
-                sendActionSpyWaiting,
-                lastValueFrom(timer(0)),
-            ]);
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            sendActionSpy!.and.callThrough();
+            await resolver.destroy().catch(noop);
+            await resolver.run();
         });
     });
 });
