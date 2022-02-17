@@ -1,8 +1,8 @@
-import { TransferableJsonObject } from '../types/json-object';
+import { TransferableJsonLike } from '../types/json-like';
 
 /** Allows you to use `Transferable` data as argument or a method result. */
 export class TransferRunnerData<
-    D extends TransferableJsonObject = TransferableJsonObject,
+    D extends TransferableJsonLike = TransferableJsonLike,
     T extends Transferable = Transferable
 > {
     constructor(

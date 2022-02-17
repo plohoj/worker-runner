@@ -1,6 +1,7 @@
 import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
+import { actionLog } from '../../utils/action-log';
 import { ConnectClientAction, IConnectClientActions, IConnectClientCustomAction, IConnectCustomAction } from "../client/connect.client.actions";
 import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction, IConnectHostDestroyedByForceAction, IConnectHostDestroyedByRequestAction, IConnectHostDestroyedWithErrorAction, IConnectHostDisconnectedAction } from "./connect.host.actions";
 
@@ -74,11 +75,11 @@ export class ConnectHost<
         if (portData && !portData.wasConnected) {
             // eslint-disable-next-line no-inner-declarations
             function afterDisconnectHandler() {
-                console.log('H<<<', 'afterDisconnectHandler');
+                actionLog('host-in', 'afterDisconnectHandler');
                 const destroyAction: IConnectHostDestroyedByForceAction = {
                     type: ConnectHostAction.DESTROYED_BY_FORCE,
                 };
-                console.log('H>>>', destroyAction.type, destroyAction);
+                actionLog('host-out', destroyAction);
                 port.postMessage(destroyAction);
                 port.removeEventListener('message', afterDisconnectHandler);
                 port.close();
@@ -95,7 +96,7 @@ export class ConnectHost<
         port: MessagePort,
         action: IConnectClientActions
     ): Promise<void> {
-        console.log('H<<<', action.type, action);
+        actionLog('host-in',  action);
         switch (action.type) {
             case ConnectClientAction.INTERRUPT_LISTENING:
                 this.onInterruptListening(port);
@@ -214,7 +215,7 @@ export class ConnectHost<
         if (!this.connectedPorts.has(port)) {
             throw new ConnectionWasClosedError();
         }
-        console.log('H>>>', action.type, action);
+        actionLog('host-out',  action);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         port.postMessage(action, transfer!);
     }

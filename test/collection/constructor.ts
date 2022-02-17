@@ -10,7 +10,7 @@ import { createApartClientHostResolvers } from '../utils/apart-client-host-resol
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(allResolvers, (mode, resolver) =>
+each({Client: allResolvers.Client}, (mode, resolver) =>
     describe(`${mode} constructor`, () => {
         beforeAll(async () => {
             await resolver.run();
@@ -127,7 +127,9 @@ each(allResolvers, (mode, resolver) =>
                     stack: jasmine.stringMatching(/.+/),
                 }));
 
-            // TODO Without this piece of code, an error occurs in IE11.
+            // The event queue is handled differently in different browsers.
+            // In IE11, Resolve and Destroy actions are dispatched at the same time.
+            // In other browsers, the Resolve response comes before the Destroy action is dispatched.
             await withOtherInstanceStubRunner.destroy().catch(() => {
                 // stub
             });

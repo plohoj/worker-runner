@@ -1,4 +1,5 @@
 import { ConnectClient, IConnectHostActions, ConnectionWasClosedError, WorkerRunnerUnexpectedError, IConnectCustomAction, IConnectHostCustomResponseAction, ConnectHostAction } from "@worker-runner/core";
+import { actionLog } from 'packages/core/utils/action-log';
 import { Observable, Subscriber } from "rxjs";
 import { share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
@@ -68,7 +69,7 @@ export class RxConnectClient extends ConnectClient {
                 type: RxConnectClientAction.RX_SUBSCRIBE,
                 id: action.id,
             };
-            console.log('C>>>', subscribeAction.type, subscribeAction);
+            actionLog('client-out', subscribeAction);
             this.port.postMessage(subscribeAction);
             return () => {
                 // TODO NEED TEST
@@ -77,7 +78,7 @@ export class RxConnectClient extends ConnectClient {
                         type: RxConnectClientAction.RX_UNSUBSCRIBE,
                         id: action.id,
                     }
-                    console.log('C>>>', unsubscribeAction.type, unsubscribeAction);
+                    actionLog('client-out', unsubscribeAction);
                     this.port.postMessage(unsubscribeAction);
                 }
             };

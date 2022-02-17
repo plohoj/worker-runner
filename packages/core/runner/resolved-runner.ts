@@ -1,11 +1,11 @@
 import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
-import { JsonObject, TransferableJsonObject } from '../types/json-object';
+import { JsonLike, TransferableJsonLike } from '../types/json-like';
 import { TransferRunnerData } from '../utils/transfer-runner-data';
 import { RunnerController } from './runner.controller';
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
-    ? T extends TransferableJsonObject
-        ? T extends JsonObject
+    ? T extends TransferableJsonLike
+        ? T extends JsonLike
             ? T
             : TransferRunnerData<T>
         :T

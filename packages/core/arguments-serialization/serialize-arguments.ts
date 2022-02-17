@@ -2,7 +2,7 @@ import { ConnectClient } from "../connect/client/connect.client";
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "../runner/runner.controller";
 import { IRunnerParameter, IRunnerSerializedParameter } from "../types/constructor";
-import { JsonObject } from "../types/json-object";
+import { JsonLike } from "../types/json-like";
 import { IRunnerSerializedArgument, IRunnerSerializedResolvedRunnerArgument, RunnerSerializedArgumentType } from "../types/runner-serialized-argument";
 import { allPromisesCollectErrors, mapPromisesAndAwaitMappedWhenError } from "../utils/all-promises-collect-errors";
 import { TransferRunnerData } from "../utils/transfer-runner-data";
@@ -37,7 +37,7 @@ export async function serializeArguments(config: {
             } else {
                 return {
                     type: RunnerSerializedArgumentType.JSON,
-                    data: argument as JsonObject,
+                    data: argument as JsonLike,
                 };
             }
         }

@@ -1,9 +1,9 @@
-import { JsonObject, ResolvedRunner } from '@worker-runner/core';
+import { JsonLike, ResolvedRunner } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
-export class WithLocalResolverStub<T extends JsonObject> {
+export class WithLocalResolverStub<T extends JsonLike> {
     private localResolver?: RunnerResolverLocal<typeof runners>;
     private localExecutableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>;
 

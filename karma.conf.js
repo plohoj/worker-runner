@@ -9,8 +9,8 @@ const karmaConfig = {
   files: [
     { pattern: './test/main.ts' },
     // TODO Crutch due to internal karma-webpack implementation
-    { pattern: './dist/HostWorker.js', included: false },
-    { pattern: './dist/RxHostWorker.js', included: false },
+    { pattern: './dist/HostWorker.js', included: false, nocache: true },
+    { pattern: './dist/RxHostWorker.js', included: false, nocache: true },
     { pattern: './dist/polyfill/es6-promise.auto.js', included: false }, // For IE11
   ],
   frameworks: ['jasmine', 'webpack'],

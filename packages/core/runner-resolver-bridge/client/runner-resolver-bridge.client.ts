@@ -1,5 +1,6 @@
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../types/possible-connection";
+import { actionLog } from '../../utils/action-log';
 import { IPromiseMethods } from "../../utils/promise-list.resolver";
 import { IRunnerResolverBridgeHostConnectedAction, RunnerResolverBridgeHostAction, IRunnerResolverBridgeHostAction } from "../host/runner-resolver-bridge.client.actions";
 import { IRunnerResolverBridgeClientConnectAction, RunnerResolverBridgeClientAction, IRunnerResolverBridgeClientPingAction } from "./runner-resolver-bridge.client.actions";
@@ -34,7 +35,7 @@ export class RunnerResolverBridgeClient {
             this.connectInfo = { resolve, reject };
             this.connection.addEventListener('message', this.hostMessageHandler as EventListener);
             const pingAction: IRunnerResolverBridgeClientPingAction = { type: RunnerResolverBridgeClientAction.PING };
-            console.log('C>>>', pingAction.type, pingAction);
+            actionLog('client-out', pingAction);
             this.connection.postMessage(pingAction);
         });
         this.connection.removeEventListener('message', this.hostMessageHandler as EventListener);
@@ -43,7 +44,7 @@ export class RunnerResolverBridgeClient {
 
     private onHostMessage(event: MessageEvent): void {
         const action: IRunnerResolverBridgeHostAction = event.data;
-        console.log('C<<<', action.type, action);
+        actionLog('client-in', action);
         switch (action.type) {
             case RunnerResolverBridgeHostAction.PING:
             case RunnerResolverBridgeHostAction.PONG:
@@ -73,7 +74,7 @@ export class RunnerResolverBridgeClient {
             id: actionId,
             type: RunnerResolverBridgeClientAction.CONNECT,
         };
-        console.log('C>>>', connectAction.type, connectAction);
+        actionLog('client-out', connectAction);
         this.connection.postMessage(connectAction);
     }
 

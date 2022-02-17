@@ -1,5 +1,6 @@
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
 import { RunnerResolverPossibleConnection } from "../../types/possible-connection";
+import { actionLog } from '../../utils/action-log';
 import { IRunnerResolverBridgeClientConnectAction, RunnerResolverBridgeClientAction, IRunnerResolverBridgeClientAction } from "../client/runner-resolver-bridge.client.actions";
 import { IRunnerResolverBridgeHostConnectedAction, RunnerResolverBridgeHostAction, IRunnerResolverBridgeHostPongAction, IRunnerResolverBridgeHostPingAction } from "./runner-resolver-bridge.client.actions";
 
@@ -61,7 +62,7 @@ export class RunnerResolverBridgeHost {
         connection.addEventListener('message',  messageHandler);
         this.connectionsHandlers.set(connection, messageHandler);
         const pingAction: IRunnerResolverBridgeHostPingAction = { type: RunnerResolverBridgeHostAction.PING };
-        console.log('C>>>', pingAction.type, pingAction);
+        actionLog('client-out', pingAction);
         connection.postMessage(pingAction);
     }
 
@@ -75,7 +76,7 @@ export class RunnerResolverBridgeHost {
 
     private onMessage(connection: RunnerResolverPossibleConnection, event: MessageEvent): void {
         const action: IRunnerResolverBridgeClientAction = event.data;
-        console.log('H<<<', action.type, action);
+        actionLog('host-in',  action);
         switch (action.type) {
             case RunnerResolverBridgeClientAction.CONNECT:
                 this.onConnectAction(action, connection);
@@ -95,7 +96,7 @@ export class RunnerResolverBridgeHost {
         const pongAction: IRunnerResolverBridgeHostPongAction = {
             type: RunnerResolverBridgeHostAction.PONG,
         }
-        console.log('C>>>', pongAction.type, pongAction);
+        actionLog('client-out', pongAction);
         connection.postMessage(pongAction);
     }
 
@@ -107,7 +108,7 @@ export class RunnerResolverBridgeHost {
             type: RunnerResolverBridgeHostAction.CONNECTED,
             port: messageChannel.port2,
         }
-        console.log('C>>>', connectedAction.type, connectedAction);
+        actionLog('client-out', connectedAction);
         connection.postMessage(connectedAction, [messageChannel.port2]);
     }
 }

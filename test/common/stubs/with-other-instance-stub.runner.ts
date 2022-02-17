@@ -1,7 +1,7 @@
-import { JsonObject, ResolvedRunner } from '@worker-runner/core';
+import { JsonLike, ResolvedRunner } from '@worker-runner/core';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
-export class WithOtherInstanceStubRunner<T extends JsonObject = JsonObject> {
+export class WithOtherInstanceStubRunner<T extends JsonLike = JsonLike> {
 
     constructor(private executableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>) {}
 

@@ -24,7 +24,7 @@ export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from '.
 export { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from './runner/runner.controller';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
-export { JsonObject, TransferableJsonObject } from './types/json-object';
+export { JsonLike, TransferableJsonLike } from './types/json-like';
 export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerByIdentifier, RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from './types/runner-identifier';
 export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

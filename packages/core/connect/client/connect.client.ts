@@ -1,6 +1,7 @@
 import { WorkerRunnerErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionWasClosedError } from "../../errors/runner-errors";
 import { WorkerRunnerUnexpectedError } from "../../errors/worker-runner-error";
+import { actionLog } from '../../utils/action-log';
 import { PromiseListResolver } from "../../utils/promise-list.resolver";
 import { ConnectHostAction, IConnectHostActions, IConnectHostCustomErrorAction, IConnectHostCustomResponseAction } from "../host/connect.host.actions";
 import { ConnectClientAction, IConnectClientActions, IConnectClientConnectAction, IConnectClientCustomAction, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectClientInterruptListeningAction, IConnectCustomAction,  } from "./connect.client.actions";
@@ -41,7 +42,7 @@ export class ConnectClient {
         return new Promise(resolve => {
             function disconnectHandler(event: MessageEvent): void {
                 if ((event.data as IConnectHostActions).type === ConnectHostAction.DISCONNECTED) {
-                    console.log('C<<<', (event.data as IConnectHostActions).type, (event.data as IConnectHostActions));
+                    actionLog('client-in', event.data);
                     port.removeEventListener('message', disconnectHandler);
                     resolve();
                 }
@@ -52,7 +53,7 @@ export class ConnectClient {
                 id: -1,
                 type: ConnectClientAction.DISCONNECT,
             }
-            console.log('C>>>', disconnectAction.type, disconnectAction);
+            actionLog('client-out', disconnectAction);
             port.postMessage(disconnectAction);
         })
     }
@@ -104,7 +105,7 @@ export class ConnectClient {
                 id: this.resolveActionId(),
                 type: ConnectClientAction.INTERRUPT_LISTENING,
             }
-            console.log('C>>>', interruptListeningAction.type, interruptListeningAction);
+            actionLog('client-out', interruptListeningAction);
             this.port.postMessage(interruptListeningAction);
         }
         const promises$ = this.promiseListResolver.promises.values();
@@ -115,7 +116,7 @@ export class ConnectClient {
     }
 
     protected handleAction(action: IConnectHostActions): void {
-        console.log('C<<<', action.type, action);
+        actionLog('client-in', action);
         switch (action.type) {
             case ConnectHostAction.DESTROYED_BY_FORCE:
                 this.stopListen();
@@ -153,8 +154,8 @@ export class ConnectClient {
             id: actionId,
         } as IConnectClientActions;
         const response$ = this.promiseListResolver.promise(actionId);
+        actionLog('client-out', actionWidthId);
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        console.log('C>>>', actionWidthId.type, actionWidthId);
         this.port.postMessage(actionWidthId, transfer!);
         return response$ as unknown as Promise<I>;
     }
@@ -175,7 +176,7 @@ export class ConnectClient {
         const connectAction: IConnectClientConnectAction = {
             type: ConnectClientAction.CONNECT,
         };
-        console.log('C>>>', connectAction.type, connectAction);
+        actionLog('client-out', connectAction);
         this.port.postMessage(connectAction);
     }
 }

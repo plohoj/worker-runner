@@ -7,7 +7,7 @@ import { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, Runne
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../runner/runner.controller';
 import { IRunnerMethodResult, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
-import { TransferableJsonObject } from '../../types/json-object';
+import { TransferableJsonLike } from '../../types/json-like';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
@@ -240,7 +240,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
             }
             return {
                 type: RunnerEnvironmentHostAction.EXECUTED,
-                response: response as TransferableJsonObject,
+                response: response as TransferableJsonLike,
                 transfer,
             };
         }

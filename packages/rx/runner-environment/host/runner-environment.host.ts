@@ -1,4 +1,4 @@
-import { RunnerConstructor, RunnerEnvironmentHost , IRunnerMethodResult , IRunnerEnvironmentHostExecuteResultAction, TransferRunnerData, RunnerController, RUNNER_ENVIRONMENT_CLIENT, TransferableJsonObject, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerEnvironmentClientCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
+import { RunnerConstructor, RunnerEnvironmentHost , IRunnerMethodResult , IRunnerEnvironmentHostExecuteResultAction, TransferRunnerData, RunnerController, RUNNER_ENVIRONMENT_CLIENT, TransferableJsonLike, IConnectHostConfig, RunnerIdentifierConfigList, IRunnerEnvironmentClientCollectionConfig, IConnectCustomAction } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { RxConnectHost } from '../../connect/host/rx-connect.host';
@@ -63,7 +63,7 @@ export class RxRunnerEnvironmentHost<R extends RunnerConstructor> extends Runner
         } else {
             const emitAction: IRxRunnerEnvironmentHostEmitAction = {
                 type: RxRunnerEnvironmentHostAction.RX_EMIT,
-                response: response as TransferableJsonObject,
+                response: response as TransferableJsonLike,
                 transfer: transferable
             }
             return emitAction;

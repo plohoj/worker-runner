@@ -1,4 +1,4 @@
-import { TransferableJsonObject, RunnerToken } from '@worker-runner/core';
+import { TransferableJsonLike, RunnerToken } from '@worker-runner/core';
 
 export enum RxRunnerEnvironmentHostAction {
     RX_EMIT = 'RX_EMIT',
@@ -7,7 +7,7 @@ export enum RxRunnerEnvironmentHostAction {
 
 export interface IRxRunnerEnvironmentHostEmitAction {
     type: RxRunnerEnvironmentHostAction.RX_EMIT;
-    response: TransferableJsonObject;
+    response: TransferableJsonLike;
     transfer?: Transferable[]
 }
 
