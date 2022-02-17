@@ -51,7 +51,7 @@ export class ConnectClient {
                 id: -1,
                 type: ConnectClientAction.DISCONNECT,
             }
-            port.postMessage(disconnectAction)
+            port.postMessage(disconnectAction);
         })
     }
 

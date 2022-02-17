@@ -1,4 +1,4 @@
-import { TransferableJsonObject } from '../../types/json-object';
+import { TransferableJsonLike } from '../../types/json-like';
 import { RunnerToken } from "../../types/runner-identifier";
 
 export enum RunnerEnvironmentHostAction {
@@ -10,7 +10,7 @@ export enum RunnerEnvironmentHostAction {
 
 export type IRunnerEnvironmentHostExecutedAction = {
     type: RunnerEnvironmentHostAction.EXECUTED;
-    response: TransferableJsonObject;
+    response: TransferableJsonLike;
     transfer?: Transferable[]
 }
 

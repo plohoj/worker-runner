@@ -1,6 +1,6 @@
-import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, ConnectHost } from '@worker-runner/core';
 import { RxRunnerEmitError } from '@worker-runner/rx';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, noop, timer } from 'rxjs';
 import { rxResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
@@ -33,22 +33,6 @@ each(rxResolvers, (mode, resolver) => describe(mode, () => {
             lastValueFrom(await rxStubRunner.emitMessages(['Work', 'Job'], emitDelay)),
         ).toBeResolvedTo('Job');
         await rxStubRunner.destroy();
-    });
-
-    it('subscribe and destroy runner', async () => {
-        const rxStubRunner = await resolver.resolve(RxStubRunner);
-        const observable = await rxStubRunner.emitMessages([], 1000);
-        rxStubRunner.destroy();
-        await expectAsync(
-            lastValueFrom(observable),
-        ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
-                token: RxStubRunner.name,
-                runnerName: RxStubRunner.name,
-            }),
-            name: ConnectionWasClosedError.name,
-            stack: jasmine.stringMatching(/.+/),
-        }));
     });
 
     it('subscribe after destroy runner', async () => {
@@ -128,3 +112,49 @@ each(rxResolvers, (mode, resolver) => describe(mode, () => {
     });
 }));
 
+each({'Rx Local': rxResolvers['Rx Local']}, (mode, resolver) => {
+    describe(mode, () => {
+        beforeAll(async () => {
+            await resolver.run();
+        });
+    
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
+        it('subscribe and destroy runner', async () => {
+            await resolver.run();
+            const rxStubRunner = await resolver.resolve(RxStubRunner);
+            const observable = await rxStubRunner.emitMessages([], 1000);
+
+            observable.subscribe({error: noop});
+            rxStubRunner.destroy();
+
+            await expectAsync(
+                lastValueFrom(observable),
+            ).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    token: RxStubRunner.name,
+                    runnerName: RxStubRunner.name,
+                }),
+                name: ConnectionWasClosedError.name,
+                stack: jasmine.stringMatching(/.+/),
+            }));
+
+            // catch expected error log
+            let sendActionSpy: jasmine.Spy;
+            const sendActionSpyWaiting = new Promise<void>((resolve) => {
+                sendActionSpy = spyOn(
+                    ConnectHost.prototype as unknown as {sendAction: ConnectHost['sendAction']},
+                    'sendAction',
+                ).and.callFake(() => resolve());
+            });
+            await Promise.race([
+                sendActionSpyWaiting,
+                lastValueFrom(timer(0)),
+            ]);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            sendActionSpy!.and.callThrough();
+        });
+    });
+});

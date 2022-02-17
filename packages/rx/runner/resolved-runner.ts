@@ -1,18 +1,18 @@
-import { JsonObject, RunnerController, TransferableJsonObject, TransferRunnerData } from '@worker-runner/core';
+import { JsonLike, RunnerController, TransferableJsonLike, TransferRunnerData } from '@worker-runner/core';
 import { Observable } from 'rxjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IRxRunnerSerializedParameter = JsonObject | RxResolvedRunner<any> | TransferableJsonObject;
+export type IRxRunnerSerializedParameter = JsonLike | RxResolvedRunner<any> | TransferableJsonLike;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IRxRunnerParameter = JsonObject | RxResolvedRunner<any> | TransferRunnerData;
+export type IRxRunnerParameter = JsonLike | RxResolvedRunner<any> | TransferRunnerData;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IRxRunnerMethodResult = JsonObject | RxResolvedRunner<any> | TransferRunnerData | void;
+export type IRxRunnerMethodResult = JsonLike | RxResolvedRunner<any> | TransferRunnerData | void;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type IRxRunnerSerializedMethodResult = JsonObject | RxResolvedRunner<any> | TransferableJsonObject | void;
+export type IRxRunnerSerializedMethodResult = JsonLike | RxResolvedRunner<any> | TransferableJsonLike | void;
 
 type RxResolvedRunnerArgument<T> = T extends IRxRunnerSerializedParameter
-    ? T extends TransferableJsonObject
-        ? T extends JsonObject
+    ? T extends TransferableJsonLike
+        ? T extends JsonLike
             ? T
             : TransferRunnerData<T>
         : T

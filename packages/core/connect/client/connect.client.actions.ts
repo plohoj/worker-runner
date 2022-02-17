@@ -1,4 +1,4 @@
-import { TransferableJsonObject } from "../../types/json-object";
+import { TransferableJsonLike } from "../../types/json-like";
 
 export enum ConnectClientAction {
     /** The action requires no response. If the connection was terminated, a notification will be received */
@@ -44,6 +44,6 @@ export type IConnectClientActions =
     | IConnectClientCustomAction;
 
 export type IConnectCustomAction = {
-    [key: string]: TransferableJsonObject
+    [key: string]: TransferableJsonLike
     transfer?: Transferable[]
 }

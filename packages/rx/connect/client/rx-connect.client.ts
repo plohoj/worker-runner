@@ -3,7 +3,7 @@ import { Observable, Subscriber } from "rxjs";
 import { share, tap } from "rxjs/operators";
 import { RxSubscriptionNotFoundError } from "../../errors/runner-errors";
 import { IRxConnectHostActions, IRxConnectHostCompletedAction, IRxConnectHostEmitAction, IRxConnectHostErrorAction, IRxConnectHostInitAction, IRxConnectHostNotFoundAction, RxConnectHostAction } from "../host/rx-connect.host.actions";
-import { IRxConnectClientUnsubscribeAction, RxConnectClientAction  } from "./rx-connect.client.actions";
+import { IRxConnectClientSubscribeAction, IRxConnectClientUnsubscribeAction, RxConnectClientAction  } from "./rx-connect.client.actions";
 
 export class RxConnectClient extends ConnectClient {    
 
@@ -63,11 +63,12 @@ export class RxConnectClient extends ConnectClient {
                 return;
             }
             this.subscribersMap.set(action.id, subscriber);
-            this.canSubscribedList.delete(action.id)
-            this.port.postMessage({
+            this.canSubscribedList.delete(action.id);
+            const subscribeAction: IRxConnectClientSubscribeAction = {
                 type: RxConnectClientAction.RX_SUBSCRIBE,
                 id: action.id,
-            });
+            };
+            this.port.postMessage(subscribeAction);
             return () => {
                 // TODO NEED TEST
                 if (!isComplete) {

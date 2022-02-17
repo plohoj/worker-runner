@@ -127,7 +127,9 @@ each(allResolvers, (mode, resolver) =>
                     stack: jasmine.stringMatching(/.+/),
                 }));
 
-            // TODO Without this piece of code, an error occurs in IE11.
+            // The event queue is handled differently in different browsers.
+            // In IE11, Resolve and Destroy actions are dispatched at the same time.
+            // In other browsers, the Resolve response comes before the Destroy action is dispatched.
             await withOtherInstanceStubRunner.destroy().catch(() => {
                 // stub
             });

@@ -1,7 +1,7 @@
 import { WORKER_RUNNER_ERROR_MESSAGES } from "../errors/error-message";
 import { RunnerNotFound } from "../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../types/constructor";
-import { JsonObject } from "../types/json-object";
+import { JsonLike } from "../types/json-like";
 import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
 import { IRunnerControllerConstructor, RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "./runner.controller";
 
@@ -151,7 +151,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
 
     private attachUndeclaredMethod(controllerConstructor: Constructor, methodName: string): void {
         if (!(methodName in controllerConstructor.prototype)) {
-            controllerConstructor.prototype[methodName] = function(this: RunnerController, ...args: JsonObject[]) {
+            controllerConstructor.prototype[methodName] = function(this: RunnerController, ...args: JsonLike[]) {
                 return this[RUNNER_ENVIRONMENT_CLIENT].execute(methodName, args);
             };
         }

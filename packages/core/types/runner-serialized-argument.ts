@@ -1,4 +1,4 @@
-import { TransferableJsonObject } from './json-object';
+import { TransferableJsonLike } from './json-like';
 import { RunnerToken } from "./runner-identifier";
 
 export enum RunnerSerializedArgumentType {
@@ -8,7 +8,7 @@ export enum RunnerSerializedArgumentType {
 
 export type IRunnerSerializedJSONArgument = {
     type: RunnerSerializedArgumentType.JSON;
-    data: TransferableJsonObject;
+    data: TransferableJsonLike;
 }
 
 export type IRunnerSerializedResolvedRunnerArgument = {

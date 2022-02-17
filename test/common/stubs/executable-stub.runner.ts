@@ -1,8 +1,8 @@
-import { JsonObject } from '@worker-runner/core';
+import { JsonLike } from '@worker-runner/core';
 
 export const EXECUTABLE_STUB_RUNNER_TOKEN = 'ExecutableStubRunnerToken';
 
-export class ExecutableStubRunner<T extends JsonObject = JsonObject> {
+export class ExecutableStubRunner<T extends JsonLike = JsonLike> {
 
     constructor(private stage?: T) {}
 
