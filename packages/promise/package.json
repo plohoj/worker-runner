@@ -1,11 +1,14 @@
 {
   "name": "@worker-runner/promise",
   "version": "1.0.0",
+  "scripts": {
+    "build": "rollup --config"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/plohoj/worker-runner.git"
   },
-  "author": "Alexandr Plokhikh",
+  "author": "Aleksandr Plokhikh",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
@@ -13,8 +16,9 @@
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.ts",
-  "main": "./umd/promise.js",
-  "module": "./esm/promise.js",
+  "type": "module",
+  "main": "./dist/umd/worker-runner-promise.js",
+  "module": "./dist/esm/worker-runner-promise.js",
   "sideEffects": false,
   "keywords": [
     "worker-runner",

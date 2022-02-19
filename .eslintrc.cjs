@@ -67,7 +67,7 @@ module.exports = {
     overrides: [
         {
             // Main configuration scripts
-            files: ['./*.js'],
+            files: ['./*.js', './*.cjs', './tools/*,js'],
             env: {
                 node: true,
             },

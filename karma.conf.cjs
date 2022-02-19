@@ -1,5 +1,5 @@
 // eslint-disable-next-line unicorn/prevent-abbreviations
-const webpackConfig = require('./webpack.config');
+const webpackConfig = require('./webpack.config.cjs');
 
 // Coverage mode
 const isCoverage = process.argv.some(argument => /--coverage/.test(argument));

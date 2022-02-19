@@ -2,23 +2,24 @@
   "name": "worker-runner",
   "version": "1.0.0",
   "scripts": {
-    "start": "karma start --debug",
-    "build": "node build.js",
-    "test": "karma start",
-    "test:chrome": "karma start --browsers ChromeHeadless",
-    "test:firefox": "karma start --browsers FirefoxHeadless",
-    "coverage": "karma start --debug --coverage",
+    "start": "karma start karma.conf.cjs --debug",
+    "build": "npm run build --workspaces",
+    "test": "karma start karma.conf.cjs ",
+    "test:chrome": "karma start karma.conf.cjs --browsers ChromeHeadless",
+    "test:firefox": "karma start karma.conf.cjs --browsers FirefoxHeadless",
+    "coverage": "karma start karma.conf.cjs --debug --coverage",
     "lint": "eslint .",
-    "version:patch": "node version.js",
-    "version:minor": "node version.js --type=minor",
-    "version:major": "node version.js --type=major",
-    "publish": "node publish.js"
+    "version:patch": "node ./tools/version.js",
+    "version:minor": "node ./tools/version.js --type=minor",
+    "version:major": "node ./tools/version.js --type=major",
+    "publish": "npm publish --workspaces"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/plohoj/worker-runner.git"
   },
-  "author": "Alexandr Plokhikh",
+  "type": "module",
+  "author": "Aleksandr Plokhikh",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
@@ -46,7 +47,6 @@
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-unicorn": "^40.0.0",
     "eslint-webpack-plugin": "^3.1.1",
-    "fs-extra": "^10.0.0",
     "jasmine": "^4.0.2",
     "karma": "^6.3.9",
     "karma-chrome-launcher": "^3.1.0",
@@ -56,6 +56,7 @@
     "karma-jasmine": "^4.0.1",
     "karma-webpack": "^5.0.0",
     "rollup": "^2.63.0",
+    "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-typescript2": "^0.31.1",
     "semver": "^7.3.5",
     "ts-loader": "^9.2.6",

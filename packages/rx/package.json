@@ -1,11 +1,14 @@
 {
   "name": "@worker-runner/rx",
   "version": "1.0.0",
+  "scripts": {
+    "build": "rollup --config"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/plohoj/worker-runner.git"
   },
-  "author": "Alexandr Plokhikh",
+  "author": "Aleksandr Plokhikh",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/plohoj/worker-runner/issues"
@@ -13,8 +16,8 @@
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
   "types": "./declarations/index.ts",
-  "main": "./umd/rx.js",
-  "module": "./esm/rx.js",
+  "main": "./dist/umd/worker-runner-rx.js",
+  "module": "./dist/esm/worker-runner-rx.js",
   "sideEffects": false,
   "keywords": [
     "worker-runner",

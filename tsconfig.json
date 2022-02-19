@@ -16,5 +16,5 @@
         "coverage/",
         ".history/"
     ],
-    "include": ["./*", "./.*.*", "./test/**/*", "packages/**/*"]
+    "include": ["./*", "./.*.*", "./test/**/*", "packages/**/*", "tools/**/*"]
 }
