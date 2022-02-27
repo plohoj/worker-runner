@@ -1,9 +1,9 @@
-import { JsonObject, ResolvedRunner } from '@worker-runner/core';
+import { JsonLike, ResolvedRunner } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { runners } from '../runner-list';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
-export class WithLocalResolverStub<T extends JsonObject> {
+export class WithLocalResolverStub<T extends JsonLike> {
     private localResolver?: RunnerResolverLocal<typeof runners>;
     private localExecutableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>;
 
@@ -22,7 +22,8 @@ export class WithLocalResolverStub<T extends JsonObject> {
     }
 
     public async resolveExecutableRunnerWithMarkForTransfer(): Promise<ResolvedRunner<ExecutableStubRunner<T>>> {
-        return (await this.resolveExecutableRunnerWithoutMarkForTransfer()).markForTransfer();
+        const executableStubRunner = await this.resolveExecutableRunnerWithoutMarkForTransfer();
+        return executableStubRunner.markForTransfer();
     }
 
     public async destroy(): Promise<void> {

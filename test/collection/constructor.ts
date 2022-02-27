@@ -1,6 +1,6 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
-import { apartHostClientResolvers, resolverClientList, localResolvers, resolverList } from '../client/resolver-list';
+import { apartHostClientResolvers, resolverClientList, localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -10,7 +10,7 @@ import { createApartClientHostResolvers } from '../utils/apart-client-host-resol
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(resolverList, (mode, resolver) =>
+each(allResolvers, (mode, resolver) =>
     describe(`${mode} constructor`, () => {
         beforeAll(async () => {
             await resolver.run();
@@ -126,6 +126,13 @@ each(resolverList, (mode, resolver) =>
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+
+            // The event queue is handled differently in different browsers.
+            // In IE11, Resolve and Destroy actions are dispatched at the same time.
+            // In other browsers, the Resolve response comes before the Destroy action is dispatched.
+            await withOtherInstanceStubRunner.destroy().catch(() => {
+                // stub
+            });
         });
 
         it('with extended class', async () => {
@@ -180,7 +187,7 @@ each(resolverClientList, (mode, resolver) =>
     }),
 );
 
-each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} constructor`, () => {
         it ('resolving without configuration', async () => {
             class RunnerStub {}

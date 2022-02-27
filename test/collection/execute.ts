@@ -1,6 +1,6 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
-import { apartHostClientResolvers, resolverClientList, resolverList } from '../client/resolver-list';
+import { apartHostClientResolvers, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -11,7 +11,7 @@ import { createApartClientHostResolvers } from '../utils/apart-client-host-resol
 import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
-each(resolverList, (mode, resolver) =>
+each(allResolvers, (mode, resolver) =>
     describe(`${mode} execute`, () => {
 
         beforeAll(async () => {
@@ -48,7 +48,7 @@ each(resolverList, (mode, resolver) =>
                 id: 5326,
                 type: 'STORAGE_DATA',
             };
-            const localResolver =  new RunnerResolverLocal({ runners });
+            const localResolver = new RunnerResolverLocal({ runners });
             await localResolver.run();
             const executableStubRunner = await localResolver
                 .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
@@ -187,23 +187,6 @@ each(resolverList, (mode, resolver) =>
                     name: ConnectionWasClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
-        });
-
-        it('soft initialized runner', async () => {
-            const executableStubRunner = await resolver.resolve(EXTENDED_STUB_RUNNER_TOKEN);
-            await expectAsync(executableStubRunner.amount(2, 5)).toBeResolvedTo(7);
-        });
-    }),
-);
-
-each(resolverClientList, (mode, resolver) =>
-    describe(`${mode} execute`, () => {
-        beforeAll(async () => {
-            await resolver.run();
-        });
-
-        afterAll(async () => {
-            await resolver.destroy();
         });
 
         it('soft initialized runner', async () => {

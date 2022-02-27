@@ -1,10 +1,10 @@
-import { localResolvers } from '../client/resolver-list';
+import { localResolversConstructors } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
 import { each } from '../utils/each';
 
-each(localResolvers, (mode, IterateRunnerResolverLocal) =>
+each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} wrap runner`, () => {
         it ('after disconnect', async () => {
             const storageData = {

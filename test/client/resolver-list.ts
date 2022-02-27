@@ -4,35 +4,31 @@ import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } f
 import { runners } from "../common/runner-list";
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from "../common/stubs/extended-stub.runner";
 
-// TODO Refactoring naming
+const clientWorker = new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'});
+const clientRxWorker = new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'});
 
-export const runnerResolver = new RunnerResolverClient({
-    runners,
-    connection: new Worker('base/test/host/worker.js'),
-});
-export const runnerResolverLocal = new RunnerResolverLocal({ runners });
-
-export const rxRunnerResolver = new RxRunnerResolverClient({
-    runners,
-    connection: new Worker('base/test/host/rx-worker.js'),
-});
-export const rxRunnerResolverLocal = new RxRunnerResolverLocal({ runners });
-
-export const resolverList = {
-    Common: runnerResolver,
-    Local: runnerResolverLocal as typeof runnerResolver,
-    Rx: rxRunnerResolver as typeof runnerResolver,
-    'Rx Local': rxRunnerResolverLocal as unknown  as typeof runnerResolver,
+const resolvers = {
+    Client: new RunnerResolverClient({ runners, connection: clientWorker }),
+    Local: new RunnerResolverLocal({ runners }),
+    'Rx Client': new RxRunnerResolverClient({ runners, connection: clientRxWorker}),
+    'Rx Local': new RxRunnerResolverLocal({ runners }),
 };
 
-export const localResolvers = {
-    Local: RunnerResolverLocal,
-    'Rx Local': RxRunnerResolverLocal as unknown as typeof RunnerResolverLocal,
+export const allResolvers = {
+    Client: resolvers.Client,
+    Local: resolvers.Local,
+    'Rx Client': resolvers['Rx Client'] as RunnerResolverClient<typeof runners>,
+    'Rx Local': resolvers["Rx Local"] as unknown as RunnerResolverLocal<typeof runners>,
 };
+
+export const rxResolvers = {
+    'Rx Client': resolvers['Rx Client'],
+    'Rx Local': resolvers["Rx Local"],
+}
 
 // #region Resolvers without LocalResolver
 
-export const clientRunnerList = [
+const clientRunnerList = [
     ...runners.filter(runner => 
         (runner as IRunnerIdentifierConfig)?.token !== EXTENDED_STUB_RUNNER_TOKEN
     ),
@@ -41,28 +37,24 @@ export const clientRunnerList = [
     } as IRunnerIdentifierConfig<typeof ExtendedStubRunner, typeof EXTENDED_STUB_RUNNER_TOKEN>
 ];
 
-const runnerResolverClient = new RunnerResolverClient({
-    runners: clientRunnerList,
-    connection: new Worker('base/test/host/worker.js'),
-});
-const rxRunnerResolverClient = new RxRunnerResolverClient({
-    runners: clientRunnerList,
-    connection: new Worker('base/test/host/rx-worker.js'),
-});
-
 export const resolverClientList = {
-    Common: runnerResolverClient,
-    Rx: rxRunnerResolverClient as typeof runnerResolverClient,
+    Client: new RunnerResolverClient({ runners: clientRunnerList, connection: clientWorker }),
+    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: clientRxWorker }),
 };
 
 // #endregion
 
+export const localResolversConstructors = {
+    Local: RunnerResolverLocal,
+    'Rx Local': RxRunnerResolverLocal as unknown as typeof RunnerResolverLocal,
+};
+
 export const apartHostClientResolvers = {
-    Common: {
+    Client: {
         client: RunnerResolverClient,
         host: RunnerResolverHost,
     },
-    Rx: {
+    'Rx Client': {
         client: RxRunnerResolverClient as typeof RunnerResolverClient,
         host: RxRunnerResolverHost,
     },

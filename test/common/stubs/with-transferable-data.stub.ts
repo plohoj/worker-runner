@@ -13,5 +13,4 @@ export class WithTransferableRunnerStub {
     setArrayBuffer(arrayBuffer: ArrayBuffer): void {
         this.arrayBuffer = arrayBuffer;
     }
-
 }

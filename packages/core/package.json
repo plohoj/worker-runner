@@ -1,0 +1,28 @@
+{
+  "name": "@worker-runner/core",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "rollup --config"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plohoj/worker-runner.git"
+  },
+  "author": "Aleksandr Plokhikh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/plohoj/worker-runner/issues"
+  },
+  "description": "Worker Runner is a tool to assist use Web Worker",
+  "homepage": "https://github.com/plohoj/worker-runner#readme",
+  "types": "./index.ts",
+  "main": "./dist/umd/worker-runner-core.js",
+  "module": "./dist/esm/worker-runner-core.js",
+  "sideEffects": false,
+  "keywords": [
+    "worker-runner"
+  ],
+  "dependencies": {
+    "tslib": "^2.2.0"
+  }
+}
