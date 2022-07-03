@@ -10,3 +10,7 @@ export class TransferRunnerData<
         public transfer: T[],
     ) {}
 }
+
+// TODO new TransferRunnerObject({...}), TransferRunnerArray([...])
+// example: TransferRunnerObject({simpleField: 1, field: TransferRunnerArray([1, 2, TransferRunnerData(messagePort)])})
+// TODO use TransferRunnerData, TransferRunnerObject and TransferRunnerArray only as 

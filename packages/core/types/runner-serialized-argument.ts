@@ -1,20 +1,19 @@
 import { TransferableJsonLike } from './json-like';
 import { RunnerToken } from "./runner-identifier";
 
-export enum RunnerSerializedArgumentType {
+export enum RunnerSerializedArgumentTypeEnum {
     JSON = 'JSON',
-    RESOLVED_RUNNER = 'RESOLVED_RUNNER',
+    RUNNER = 'RUNNER',
 }
 
-export type IRunnerSerializedJSONArgument = {
-    type: RunnerSerializedArgumentType.JSON;
+export type IRunnerSerializedJsonArgument = {
+    type: RunnerSerializedArgumentTypeEnum.JSON;
     data: TransferableJsonLike;
 }
 
-export type IRunnerSerializedResolvedRunnerArgument = {
-    type: RunnerSerializedArgumentType.RESOLVED_RUNNER;
-    port: MessagePort;
+export type IRunnerSerializedRunnerArgument = {
+    type: RunnerSerializedArgumentTypeEnum.RUNNER;
     token: RunnerToken;
 }
 
-export type IRunnerSerializedArgument = IRunnerSerializedJSONArgument | IRunnerSerializedResolvedRunnerArgument;
+export type IRunnerSerializedArgument = IRunnerSerializedJsonArgument | IRunnerSerializedRunnerArgument;

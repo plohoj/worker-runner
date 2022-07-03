@@ -20,5 +20,8 @@
         "inited",
         "preprocessors"
     ],
+    "cSpell.flagWords": [
+        "chanel"
+    ],
     "typescript.preferences.importModuleSpecifier": "project-relative",
 }

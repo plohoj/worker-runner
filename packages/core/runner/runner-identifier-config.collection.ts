@@ -5,7 +5,7 @@ import { JsonLike } from "../types/json-like";
 import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
 import { IRunnerControllerConstructor, RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "./runner.controller";
 
-interface IRunnerIdentifierConfigCollectionOptoins<M extends RunnerIdentifierConfigList> {
+interface IRunnerIdentifierConfigCollectionOptions<M extends RunnerIdentifierConfigList> {
     runners: M;
 }
 
@@ -22,7 +22,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
     public readonly runnerByTokenDataRecord: IRunnerCollectionDataByTokenRecord = {};
     public readonly runnerTokenMap = new Map<RunnerConstructor, RunnerToken>();
 
-    constructor(config: IRunnerIdentifierConfigCollectionOptoins<L>) {
+    constructor(config: IRunnerIdentifierConfigCollectionOptions<L>) {
         this.applyRunnerIdentifierConfigList(config.runners);
     }
 
@@ -43,6 +43,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
     }
 
     public getRunnerTokenByInstance<R extends AvailableRunnersFromList<L>>(runnerInstance: InstanceType<R>): RunnerToken {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
@@ -110,6 +111,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
 
     public getRunnerMethodsNames(token: RunnerToken): string[] {
         const runnerControllerConstructor = this.getRunnerControllerConstructor(token);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const allMethodsNames = Object.keys(runnerControllerConstructor.prototype);
         const methodsNames = allMethodsNames.filter(methodName => !(methodName in RunnerController.prototype));
         return methodsNames;
@@ -142,8 +144,11 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
     private recursiveAttachUndeclaredMethods(construct: Constructor, proto: Constructor): void {
         for (const key of Object.getOwnPropertyNames(proto.prototype)) {
             this.attachUndeclaredMethod(construct, key)
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const parent = Object.getPrototypeOf(proto);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (parent.prototype) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 this.recursiveAttachUndeclaredMethods(construct, parent);
             }
         }
@@ -151,6 +156,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
 
     private attachUndeclaredMethod(controllerConstructor: Constructor, methodName: string): void {
         if (!(methodName in controllerConstructor.prototype)) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             controllerConstructor.prototype[methodName] = function(this: RunnerController, ...args: JsonLike[]) {
                 return this[RUNNER_ENVIRONMENT_CLIENT].execute(methodName, args);
             };

@@ -12,7 +12,7 @@ export interface ISerializedError extends IRunnerErrorConfigBase {
     originalErrors?: ISerializedError[];
 }
 
-export class WorkerRunnerErrorSerializer {
+export class ErrorSerializer {
     protected readonly codeToErrorMap = CODE_TO_ERROR_MAP;
 
     public normalize<
@@ -96,4 +96,4 @@ export class WorkerRunnerErrorSerializer {
     }
 }
 
-export const WORKER_RUNNER_ERROR_SERIALIZER = new WorkerRunnerErrorSerializer();
+export const WORKER_RUNNER_ERROR_SERIALIZER = new ErrorSerializer();

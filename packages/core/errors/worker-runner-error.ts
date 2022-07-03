@@ -68,6 +68,18 @@ export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
     }
 }
 
+export class WorkerRunnerCommonConnectionStrategyError extends WorkerRunnerError {
+    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.UNEXPECTED_ERROR;
+
+    constructor(config: IWorkerRunnerErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: WorkerRunnerCommonConnectionStrategyError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.COMMON_CONNECTION_STRATEGY_ERROR(),
+            captureOpt: WorkerRunnerCommonConnectionStrategyError,
+        }));
+    }
+}
+
 export type IWorkerRunnerAlternativeErrorConfig = IRunnerErrorConfigBase & IRunnerErrorConfigCaptureOpt;
 
 export function combineErrorConfig(

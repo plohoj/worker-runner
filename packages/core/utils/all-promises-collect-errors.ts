@@ -7,6 +7,7 @@ type IPromisedValuesOrErrors<T> = {
 /**
  * @throws {unknown[]}
  */
+// TODO should throw an exception using the exception factory
 export async function allPromisesCollectErrors<T>(promises: Promise<T>[]): Promise<IPromisedValuesOrErrors<T>> {
     const errors = new Array<unknown>();
     const values = await Promise.all(

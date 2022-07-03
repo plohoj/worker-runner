@@ -57,6 +57,17 @@ export class RunnerDestroyError extends WorkerRunnerMultipleError {
     }
 }
 
+export class RunnerResolverClientDestroyError extends WorkerRunnerMultipleError {
+    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: RunnerResolverClientDestroyError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CLIENT_DESTROY_ERROR(),
+            captureOpt: RunnerResolverClientDestroyError,
+        }));
+    }
+}
+
 export class RunnerResolverHostDestroyError extends WorkerRunnerMultipleError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {

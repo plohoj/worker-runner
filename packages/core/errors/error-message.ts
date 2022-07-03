@@ -28,7 +28,7 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
             info += info ? `: ${config.runnerName}` : config.runnerName;
         }
         if (config.methodName) {
-            info += info ? `.${config.runnerName}` : `${config.runnerName}`;
+            info += info ? `.${config.methodName}` : `${config.methodName}`;
             info += '(...)';
         }
         if (!info) {
@@ -57,11 +57,17 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     EXECUTE_ERROR(config: Readonly<IRunnerExecuteMessageConfig> = {}): string {
         return `Runtime Error${this.formatRunnerInfo(config, 'for')}`;
     },
+    RUNNER_RESOLVER_CLIENT_DESTROY_ERROR(): string {
+        return `An error occurred while destroying RunnerResolverClient`;
+    },
     RUNNER_RESOLVER_HOST_DESTROY_ERROR(): string {
         return `An error occurred while destroying RunnerResolverHost`;
     },
-    RUNNER_RESOLVER_HOST_NOT_INIT(): string {
-        return 'RunnerResolverHost not init';
+    RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(): string {
+        return 'Connection not established';
+    },
+    COMMON_CONNECTION_STRATEGY_ERROR(): string {
+        return `Common connection strategy for Client and Host not found`;
     },
 
     UNEXPECTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {

@@ -1,21 +1,16 @@
 /// <reference lib="webworker" />
 
-export { IConnectClientActions, IConnectClientDestroyAction, IConnectClientDisconnectAction, IConnectCustomAction } from './connect/client/connect.client.actions';
-export { ConnectClient, IConnectClientConfig } from './connect/client/connect.client';
-export { ConnectHostAction, IConnectHostActions, IConnectHostCustomResponseAction } from './connect/host/connect.host.actions';
-export { ConnectHost, IConnectHostConfig, IListeningInterrupter, IMessagePortConnectHostData } from './connect/host/connect.host';
 export { WorkerRunnerErrorCode } from './errors/error-code';
 export { CODE_TO_ERROR_MAP, ICodeToErrorMap } from './errors/error-code-map';
 export { IRunnerExecuteMessageConfig, IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from './errors/error-message';
-export { ISerializedError, WorkerRunnerErrorSerializer } from './errors/error.serializer';
+export { ISerializedError, ErrorSerializer } from './errors/error.serializer';
 export { ConnectionWasClosedError, RunnerResolverHostDestroyError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from './errors/runner-errors';
 export { combineErrorConfig, IWorkerRunnerErrorConfig, WorkerRunnerError, WorkerRunnerUnexpectedError, WORKER_RUNNER_ERROR_CODE } from './errors/worker-runner-error';
 export { RunnerResolverClientAction } from './runner-resolver/client/runner-resolver.client.actions';
 export { RunnerResolverClientBase, IRunnerResolverClientBaseConfig } from './runner-resolver/client/runner-resolver.client';
 export { RunnerResolverHostAction, IRunnerResolverHostAction } from './runner-resolver/host/runner-resolver.host.actions';
 export { RunnerResolverHostBase, IRunnerResolverHostConfigBase } from './runner-resolver/host/runner-resolver.host';
-export { RunnerResolverBridgeLocal } from './runner-resolver-bridge/local/runner-resolver-bridge.local';
-export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientResolveAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
+export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientCloneAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
 export { IRunnerEnvironmentClientConfig, RunnerEnvironmentClient } from './runner-environment/client/runner-environment.client';
 export { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
 export { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
@@ -26,5 +21,4 @@ export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMe
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonLike, TransferableJsonLike } from './types/json-like';
 export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerByIdentifier, RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from './types/runner-identifier';
-export { PromiseListResolver } from './utils/promise-list.resolver';
 export { TransferRunnerData } from './utils/transfer-runner-data';

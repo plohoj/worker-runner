@@ -18,8 +18,8 @@ export class RunnerController {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-    public static isRunnerController(instance: any): instance is RunnerController {
-        return !!instance && !!instance[RUNNER_ENVIRONMENT_CLIENT];
+    public static isRunnerController(instance: unknown): instance is RunnerController {
+        return !!(instance as RunnerController | undefined)?.[RUNNER_ENVIRONMENT_CLIENT];
     }
 
     /** Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed */
@@ -32,11 +32,6 @@ export class RunnerController {
         await this[RUNNER_ENVIRONMENT_CLIENT].destroy();
     }
 
-    /** Returns a new control object for the same Runner instance */
-    public async cloneControl(): Promise<this> {
-        const runnerEnvironmentClient = await this[RUNNER_ENVIRONMENT_CLIENT].cloneControl();
-        return runnerEnvironmentClient.resolvedRunner as this;
-    }
     /**
      * When a Runner is flagged for transfer, if it is used as argument or as method result,
      * the original control will be transferred. The original Resolved Runner will lose control.

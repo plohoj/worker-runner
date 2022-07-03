@@ -13,7 +13,6 @@ Worker Runner is a tool to assist use Web Worker.
 1. [ResolvedRunner](#resolved-runner)
     * [destroy](#destroy)
     * [disconnect](#disconnect)
-    * [cloneControl](#clone-control)
     * [markForTransfer](#mark-for-transfer)
 1. [Runner token](#runner-token)
 1. [ResolvedRunner as argument](#resolved-runner-as-argument)
@@ -103,9 +102,6 @@ All called methods will be executed asynchronously and the result of the calcula
 
 *   <a name="disconnect"></a> **`disconnect()`**  
     Unsubscribe from runner, if the control object was the last, then runner will be automatically destroyed.
-
-*   <a name="clone-control"></a> **`cloneControl()`**  
-    Returns a new control object for the same Runner instance.
 
 *   <a name="mark-for-transfer"></a> **`markForTransfer()`**  
     When a Runner is flagged for transfer, if it is used 
