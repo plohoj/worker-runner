@@ -1,5 +1,5 @@
-import { IPreparedForSendRunnerAttachData } from '../base/base.connection-strategy-client';
+import { IMessagePortTarget } from '../../types/message-port-target.interface';
 
-export interface IMessageChannelConnectionPreparedForSendRunnerAttachData extends IPreparedForSendRunnerAttachData {
-    port: MessagePort;
+export interface IMessageChannelConnectionRunnerAttachData {
+    port: IMessagePortTarget;
 }

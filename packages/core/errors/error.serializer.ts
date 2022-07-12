@@ -31,6 +31,7 @@ export class ErrorSerializer {
         if (errorMessage) {
             errorConfig.message = errorMessage as string;
         }
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         (errorConfig as IRunnerErrorConfigCaptureOpt).captureOpt = this.normalize;
         return new alternativeErrorConstructor(errorConfig);
     }
@@ -50,7 +51,8 @@ export class ErrorSerializer {
                 stack: error.stack,
             };
             if (!serializedError.stack) {
-                Error.captureStackTrace?.(this.serialize);
+                // eslint-disable-next-line @typescript-eslint/unbound-method
+                Error.captureStackTrace?.(serializedError, this.serialize);
             }
             if (!serializedError.stack) {
                 // eslint-disable-next-line unicorn/error-message
@@ -69,7 +71,8 @@ export class ErrorSerializer {
                     ? String(error)
                     : WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(),
             };
-            Error.captureStackTrace?.(this.serialize);
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            Error.captureStackTrace?.(serializedError, this.serialize);
             if (!serializedError.stack) {
                 // eslint-disable-next-line unicorn/error-message
                 serializedError.stack = new Error().stack;
@@ -89,6 +92,7 @@ export class ErrorSerializer {
         }
         const errorConstructor = this.codeToErrorMap[error.errorCode] || WorkerRunnerUnexpectedError;
         return new errorConstructor({
+            // eslint-disable-next-line @typescript-eslint/unbound-method
             captureOpt: this.deserialize,
             ...error,
             originalErrors: error.originalErrors?.map(originalError => this.deserialize(originalError))

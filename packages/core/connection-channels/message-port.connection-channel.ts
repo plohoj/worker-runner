@@ -1,19 +1,15 @@
 import { IMessagePortTarget } from '../types/message-port-target.interface';
-import { ConnectionChannelProxyData } from './base.connection-channel';
 import { MessageEventConnectionChannel } from './message-event.connection-channel';
 
-export interface IMessagePortConnectionChannelConfig<AttachableData extends Record<string, unknown>> {
+export interface IMessagePortConnectionChannelConfig {
     target: IMessagePortTarget;
-    proxyData?: AttachableData;
 }
 
-export class MessagePortConnectionChannel<
-    AttachableData extends ConnectionChannelProxyData = ConnectionChannelProxyData
-> extends MessageEventConnectionChannel<AttachableData> {
+export class MessagePortConnectionChannel extends MessageEventConnectionChannel {
 
     public override readonly target!: IMessagePortTarget;
     
-    constructor(config: IMessagePortConnectionChannelConfig<AttachableData>) {
+    constructor(config: IMessagePortConnectionChannelConfig) {
         super(config);
     }
 
@@ -22,9 +18,9 @@ export class MessagePortConnectionChannel<
         this.target.start();
     }
 
-    public override destroy(saveConnectionOpened = false): void {
-        super.destroy();
-        if (!saveConnectionOpened) {
+    protected override afterDestroy(): void {
+        super.afterDestroy();
+        if (!this.saveConnectionOpened) {
             this.target.close();
         }
     }

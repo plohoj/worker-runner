@@ -1,5 +1,5 @@
 import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
-import { ConnectionWasClosedError } from '../errors/runner-errors';
+import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId, ITransferableAction } from '../types/action';
 import { DisconnectErrorFactory } from '../types/disconnect-error-factory';
@@ -45,7 +45,7 @@ export class ActionController {
         O extends ITransferableAction = ITransferableAction,
     >(action: I): Promise<O & IActionWithId> {
         if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory(new ConnectionWasClosedError());
+            throw this.disconnectErrorFactory(new ConnectionClosedError());
         }
         const {transfer, ...actionWithoutTransfer} = action; // TODO Needed?
         const actionId = this.resolveActionId();
@@ -72,7 +72,7 @@ export class ActionController {
 
     public sendAction = <T extends IAction>(action: T, transfer?: Transferable[]): void => {
         if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory(new ConnectionWasClosedError());
+            throw this.disconnectErrorFactory(new ConnectionClosedError());
         }
         this.connectionChannel.sendAction(action, transfer);
     }
@@ -92,7 +92,7 @@ export class ActionController {
 
     /** Interrupt resolving all actions and throw an error */
     public rejectResolingAllActions(
-        error: WorkerRunnerError = this.disconnectErrorFactory(new ConnectionWasClosedError())
+        error: WorkerRunnerError = this.disconnectErrorFactory(new ConnectionClosedError())
     ): void {
         for (const reject of this.resolveActionRejectSet) {
             reject(error);
@@ -126,11 +126,11 @@ export class ActionController {
         return this.lastActionId++;
     }
 
-    private defaultDisconnectErrorFactory = (error: ConnectionWasClosedError): ConnectionWasClosedError => {
+    private readonly defaultDisconnectErrorFactory = (error: ConnectionClosedError): ConnectionClosedError => {
         return error;
     }
 
-    private actionHandler = (action: IActionWithId) => {
+    private readonly actionHandler = (action: IActionWithId) => {
         const handlers = this.handlersByIdMap.get(action.id) || [];
         for (const handler of handlers) {
             handler(action);

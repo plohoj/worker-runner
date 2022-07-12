@@ -1,8 +1,8 @@
-import { BaseConnectionStrategyClient, IPreparedForSendRunnerAttachData } from '../connection-strategies/base/base.connection-strategy-client';
+import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { BaseConnectionStrategyClient, IAttachDataForSendRunner } from '../connection-strategies/base/base.connection-strategy-client';
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
-import { RunnerEnvironmentClient } from '../runner-environment/client/runner-environment.client';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "../runner/runner.controller";
-import { IRunnerParameter, IRunnerSerializedParameter, RunnerConstructor } from "../types/constructor";
+import { IRunnerParameter, IRunnerSerializedParameter } from "../types/constructor";
 import { JsonLike } from "../types/json-like";
 import { IRunnerSerializedArgument, IRunnerSerializedRunnerArgument, RunnerSerializedArgumentTypeEnum } from "../types/runner-serialized-argument";
 import { allPromisesCollectErrors, mapPromisesAndAwaitMappedWhenError } from "../utils/all-promises-collect-errors";
@@ -27,13 +27,11 @@ export class ArgumentsSerializer {
 
     public async serializeArguments(config: {
         arguments: IRunnerParameter[],
+        currentChannel: BaseConnectionChannel,
         combinedErrorsFactory(errors: unknown[]): WorkerRunnerMultipleError,
     }): Promise<ISerializedArgumentsData> {
         const transfer = new Array<Transferable>();
-        const preparedDataList = new Array<{
-                environment: RunnerEnvironmentClient<RunnerConstructor>,
-                attachData: IPreparedForSendRunnerAttachData,
-            }>();
+        const attachedDataList = new Array<IAttachDataForSendRunner>();
         const serializedArgumentsWithPossibleErrors = await mapPromisesAndAwaitMappedWhenError(
             config.arguments,
             async (argumentWithTransferData): Promise<IRunnerSerializedArgument> => {
@@ -51,14 +49,14 @@ export class ArgumentsSerializer {
                         token: environment.token,
                     };
                     const prepareData = await this.connectionStrategy.prepareRunnerForSend(
+                        config.currentChannel,
                         environment,
                     )
                     Object.assign(serializedRunnerArgument, prepareData.attachData);
-                    transfer.push(...prepareData.transfer);
-                    preparedDataList.push({
-                        environment,
-                        attachData: prepareData.attachData,
-                    });
+                    if (prepareData.transfer) {
+                        transfer.push(...prepareData.transfer);
+                    }
+                    attachedDataList.push(prepareData.attachData);
                     return serializedRunnerArgument;
                 } else {
                     return {
@@ -82,12 +80,9 @@ export class ArgumentsSerializer {
                         return false
                     })
                     .map(controller => (controller as RunnerController)[RUNNER_ENVIRONMENT_CLIENT].disconnect()),
-                ...preparedDataList
-                    .map(async preparedData => {
-                        await this.connectionStrategy.cancelSendPreparedRunnerData(
-                            preparedData.environment,
-                            preparedData.attachData,
-                        );
+                ...attachedDataList
+                    .map(async attachedData => {
+                        await this.connectionStrategy.cancelSendAttachRunnerData(attachedData);
                     }),
             ]);
             if ('errors' in disconnectedOrErrors) {

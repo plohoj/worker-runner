@@ -3,7 +3,7 @@ import { ArgumentsSerializer } from '../../arguments-serialization/arguments-ser
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ErrorSerializer } from "../../errors/error.serializer";
-import { ConnectionWasClosedError } from '../../errors/runner-errors';
+import { ConnectionClosedError } from '../../errors/runner-errors';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -49,8 +49,8 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
     public buildRunnerEnvironmentClientByPartConfig(
         config: IRunnerEnvironmentClientPartFactoryConfig
     ): RunnerEnvironmentClient<AnyRunnerFromList<L>> {
-        const disconnectErrorFactory: DisconnectErrorFactory = (error: ConnectionWasClosedError): ConnectionWasClosedError => 
-            new ConnectionWasClosedError({
+        const disconnectErrorFactory: DisconnectErrorFactory = (error: ConnectionClosedError): ConnectionClosedError => 
+            new ConnectionClosedError({
                 ...error,
                 // eslint-disable-next-line @typescript-eslint/unbound-method
                 captureOpt: this.buildRunnerEnvironmentClientByPartConfig,
@@ -80,10 +80,10 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
     public async initRunnerEnvironmentClientByPartConfigAndAttachToList(
         config: IRunnerEnvironmentClientPartFactoryConfig
     ): Promise<RunnerEnvironmentClient<AnyRunnerFromList<L>>> {
-        const EnvironmentClient = this.buildRunnerEnvironmentClientByPartConfig(config);
-        await EnvironmentClient.initAsync();
-        this.runnerEnvironmentClients.add(EnvironmentClient);
-        return EnvironmentClient;
+        const environmentClient = this.buildRunnerEnvironmentClientByPartConfig(config);
+        await environmentClient.initAsync();
+        this.runnerEnvironmentClients.add(environmentClient);
+        return environmentClient;
     }
 
     protected buildRunnerEnvironmentClient(

@@ -4,12 +4,13 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ErrorSerializer } from '../../errors/error.serializer';
-import { ConnectionWasClosedError, RunnerInitError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
+import { ConnectionClosedError, RunnerInitError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
 import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
+import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController } from '../../runner/runner.controller';
 import { IActionWithId } from '../../types/action';
-import { IRunnerParameter } from '../../types/constructor';
+import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
 import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
 import { IRunnerResolverHostAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from '../host/runner-resolver.host.actions';
@@ -68,6 +69,28 @@ export class ConnectedRunnerResolverClient {
         return runnerEnvironmentClient.resolvedRunner;
     }
 
+    public wrapRunner(
+        runnerInstance: InstanceType<RunnerConstructor>,
+        connectionChannel: BaseConnectionChannel
+    ): ResolvedRunner<RunnerConstructor> {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const runnerConstructor: RunnerConstructor = Object.getPrototypeOf(runnerInstance).constructor;
+        let token = this.runnerIdentifierConfigCollection.getRunnerTokenSoft(runnerConstructor);
+        if (!token) {
+            token = this.runnerIdentifierConfigCollection.generateTokenNameByRunnerConstructor(runnerConstructor);
+            this.runnerIdentifierConfigCollection.defineRunnerConstructor(token, runnerConstructor);
+        }
+        const runnerControllerConstructor = this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(token);
+        const runnerEnvironmentClient = this.runnerEnvironmentClientCollection.buildRunnerEnvironmentClientByPartConfig({
+            token: token,
+            connectionChannel,
+        });
+        this.runnerEnvironmentClientCollection.add(runnerEnvironmentClient);
+        runnerEnvironmentClient.initSync({ runnerControllerConstructor });
+
+        return runnerEnvironmentClient.resolvedRunner;
+    }
+
     /** Destroying of all resolved Runners instance */
     public async destroy(): Promise<void> {
         const errors = new Array<unknown>(); 
@@ -105,13 +128,14 @@ export class ConnectedRunnerResolverClient {
         args: IRunnerParameter[],
     ): Promise<IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction> {
         if (!this.actionController) {
-            throw new ConnectionWasClosedError({
+            throw new ConnectionClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
             });
         }
         try {
             const serializedArguments = await this.argumentSerializer.serializeArguments({
                 arguments: args,
+                currentChannel: this.actionController.connectionChannel,
                 combinedErrorsFactory: (errors: unknown[]) => new RunnerInitError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                         token,

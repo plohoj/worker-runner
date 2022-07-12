@@ -1,51 +1,69 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
-import { RunnerConstructor } from '../../types/constructor';
-import { BaseConnectionStrategyClient, IPreparedForSendRunnerData } from '../base/base.connection-strategy-client';
+import { IMessagePortTarget } from '../../types/message-port-target.interface';
+import { BaseConnectionStrategyClient, IAttachDataForSendRunner, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerData } from '../base/base.connection-strategy-client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IMessageChannelConnectionPreparedForSendRunnerAttachData } from './message-channel-connection-prepared-data.interface';
+import { IMessageChannelConnectionRunnerAttachData } from './message-channel-connection-prepared-data.interface';
 
 export class MessageChannelConnectionStrategyClient extends BaseConnectionStrategyClient {
-    public readonly type = ConnectionStrategyEnum.MessageChannel;
+    public readonly type: ConnectionStrategyEnum = ConnectionStrategyEnum.MessageChannel;
 
     public resolveConnectionForRunner(
-        currentConnection: BaseConnectionChannel,
-        attachedData: IMessageChannelConnectionPreparedForSendRunnerAttachData,
+        currentChannel: BaseConnectionChannel,
+        attachedData: IAttachDataForSendRunner,
     ): BaseConnectionChannel {
-        return new MessagePortConnectionChannel({target: attachedData.port});
+        return new MessagePortConnectionChannel({
+            target: (attachedData as unknown as IMessageChannelConnectionRunnerAttachData).port,
+        });
     }
 
-    public prepareRunnerForSend(
-        environment: RunnerEnvironmentClient<RunnerConstructor>,
-    ): IPreparedForSendRunnerData {
-        let port: MessagePort;
-        if (environment.isMarkedForTransfer) {
-            // TODO Check that the same strategy is used for environment
-            const connection = environment.transferControl() as MessagePortConnectionChannel;
-            port = connection.target as MessagePort;
-        } else {
-            // TODO Check that the same strategy is used for environment
-            port = (environment.cloneControl() as unknown as IMessageChannelConnectionPreparedForSendRunnerAttachData)
-                .port;
-        }
-        const attachData: IMessageChannelConnectionPreparedForSendRunnerAttachData = {
-            port,
-        };
-        const prepareData: IPreparedForSendRunnerData = {
-            attachData,
-            transfer: [port],
-        }
-        return prepareData;
-    }
-
-    // TODO Needed?
-    public cancelSendPreparedRunnerData(
-        environment: RunnerEnvironmentClient<RunnerConstructor>,
-        attachedData: IMessageChannelConnectionPreparedForSendRunnerAttachData,
+    public override cancelSendAttachRunnerData(
+        attachedData: IAttachDataForSendRunner,
     ): void | Promise<void> {
-        if (environment.isMarkedForTransfer) {
-            return environment.disconnect();
+        const port = this.getIdentifierForPreparedData(attachedData);
+        if (!this.resolvedConnectionMap.has(port)) { // The port was passed without building a proxy
+            const connectionChannel = new MessagePortConnectionChannel({target: port});
+            return RunnerEnvironmentClient.disconnectConnection(connectionChannel);
         }
+        return super.cancelSendAttachRunnerData(attachedData);
+    }
+
+    protected override prepareRunnerForSendByConnectionChannel(
+        currentChannel: BaseConnectionChannel,
+        resolvedConnection: BaseConnectionChannel,
+    ): IPreparedForSendRunnerData {
+        if (resolvedConnection instanceof MessagePortConnectionChannel) {
+            const port = resolvedConnection.target;
+            const attachData: IMessageChannelConnectionRunnerAttachData = {
+                port,
+            };
+            return {
+                attachData: attachData as unknown as IAttachDataForSendRunner,
+                transfer: [port as MessagePort],
+            }
+        }
+        return super.prepareRunnerForSendByConnectionChannel(currentChannel, resolvedConnection);
+    }
+
+    protected prepareRunnerProxyForSend(): IPreparedForSendProxyRunnerData {
+        const messageChannel = new MessageChannel();
+        const proxyChannel = new MessagePortConnectionChannel({target: messageChannel.port1});
+        proxyChannel.run();
+        const attachData: IMessageChannelConnectionRunnerAttachData = {
+            port: messageChannel.port2,
+        };
+        return {
+            identifier: messageChannel.port2,
+            proxyChannel,
+            preparedData: {
+                attachData: attachData as unknown as IAttachDataForSendRunner,
+                transfer: [messageChannel.port2],
+            },
+        };
+    }
+
+    protected getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner): IMessagePortTarget {
+        return (attachedData as unknown as IMessageChannelConnectionRunnerAttachData).port;
     }
 }

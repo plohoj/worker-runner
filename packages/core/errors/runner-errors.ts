@@ -2,13 +2,13 @@ import { WorkerRunnerErrorCode } from './error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { combineErrorConfig, IWorkerRunnerErrorConfig, IWorkerRunnerMultipleErrorConfig, WorkerRunnerError, WorkerRunnerMultipleError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
 
-export class ConnectionWasClosedError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.CONNECTION_WAS_CLOSED;
+export class ConnectionClosedError extends WorkerRunnerError {
+    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.CONNECTION_CLOSED;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
-            name: ConnectionWasClosedError.name,
+            name: ConnectionClosedError.name,
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
-            captureOpt: ConnectionWasClosedError,
+            captureOpt: ConnectionClosedError,
         }));
     }
 }

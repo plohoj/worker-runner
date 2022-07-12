@@ -1,3 +1,3 @@
-import { ConnectionWasClosedError } from '../errors/runner-errors';
+import { ConnectionClosedError } from '../errors/runner-errors';
 
-export type DisconnectErrorFactory = (error: ConnectionWasClosedError) => ConnectionWasClosedError;
+export type DisconnectErrorFactory = (error: ConnectionClosedError) => ConnectionClosedError;

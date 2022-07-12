@@ -1,35 +1,36 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
-import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
-import { RunnerConstructor } from '../../types/constructor';
-import { IRunnerSerializedRunnerArgument } from '../../types/runner-serialized-argument';
+import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
+import { IAttachDataForSendRunner } from '../base/base.connection-strategy-client';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
+import { IRepeatConnectionHostRunnerAttachData, RepeatConnectionRunnerAttachDataKeys } from './repeat-connection-prepared-data.interface';
 import { RepeatConnectionStrategyClient } from './repeat.connection-strategy-client';
-
 
 export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
     public readonly strategyClient = new RepeatConnectionStrategyClient();
     public readonly type = ConnectionStrategyEnum.Repeat;
+    private lastRunnerId = 0;
 
-    public resolveConnectionForRunnerAsArgument(
-        data: IRunnerSerializedRunnerArgument
-    ): BaseConnectionChannel {
-        throw new WorkerRunnerUnexpectedError({message: 'Method not implemented.'});
-    }
-
-    public prepareClonedRunnerForSend(
-        environment: RunnerEnvironmentHost<RunnerConstructor>,
+    public prepareRunnerForSend(
+        currentChannel: BaseConnectionChannel,
     ): IPreparedForSendRunnerDataWithConnectionChannel {
-        throw new WorkerRunnerUnexpectedError({message: 'Method not implemented.'});
+        if (currentChannel instanceof ProxyConnectionChannel) {
+            currentChannel = currentChannel.getRootOriginalChannel();
+        }
+        const hostId = this.resolveRunnerId();
+        const proxyKey: RepeatConnectionRunnerAttachDataKeys = 'hostId';
+        const connectionChannel: BaseConnectionChannel = new ProxyConnectionChannel(currentChannel, [proxyKey, hostId]);
+        const attachData: IRepeatConnectionHostRunnerAttachData = {hostId};
+        return {
+            attachData: attachData as unknown as IAttachDataForSendRunner,
+            connectionChannel,
+        }
     }
 
-    public prepareNewRunnerForSend(
-        currentConnection: BaseConnectionChannel,
-    ): IPreparedForSendRunnerDataWithConnectionChannel {
-        // TODO generate cloneId for repeat strategy
-        throw new WorkerRunnerUnexpectedError({message: 'Method not implemented.'});
+    // TODO Inject id generator
+    private resolveRunnerId(): number {
+        return this.lastRunnerId++;
     }
-    
+
     // TODO destroying proxied connection in repeat strategy by destroying RunnerResolverClient
 }

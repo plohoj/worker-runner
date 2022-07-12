@@ -1,10 +1,11 @@
+import { RunnerConstructor, WORKER_RUNNER_ERROR_MESSAGES } from '../..';
 import { ArgumentsDeserializer } from '../../arguments-serialization/arguments-deserializer';
 import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
-import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
+import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
-import { RunnerResolverHostDestroyError } from '../../errors/runner-errors';
-import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
+import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { IArgumentSerialization } from '../../types/argument-serialization.interface';
@@ -17,8 +18,8 @@ export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> 
 } & ({
     runners: L
 } | {
-    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>}
-);
+    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>
+});
 
 export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigList> {
     
@@ -29,7 +30,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     private readonly connection: BaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
     private readonly argumentSerializationByStrategyMap
-         = new Map<BaseConnectionStrategyHost, IArgumentSerialization>();
+         = new Map<BaseConnectionStrategyClient, IArgumentSerialization>();
 
     constructor(config: IRunnerResolverHostConfigBase<L>) {
         this.runnerIdentifierConfigCollection = 'runners' in config
@@ -54,23 +55,23 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
         }
     }
 
-    public wrapRunner(runnerInstance: InstanceType<AvailableRunnersFromList<L>>): MessagePort {
-        // const messageChannel = new MessageChannel();
-
-        // const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
-        //     token: this.runnerIdentifierConfigCollection.getRunnerTokenByInstance(runnerInstance),
-        //     connectionChannel,
-        // });
-        // runnerEnvironmentHost.initSync({ runnerInstance });
-
-        // this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
-        // return messageChannel.port2;
-
-        throw new WorkerRunnerUnexpectedError({message: 'Method wrapRunner not implemented'});
+    public wrapRunner(
+        runnerInstance: InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>,
+        connectionChannel: BaseConnectionChannel,
+    ): void {
+        const connectedResolver = this.connectedResolvers.values().next().value as ConnectedRunnerResolverHost | undefined;
+        if (!connectedResolver) {
+            throw new ConnectionClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+            });
+        }
+        connectedResolver.wrapRunner(runnerInstance, connectionChannel);
     }
 
-    private newConnectionHandler = (newConnectionData: IEstablishedConnectionHostData) => {
-        const serialization = this.getOrCreateSerializationByConnectionStrategy(newConnectionData.strategy);
+    private readonly newConnectionHandler = (newConnectionData: IEstablishedConnectionHostData) => {
+        const serialization = this.getOrCreateSerializationByConnectionStrategy(
+            newConnectionData.strategy.strategyClient
+        );
 
         const connectedResolver: ConnectedRunnerResolverHost = new ConnectedRunnerResolverHost({
             connectionChannel: newConnectionData.connectionChannel,
@@ -87,17 +88,13 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     }
     
     private getOrCreateSerializationByConnectionStrategy(
-        strategy: BaseConnectionStrategyHost
+        strategy: BaseConnectionStrategyClient
     ): IArgumentSerialization {
         let serialization = this.argumentSerializationByStrategyMap.get(strategy);
         if (!serialization) {
             serialization = {
-                serializer: new ArgumentsSerializer({
-                    connectionStrategy: strategy.strategyClient,
-                }),
-                deserializer: new ArgumentsDeserializer({
-                    connectionStrategy: strategy,
-                }),
+                serializer: new ArgumentsSerializer({connectionStrategy: strategy}),
+                deserializer: new ArgumentsDeserializer({connectionStrategy: strategy}),
             };
             this.argumentSerializationByStrategyMap.set(strategy, serialization);
         }

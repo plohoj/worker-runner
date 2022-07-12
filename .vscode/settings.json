@@ -24,4 +24,5 @@
         "chanel"
     ],
     "typescript.preferences.importModuleSpecifier": "project-relative",
+    "git.branchProtection": ["master"]
 }

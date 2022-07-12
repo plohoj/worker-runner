@@ -1,5 +1,5 @@
 import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
-import { BaseConnectionStrategyHost } from '../connection-strategies/base/base.connection-strategy-host';
+import { BaseConnectionStrategyClient } from '../connection-strategies/base/base.connection-strategy-client';
 import { WorkerRunnerMultipleError } from "../errors/worker-runner-error";
 import { RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from "../runner-environment/client/runner-environment.client";
 import { IRunnerSerializedParameter, RunnerConstructor } from "../types/constructor";
@@ -7,7 +7,7 @@ import { IRunnerSerializedArgument, RunnerSerializedArgumentTypeEnum } from "../
 import { allPromisesCollectErrors, mapPromisesAndAwaitMappedWhenError } from "../utils/all-promises-collect-errors";
 
 export interface IArgumentsDeserializerConfig {
-    connectionStrategy: BaseConnectionStrategyHost;
+    connectionStrategy: BaseConnectionStrategyClient;
 }
 
 export interface IDeserializedArgumentsData {
@@ -17,7 +17,7 @@ export interface IDeserializedArgumentsData {
 
 export class ArgumentsDeserializer {
 
-    private readonly connectionStrategy: BaseConnectionStrategyHost;
+    private readonly connectionStrategy: BaseConnectionStrategyClient;
 
     constructor(config: IArgumentsDeserializerConfig) {
         this.connectionStrategy = config.connectionStrategy;
@@ -25,6 +25,7 @@ export class ArgumentsDeserializer {
 
     async deserializeArguments(config: {
         arguments: IRunnerSerializedArgument[],
+        baseConnection: BaseConnectionChannel,
         runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<RunnerConstructor>;
         combinedErrorsFactory(errors: unknown[]): WorkerRunnerMultipleError,
     }): Promise<IDeserializedArgumentsData> {
@@ -36,7 +37,8 @@ export class ArgumentsDeserializer {
                 switch (argument.type) {
                     case RunnerSerializedArgumentTypeEnum.RUNNER: {
                         let environment: RunnerEnvironmentClient<RunnerConstructor>;
-                        const connectionChannel = this.connectionStrategy.resolveConnectionForRunnerAsArgument(argument);
+                        const connectionChannel = this.connectionStrategy
+                            .resolveConnectionForRunner(config.baseConnection, argument);
                         try {
                             environment = await config.runnerEnvironmentClientPartFactory({
                                 connectionChannel,

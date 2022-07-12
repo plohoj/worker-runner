@@ -5,7 +5,7 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ErrorSerializer } from '../../errors/error.serializer';
-import { ConnectionWasClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
+import { ConnectionClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../runner/runner.controller';
@@ -24,14 +24,15 @@ import { IRunnerEnvironmentHostOwnMetadataAction, IRunnerEnvironmentHostClonedAc
 
 interface IRunnerEnvironmentHostSyncInitConfig<R extends RunnerConstructor> {
     runnerInstance: InstanceType<R>,
+    connectionChannel: BaseConnectionChannel;
 }
 
 interface IRunnerEnvironmentHostAsyncInitConfig {
     arguments: IRunnerSerializedArgument[],
+    connectionChannel: BaseConnectionChannel;
 }
 export interface IRunnerEnvironmentHostConfig {
     token: RunnerToken;
-    connectionChannel: BaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyHost,
     argumentSerializer: ArgumentsSerializer;
     argumentDeserializer: ArgumentsDeserializer;
@@ -78,12 +79,11 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
         });
         this.onDestroyed = config.onDestroyed;
-        this.startHandleConnectionChannel(config.connectionChannel);
     }
 
     public get runnerInstance(): InstanceType<R> {
         if (!this._runnerInstance) {
-            throw new ConnectionWasClosedError({
+            throw new ConnectionClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(
                     this.getErrorMessageConfig(),
                 ),
@@ -118,7 +118,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
     }
 
     public initSync(config: IRunnerEnvironmentHostSyncInitConfig<R>): void {
-        this.runnerInstance = config.runnerInstance
+        this.runnerInstance = config.runnerInstance;
+        this.startHandleConnectionChannel(config.connectionChannel);
     }
 
     public async initAsync(config: IRunnerEnvironmentHostAsyncInitConfig): Promise<void> {
@@ -126,6 +127,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         const runnerConstructor = this.runnerIdentifierConfigCollection.getRunnerConstructor(this.token);
         const deserializedArgumentsData = await this.argumentDeserializer.deserializeArguments({
             arguments: config.arguments,
+            baseConnection: config.connectionChannel,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientCollection.runnerEnvironmentClientPartFactory,
             combinedErrorsFactory: (errors: unknown[]) => new RunnerInitError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(this.getErrorMessageConfig()),
@@ -155,7 +157,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
             }
             throw error;
         }
-        this.initSync({ runnerInstance });
+        this.initSync({ runnerInstance, connectionChannel: config.connectionChannel });
     }
 
     public async handleExecuteAction(
@@ -165,6 +167,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         let methodResult: IRunnerMethodResult;
         const deserializedArgumentsData = await this.argumentDeserializer.deserializeArguments({
             arguments: action.args,
+            baseConnection: actionController.connectionChannel,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientCollection.runnerEnvironmentClientPartFactory,
             combinedErrorsFactory: (errors: unknown[]) => new RunnerExecuteError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(this.getErrorMessageConfig()),
@@ -373,7 +376,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         if (RunnerController.isRunnerController(methodResult)) {
             const runnerEnvironmentClient = methodResult[RUNNER_ENVIRONMENT_CLIENT];
             const preparedData = await this.connectionStrategy.strategyClient
-                .prepareRunnerForSend(runnerEnvironmentClient);
+                .prepareRunnerForSend(actionController.connectionChannel, runnerEnvironmentClient);
             const runnerResultAction: IRunnerEnvironmentHostExecutedWithRunnerResultAction & IActionWithId = {
                 type: RunnerEnvironmentHostAction.EXECUTED_WITH_RUNNER_RESULT,
                 id: action.id,
@@ -421,14 +424,16 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
             type: RunnerEnvironmentHostAction.CLONED,
             id: actionId,
         };
-        const preparedData = this.connectionStrategy.prepareClonedRunnerForSend(this);
+        const preparedData = this.connectionStrategy.prepareRunnerForSend(actionController.connectionChannel);
         Object.assign(clonedAction, preparedData.attachData);
         this.startHandleConnectionChannel(preparedData.connectionChannel);
         actionController.sendActionResponse(clonedAction, preparedData.transfer);
     }
 
-    private disconnectErrorFactory: DisconnectErrorFactory = (error: ConnectionWasClosedError): ConnectionWasClosedError => 
-        new ConnectionWasClosedError({
+    private readonly disconnectErrorFactory: DisconnectErrorFactory = (
+        error: ConnectionClosedError,
+    ): ConnectionClosedError => 
+        new ConnectionClosedError({
             // eslint-disable-next-line @typescript-eslint/unbound-method
             captureOpt: this.disconnectErrorFactory,
             ...error,

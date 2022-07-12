@@ -74,6 +74,18 @@ export class ConnectedRunnerResolverHost {
         }
     }
 
+    public wrapRunner(
+        runnerInstance: InstanceType<RunnerConstructor>,
+        connectionChannel: BaseConnectionChannel,
+    ): void {
+        const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
+            token: this.runnerIdentifierConfigCollection.getRunnerTokenByInstance(runnerInstance),
+        });
+        runnerEnvironmentHost.initSync({ runnerInstance, connectionChannel });
+
+        this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
+    }
+
     protected buildRunnerEnvironmentHost(
         config: IRunnerEnvironmentHostConfig
     ): RunnerEnvironmentHost<RunnerConstructor> {
@@ -81,7 +93,7 @@ export class ConnectedRunnerResolverHost {
     }
     
     private buildRunnerEnvironmentHostByPartConfig(
-        config: Pick<IRunnerEnvironmentHostConfig, 'token' | 'connectionChannel'>
+        config: Pick<IRunnerEnvironmentHostConfig, 'token'>
     ): RunnerEnvironmentHost<RunnerConstructor> {
         const runnerEnvironmentHost = this.buildRunnerEnvironmentHost({
             errorSerializer: this.errorSerializer,
@@ -157,14 +169,16 @@ export class ConnectedRunnerResolverHost {
                         id: action.id,
                     };
             const preparedData = this.connectionStrategy
-                .prepareNewRunnerForSend(this.actionController.connectionChannel);
+                .prepareRunnerForSend(this.actionController.connectionChannel);
             Object.assign(responseAction, preparedData.attachData);
             const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
                 token: action.token,
-                connectionChannel: preparedData.connectionChannel,
             });
             try {
-                await runnerEnvironmentHost.initAsync({ arguments: action.args });
+                await runnerEnvironmentHost.initAsync({
+                    arguments: action.args,
+                    connectionChannel: preparedData.connectionChannel,
+                });
             } catch (error) {
                 runnerEnvironmentHost.cancel();
                 throw error;
