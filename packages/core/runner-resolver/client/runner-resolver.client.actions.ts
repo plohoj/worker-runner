@@ -19,14 +19,12 @@ export type IRunnerResolverClientInitRunnerAction = {
     type: RunnerResolverClientAction.INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
-    transfer: Transferable[]
 }
 
 export type IRunnerResolverClientSoftInitRunnerAction = {
     type: RunnerResolverClientAction.SOFT_INIT_RUNNER;
     token: RunnerToken;
     args: IRunnerSerializedArgument[];
-    transfer: Transferable[]
 }
 
 export type IRunnerResolverClientDestroyAction = {

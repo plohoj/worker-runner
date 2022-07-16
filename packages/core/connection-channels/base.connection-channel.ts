@@ -1,4 +1,3 @@
-import { JsonLike } from '..';
 import { ActionHandler, IAction } from '../types/action';
 import { ConnectionChannelProxyData } from './proxy.connection-channel';
 
@@ -10,8 +9,14 @@ export abstract class BaseConnectionChannel {
     protected readonly handlers = new Set<ActionHandler>();
     protected saveConnectionOpened = false;
 
-    /** {proxyField: {proxyValue: {actinHandler}}} */
-    private readonly proxyHandlers = new Map<string, Map<JsonLike, Set<ActionHandler>>>();
+    /** {proxyField: {proxyValue: {proxyChannel}}} */
+    private readonly proxyChannels = new Map<
+        ConnectionChannelProxyData[0],
+        Map<
+            ConnectionChannelProxyData[1],
+            Set<BaseConnectionChannel> // TODO Set needed?
+        >
+    >();
     private _isConnected = false;
     private isDestroyed = false;
 
@@ -28,8 +33,8 @@ export abstract class BaseConnectionChannel {
         proxyData: ConnectionChannelProxyData,
         proxyChannel: BaseConnectionChannel,
     ): () => void {
-        originalChannel.addProxyHandler(proxyData, proxyChannel.actionHandler);
-        return () => originalChannel.removeProxyHandler(proxyData, proxyChannel.actionHandler);
+        originalChannel.addProxyChannel(proxyData, proxyChannel);
+        return () => originalChannel.removeProxyChannel(proxyData, proxyChannel);
     }
 
     /** 
@@ -38,8 +43,9 @@ export abstract class BaseConnectionChannel {
      * before calling this initialization method.
      */
     public run(): void{
-        this.saveConnectionOpened = false;
         this._isConnected = true;
+        this.isDestroyed = false;
+        this.saveConnectionOpened = false;
     }
 
     /** 
@@ -50,7 +56,7 @@ export abstract class BaseConnectionChannel {
         this.isDestroyed = true;
         this.saveConnectionOpened = saveConnectionOpened;
         this.handlers.clear();
-        if (this.proxyHandlers.size === 0) {
+        if (this.proxyChannels.size === 0) {
             this.afterDestroy();
         }
     }
@@ -64,15 +70,15 @@ export abstract class BaseConnectionChannel {
     }
 
     protected readonly actionHandler: ActionHandler = (action: IAction): void => {
-        for (const [proxyField, valueHandlerMap] of this.proxyHandlers) {
+        for (const [proxyField, valueHandlerMap] of this.proxyChannels) {
             if (proxyField in action) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
                 const {[proxyField]: _, ...originalAction} = action as Record<any, any>;
-                for (const [proxyValue, handlersSet] of valueHandlerMap) {
+                for (const [proxyValue, proxyChannelSet] of valueHandlerMap) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     if (proxyValue === (action as Record<any, any>)[proxyField]) {
-                        for (const handler of handlersSet) {
-                            handler(originalAction as IAction);
+                        for (const proxiedChannel of proxyChannelSet) {
+                            proxiedChannel.actionHandler(originalAction as IAction);
                         }
                     }
                 }
@@ -84,29 +90,24 @@ export abstract class BaseConnectionChannel {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected afterDestroy(): void {
-        this.proxyHandlers.clear();
-    }
-
-    private addProxyHandler(proxyData: ConnectionChannelProxyData, handler: ActionHandler): void {
-        let valueHandlerMap = this.proxyHandlers.get(proxyData[0]);
+    private addProxyChannel(proxyData: ConnectionChannelProxyData, proxyChannel: BaseConnectionChannel): void {
+        let valueHandlerMap = this.proxyChannels.get(proxyData[0]);
         if (!valueHandlerMap) {
             valueHandlerMap = new Map();
-            this.proxyHandlers.set(proxyData[0], valueHandlerMap);
+            this.proxyChannels.set(proxyData[0], valueHandlerMap);
         }
         let handlerSet = valueHandlerMap.get(proxyData[1]);
         if (!handlerSet) {
             handlerSet = new Set();
             valueHandlerMap.set(proxyData[1], handlerSet);
         }
-        handlerSet.add(handler);
+        handlerSet.add(proxyChannel);
     }
 
-    private removeProxyHandler(proxyData: ConnectionChannelProxyData, handler: ActionHandler): void {
-        const valueHandlerMap = this.proxyHandlers.get(proxyData[0]);
+    private removeProxyChannel(proxyData: ConnectionChannelProxyData, proxyChannel: BaseConnectionChannel): void {
+        const valueHandlerMap = this.proxyChannels.get(proxyData[0]);
         const handlerSet = valueHandlerMap?.get(proxyData[1]);
-        if (!handlerSet?.delete(handler)) {
+        if (!handlerSet?.delete(proxyChannel)) {
             return;
         }
         if (handlerSet.size > 0) {
@@ -118,13 +119,14 @@ export abstract class BaseConnectionChannel {
         if (valueHandlerMap!.size > 0) {
             return;
         }
-        this.proxyHandlers.delete(proxyData[0])
-        if (this.isDestroyed && this.proxyHandlers.size === 0) {
+        this.proxyChannels.delete(proxyData[0])
+        if (this.isDestroyed && this.proxyChannels.size === 0) {
             this.afterDestroy();
         }
     }
 
     public abstract sendAction(data: IAction, transfer?: Transferable[]): void;
+    protected abstract afterDestroy(): void;
 }
 
 // TODO implements disconnect methods for cases when the Internet connection is lost

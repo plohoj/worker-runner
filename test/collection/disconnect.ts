@@ -1,4 +1,4 @@
-import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
@@ -16,7 +16,7 @@ each(allResolvers, (mode, resolver) =>
             await resolver.destroy();
         });
 
-        it ('with Resolved Runner in arguments', async () => {
+        it('with Resolved Runner in arguments', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -32,57 +32,52 @@ each(allResolvers, (mode, resolver) =>
                 .toBeResolvedTo(storageData);
         });
 
-        it ('after disconnect', async () => {
-            const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+        it('after disconnect', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.disconnect();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: ConnectionWasClosedError.name,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
 
-        it ('after destroy', async () => {
-            const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+        it('after destroy', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.disconnect())
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: ConnectionWasClosedError.name,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
-
     }),
 );
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} disconnect runner`, () => {
-        it ('with resolved another runner', async () => {
+        it('with resolved another runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
-            await localResolver.run();
+            localResolver.run();
 
-            const executableStubRunner = await localResolver
-                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
-                    WithOtherInstanceStubRunner>;
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
             const runnerEnvironmentHosts
-                = [...localResolver['resolverBridge']?.runnerResolverHost['runnerEnvironmentHosts'] || []];
+                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts']];
 
             const runnerEnvironmentHost = runnerEnvironmentHosts
-                .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);
+                .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
 
             expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
             await withOtherInstanceStubRunner.disconnect();

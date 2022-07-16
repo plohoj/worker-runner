@@ -1,7 +1,7 @@
 import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
-import { ActionHandler, IAction, IActionWithId, ITransferableAction } from '../types/action';
+import { ActionHandler, IAction, IActionWithId } from '../types/action';
 import { DisconnectErrorFactory } from '../types/disconnect-error-factory';
 
 export interface IPromiseMethods<T = unknown, E = unknown> {
@@ -40,17 +40,16 @@ export class ActionController {
         this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
     }
 
-    public async resolveAction<
-        I extends ITransferableAction = ITransferableAction,
-        O extends ITransferableAction = ITransferableAction,
-    >(action: I): Promise<O & IActionWithId> {
+    public async resolveAction<I extends IAction = IAction, O extends IAction = IAction>(
+        action: I,
+        transfer?: Transferable[],
+    ): Promise<O & IActionWithId> {
         if (!this.connectionChannel.isConnected) {
             throw this.disconnectErrorFactory(new ConnectionClosedError());
         }
-        const {transfer, ...actionWithoutTransfer} = action; // TODO Needed?
         const actionId = this.resolveActionId();
         const actionWidthId: IActionWithId = {
-            ...actionWithoutTransfer as unknown as IAction,
+            ...action,
             id: actionId,
         };
         const response$ = new Promise<O & IActionWithId>((resolve, reject) => {

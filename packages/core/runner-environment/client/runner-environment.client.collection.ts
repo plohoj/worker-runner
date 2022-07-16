@@ -18,8 +18,7 @@ export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdenti
 
 export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList> {
 
-    public readonly runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<AnyRunnerFromList<L>>
-        = this.initRunnerEnvironmentClientByPartConfigAndAttachToList.bind(this);
+    public readonly runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<AnyRunnerFromList<L>>;
     public readonly runnerEnvironmentClients = new Set<RunnerEnvironmentClient<AnyRunnerFromList<L>>>();
 
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
@@ -32,20 +31,13 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
         this.connectionStrategy = config.connectionStrategy;
         this.errorSerializer = config.errorSerializer;
         this.argumentSerializer = config.argumentSerializer;
-    }
-
-    public add(...runnerEnvironmentClients: RunnerEnvironmentClient<AnyRunnerFromList<L>>[]): void {
-        for (const runnerEnvironmentClient of runnerEnvironmentClients) {
-            this.runnerEnvironmentClients.add(runnerEnvironmentClient);
-        }
-    }
-
-    public delete(...runnerEnvironmentClients: RunnerEnvironmentClient<AnyRunnerFromList<L>>[]): void {
-        for (const runnerEnvironmentClient of runnerEnvironmentClients) {
-            this.runnerEnvironmentClients.delete(runnerEnvironmentClient);
-        }
+        this.runnerEnvironmentClientPartFactory = this.initRunnerEnvironmentClientByPartConfig;
     }
     
+    /**
+     * Build a {@link RunnerEnvironmentClient} and adds it to the collection.
+     * Building occurs **without initialization**
+     */
     public buildRunnerEnvironmentClientByPartConfig(
         config: IRunnerEnvironmentClientPartFactoryConfig
     ): RunnerEnvironmentClient<AnyRunnerFromList<L>> {
@@ -63,7 +55,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             connectionChannel: config.connectionChannel,
             disconnectErrorFactory,
         })
-        const runnerEnvironmentClient: RunnerEnvironmentClient<AnyRunnerFromList<L>> = this.buildRunnerEnvironmentClient({
+        const environmentClient: RunnerEnvironmentClient<AnyRunnerFromList<L>> = this.buildRunnerEnvironmentClient({
             token: config.token,
             actionController,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
@@ -72,17 +64,30 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             argumentSerializer: this.argumentSerializer,
             disconnectErrorFactory,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientPartFactory,
-            onDestroyed: () => this.runnerEnvironmentClients.delete(runnerEnvironmentClient),
+            onDestroyed: () => this.runnerEnvironmentClients.delete(environmentClient),
         });
-        return runnerEnvironmentClient;
+        // At the time of initialization, the environment client can receive the destroy action, so need to:
+        // * Add environment to the list
+        // * If an error thrown during initialization, remove the environment from the list again.
+        // If destroying occurs after successful initialization,
+        // the environment will be removed from the list by calling the onDestroyed method.
+        this.runnerEnvironmentClients.add(environmentClient);
+        return environmentClient;
     }
 
-    public async initRunnerEnvironmentClientByPartConfigAndAttachToList(
+    /**
+     * **Initializes** a {@link RunnerEnvironmentClient} and adds it to the collection.
+     */
+    public initRunnerEnvironmentClientByPartConfig = async (
         config: IRunnerEnvironmentClientPartFactoryConfig
-    ): Promise<RunnerEnvironmentClient<AnyRunnerFromList<L>>> {
+    ): Promise<RunnerEnvironmentClient<AnyRunnerFromList<L>>> => {
         const environmentClient = this.buildRunnerEnvironmentClientByPartConfig(config);
-        await environmentClient.initAsync();
-        this.runnerEnvironmentClients.add(environmentClient);
+        try {
+            await environmentClient.initAsync();
+        } catch (error) {
+            this.runnerEnvironmentClients.delete(environmentClient);
+            throw error;
+        }
         return environmentClient;
     }
 

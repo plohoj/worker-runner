@@ -18,7 +18,8 @@
         "deserialize",
         "devtool",
         "inited",
-        "preprocessors"
+        "preprocessors",
+        "proxied"
     ],
     "cSpell.flagWords": [
         "chanel"

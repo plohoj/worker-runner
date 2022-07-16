@@ -1,18 +1,47 @@
-/**
- * Runner data that was sent by the client to the host in case of:
- * * Method/constructor argument;
- */
-export interface IRepeatConnectionClientRunnerAttachData {
-    clientId: number;
+import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
+
+export enum RepeatConnectionClientRunnerAttachDataFields {
+    NewClientId = 'newClientId',
+    ClientId = 'clientId',
+    NewHostId = 'newHostId',
+    HostId = 'hostId',
+    TransferId = 'transferId',
 }
 
 /**
- * Runner data that was sent by the host to the client in case of:
+ * Data for a **new** connection with the runner. The data that was sent by the client to the host in case of:
+ * * Method/constructor argument;
+ */
+export interface IRepeatConnectionNewClientRunnerAttachData {
+    [RepeatConnectionClientRunnerAttachDataFields.NewClientId]: WorkerRunnerIdentifier;
+}
+
+/**
+ * Data for an **existing** connection to the runner. The data that was sent by the client to the host in case of:
+ * * Method/constructor argument;
+ */
+export interface IRepeatConnectionClientRunnerProxyAttachData {
+    [RepeatConnectionClientRunnerAttachDataFields.ClientId]: WorkerRunnerIdentifier;
+}
+
+/**
+ * Data for a **new** connection with the runner. The data that was sent by the client to the host in case of:
  * * Result of the method execution;
  * * Result of requesting new Runner using Resolver;
+ * * Result on a connection clone request
  */
-export interface IRepeatConnectionHostRunnerAttachData {
-    hostId: number;
+export interface IRepeatConnectionNewHostRunnerAttachData {
+    [RepeatConnectionClientRunnerAttachDataFields.NewHostId]: WorkerRunnerIdentifier;
+}
+
+/**
+ * Data for an **existing** connection to the runner. The data that was sent by the host to the client in case of:
+ * * Result of the method execution;
+ * * Result of requesting new Runner using Resolver;
+ * * Result on a connection clone request
+ */
+export interface IRepeatConnectionHostRunnerProxyAttachData {
+    [RepeatConnectionClientRunnerAttachDataFields.HostId]: WorkerRunnerIdentifier;
 }
 
 // TODO implement
@@ -21,16 +50,20 @@ export interface IRepeatConnectionHostRunnerAttachData {
  * The HostResolver environment must find this instance and use its connection to shorten the action forwarding route
  */
 export interface IRepeatConnectionTransferRunnerAttachData {
-    transferId: number;
+    [RepeatConnectionClientRunnerAttachDataFields.TransferId]: WorkerRunnerIdentifier;
 }
 
 export type IRepeatConnectionRunnerAttachData =
-    | IRepeatConnectionClientRunnerAttachData
-    | IRepeatConnectionHostRunnerAttachData
+    | IRepeatConnectionNewClientRunnerAttachData    
+    | IRepeatConnectionClientRunnerProxyAttachData
+    | IRepeatConnectionNewHostRunnerAttachData
+    | IRepeatConnectionHostRunnerProxyAttachData
     | IRepeatConnectionTransferRunnerAttachData;
 
 export type RepeatConnectionRunnerAttachDataKeys = keyof (
-    & IRepeatConnectionClientRunnerAttachData
-    & IRepeatConnectionHostRunnerAttachData
+    & IRepeatConnectionNewClientRunnerAttachData
+    & IRepeatConnectionClientRunnerProxyAttachData
+    & IRepeatConnectionNewHostRunnerAttachData
+    & IRepeatConnectionHostRunnerProxyAttachData
     & IRepeatConnectionTransferRunnerAttachData
 );

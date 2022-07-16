@@ -46,7 +46,17 @@ export interface IRunnerEnvironmentHostActionControllerConnectData {
     /** Action Initiated was received for ActionControllers */
     isInitiated?: boolean;
     interrupter: PromiseInterrupter;
-} 
+}
+
+export interface IRunnerEnvironmentHostDestroyActionTrigger {
+    actionController: ActionController;
+    actionId: number;
+}
+
+export interface IRunnerEnvironmentHostDestroyProcessData {
+    promise$: Promise<void>;
+    actionTriggers: IRunnerEnvironmentHostDestroyActionTrigger[];
+}
 
 const WAIT_FOR_RESPONSE_DESTROYED_ACTION_TIMEOUT = 10_000;
 
@@ -64,6 +74,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
     private readonly onDestroyed: () => void;
 
     private _runnerInstance?: InstanceType<R>;
+    private destroyProcess?: IRunnerEnvironmentHostDestroyProcessData;
 
     constructor(config: Readonly<IRunnerEnvironmentHostConfig>) {
         this.token = config.token;
@@ -134,7 +145,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
                 originalErrors: errors,
             }),
         });
-        this.runnerEnvironmentClientCollection.add(...deserializedArgumentsData.environments);
         try {
             runnerInstance = new runnerConstructor(...deserializedArgumentsData.arguments) as InstanceType<R>;
         } catch (error) {
@@ -142,8 +152,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
                 deserializedArgumentsData.environments
                     .map(controller => controller.disconnect())
             );
-            // TODO NEED TEST About delete controller if ResolvedRunner was disconnected / destroyed in constructor 
-            this.runnerEnvironmentClientCollection.delete(...deserializedArgumentsData.environments);
             if ('errors' in possibleErrors) {
                 throw new RunnerInitError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(
@@ -152,7 +160,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
                     originalErrors: [
                         error,
                         ...possibleErrors.errors,
-                    ]
+                    ],
                 });
             }
             throw error;
@@ -164,16 +172,20 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         actionController: ActionController,
         action: IRunnerEnvironmentClientExecuteAction & IActionWithId,
     ): Promise<void> {
-        let methodResult: IRunnerMethodResult;
         const deserializedArgumentsData = await this.argumentDeserializer.deserializeArguments({
             arguments: action.args,
             baseConnection: actionController.connectionChannel,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientCollection.runnerEnvironmentClientPartFactory,
             combinedErrorsFactory: (errors: unknown[]) => new RunnerExecuteError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR(this.getErrorMessageConfig()),
+                message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
+                    ...this.getErrorMessageConfig(),
+                    methodName: action.method,
+                }),
                 originalErrors: errors,
             }),
         });
+
+        let methodResult: IRunnerMethodResult | PromiseInterrupter;
         try {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const notAwaitedResult: IRunnerMethodResult | Promise<IRunnerMethodResult>
@@ -187,9 +199,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
                 ]))
                 : notAwaitedResult;
         } catch (error: unknown) {
-            if (error instanceof PromiseInterrupter) {
-                return;
-            }
             const possibleErrors = await allPromisesCollectErrors(
                 deserializedArgumentsData.environments
                     .map(controller => controller.disconnect())
@@ -213,68 +222,31 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
                 }),
             });
         }
-        this.runnerEnvironmentClientCollection.add(...deserializedArgumentsData.environments);
+        if (methodResult instanceof PromiseInterrupter) {
+            return;
+        }
         await this.handleExecuteResponse(actionController, action, methodResult);
     }
 
+    /** The destruction process can be triggered by parallel calls */
     public handleDestroy(): Promise<void>;
     public handleDestroy(actionController: ActionController, actionId: number): Promise<void>;
     public async handleDestroy(actionController?: ActionController, actionId?: number): Promise<void> {
-        let caughtError: unknown | undefined;
-        try {
-            if (this.runnerInstance.destroy) {
-                await (this.runnerInstance.destroy as () => void | Promise<void>)();
-            }
-        } catch(error: unknown) {
-            caughtError = this.errorSerializer.normalize(error, RunnerDestroyError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
-                    this.getErrorMessageConfig(),
-                ),
-            }) ;
+        if (!this.destroyProcess) {
+            this.destroyProcess = {
+                promise$: this.runDestroyProcess()
+                    .finally(() => this.destroyProcess = undefined),
+                actionTriggers: [],
+            };
         }
-        const possibleErrors = await allPromisesCollectErrors(
-            [...this.runnerEnvironmentClientCollection.runnerEnvironmentClients]
-                .map(controller => controller.disconnect()),
-        );
-        this.runnerEnvironmentClientCollection.runnerEnvironmentClients.clear();
-        actionController?.sendActionResponse<IRunnerEnvironmentHostDestroyedAction>({
+        if (actionController) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            id: actionId!,
-            type: RunnerEnvironmentHostAction.DESTROYED,
-        });
-        for (const [iteratedActionController] of this.connectDataMap) {
-            if (iteratedActionController !== actionController) {
-                iteratedActionController.sendAction<IRunnerEnvironmentHostDestroyedAction>({
-                    type: RunnerEnvironmentHostAction.DESTROYED,
-                });
-            }
-            // TODO Move into the Connection Strategy a check for the need to send an Initiated action
-            // and waiting for any event to resubmit the Disconnect action
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            if (!this.connectDataMap.get(iteratedActionController)!.isInitiated) {
-                RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
-            } else {
-                iteratedActionController.destroy();
-            }
+            this.destroyProcess.actionTriggers.push({actionController, actionId: actionId!});
+            // If an ActionController is specified, then the error will be sent to the RunnerEnvironmentClient
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            return this.destroyProcess.promise$.catch(() => {});
         }
-        this.connectDataMap.clear();
-        this.onDestroyed();
-        if ('errors' in possibleErrors) {
-            const originalErrors = new Array<unknown>();
-            if (caughtError) {
-                originalErrors.push(caughtError);
-            }
-            originalErrors.push(...possibleErrors.errors);
-            throw new RunnerDestroyError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
-                    this.getErrorMessageConfig(),
-                ),
-                originalErrors,
-            });
-        }
-        if (caughtError) {
-            throw caughtError;
-        }
+        return this.destroyProcess.promise$
     }
 
     /**
@@ -409,6 +381,81 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         return new RunnerEnvironmentClientCollection(config);
     }
 
+    private async runDestroyProcess(): Promise<void> {
+        let caughtError: unknown | undefined;
+        try {
+            if (this.runnerInstance.destroy) {
+                await (this.runnerInstance.destroy as () => void | Promise<void>)();
+            }
+        } catch(error: unknown) {
+            caughtError = this.errorSerializer.normalize(error, RunnerDestroyError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                    this.getErrorMessageConfig(),
+                ),
+            }) ;
+        }
+        const possibleErrors = await allPromisesCollectErrors(
+            [...this.runnerEnvironmentClientCollection.runnerEnvironmentClients]
+                .map(environmentClient => environmentClient.disconnect()),
+        );
+        this.runnerEnvironmentClientCollection.runnerEnvironmentClients.clear();
+        if ('errors' in possibleErrors) {
+            const originalErrors = new Array<unknown>();
+            if (caughtError) {
+                originalErrors.push(caughtError);
+            }
+            originalErrors.push(...possibleErrors.errors);
+            caughtError = new RunnerDestroyError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                    this.getErrorMessageConfig(),
+                ),
+                originalErrors,
+            });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (this.destroyProcess!.actionTriggers.length > 0) {
+            const action: IRunnerEnvironmentHostErrorAction | IRunnerEnvironmentHostDestroyedAction
+                = caughtError
+                    ? {
+                        type: RunnerEnvironmentHostAction.ERROR,
+                        error: this.errorSerializer.serialize(caughtError),
+                    } : {
+                        type: RunnerEnvironmentHostAction.DESTROYED,
+                    };
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            for (const actionTriggerData of this.destroyProcess!.actionTriggers) {
+                actionTriggerData.actionController.sendActionResponse({
+                    ...action,
+                    id: actionTriggerData.actionId,
+                });
+            }
+        }
+        for (const [iteratedActionController, connectData] of this.connectDataMap) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const isActionWasSendedForActionController = this.destroyProcess!.actionTriggers
+                .some(actionTriggerData => actionTriggerData.actionController === iteratedActionController);
+            if (!isActionWasSendedForActionController) {
+                iteratedActionController.sendAction<IRunnerEnvironmentHostDestroyedAction>({
+                    type: RunnerEnvironmentHostAction.DESTROYED,
+                });
+            }
+            // TODO Move into the Connection Strategy a check for the need to send an Initiated action
+            // and waiting for any event to resubmit the Disconnect action
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            if (!this.connectDataMap.get(iteratedActionController)!.isInitiated) {
+                iteratedActionController.removeActionHandler(connectData.handler);
+                RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
+            } else {
+                iteratedActionController.destroy();
+            }
+            this.connectDataMap.delete(iteratedActionController);
+        }
+        this.onDestroyed();
+        if (caughtError) {
+            throw caughtError;
+        }
+    }
+
     private handleInitiatedAction(actionController: ActionController) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.connectDataMap.get(actionController)!.isInitiated = true;
@@ -449,13 +496,13 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor> {
         });
         const handler = this.handleAction.bind(this, actionController);
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        actionController.addActionHandler(handler);
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.connectDataMap.set(actionController, {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             handler,
             interrupter: new PromiseInterrupter(),
         });
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        actionController.addActionHandler(handler);
         actionController.run();
     }
 

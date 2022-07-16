@@ -2,7 +2,7 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { IMessagePortTarget } from '../../types/message-port-target.interface';
-import { BaseConnectionStrategyClient, IAttachDataForSendRunner, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerData } from '../base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient, IAttachDataForSendRunner, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { IMessageChannelConnectionRunnerAttachData } from './message-channel-connection-prepared-data.interface';
 
@@ -23,7 +23,9 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
     ): void | Promise<void> {
         const port = this.getIdentifierForPreparedData(attachedData);
         if (!this.resolvedConnectionMap.has(port)) { // The port was passed without building a proxy
-            const connectionChannel = new MessagePortConnectionChannel({target: port});
+            const connectionChannel = new MessagePortConnectionChannel({
+                target: port as unknown as IMessagePortTarget
+            });
             return RunnerEnvironmentClient.disconnectConnection(connectionChannel);
         }
         return super.cancelSendAttachRunnerData(attachedData);
@@ -54,7 +56,7 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
             port: messageChannel.port2,
         };
         return {
-            identifier: messageChannel.port2,
+            identifier: messageChannel.port2 as unknown as PreparedDataIdentifier,
             proxyChannel,
             preparedData: {
                 attachData: attachData as unknown as IAttachDataForSendRunner,
@@ -63,7 +65,8 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         };
     }
 
-    protected getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner): IMessagePortTarget {
-        return (attachedData as unknown as IMessageChannelConnectionRunnerAttachData).port;
+    protected getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner): PreparedDataIdentifier {
+        return (attachedData as unknown as IMessageChannelConnectionRunnerAttachData)
+            .port as unknown as PreparedDataIdentifier;
     }
 }

@@ -5,8 +5,8 @@ export class WithOtherInstanceStubRunner<T extends JsonLike = JsonLike> {
 
     constructor(private executableStubRunner?: ResolvedRunner<ExecutableStubRunner<T>>) {}
 
-    public async getInstanceStage(): Promise<T | undefined> {
-        return this.executableStubRunner?.getStage() as T | undefined;
+    public getInstanceStage(): Promise<T | undefined> {
+        return this.executableStubRunner?.getStage() as Promise<T | undefined>;
     }
 
     public async pullInstanceStage(

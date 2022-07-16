@@ -1,4 +1,4 @@
-import { ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { each } from '../utils/each';
@@ -6,7 +6,7 @@ import { errorContaining } from '../utils/error-containing';
 
 each(allResolvers, (mode, resolver) =>
     describe(`${mode} destroy resolver`, () => {
-        it ('for restart', async () => {
+        it('for restart', async () => {
             await resolver.run();
             await resolver.destroy();
             await resolver.run();
@@ -16,19 +16,19 @@ each(allResolvers, (mode, resolver) =>
             await resolver.destroy();
         });
 
-        it ('when it was already destroyed', async () => {
-            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
-                name: ConnectionWasClosedError.name,
+        it('when it was already destroyed', async () => {
+            await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionClosedError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
         });
 
-        it ('and resolve Runner', async () => {
+        it('and resolve Runner', async () => {
             await expectAsync(resolver.resolve(ExecutableStubRunner))
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_HOST_NOT_INIT(),
-                    name: ConnectionWasClosedError.name,
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -37,7 +37,7 @@ each(allResolvers, (mode, resolver) =>
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} destroy resolver`, () => {
-        it ('simple', async () => {
+        it('simple', async () => {
             class DestroyStub {
                 public destroy(): void {
                     // Stub
@@ -45,7 +45,7 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             }
             const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyStub] });
-            await localResolver.run();
+            localResolver.run();
             await localResolver.resolve(DestroyStub);
             await localResolver.destroy();
             expect(destroySpy).toHaveBeenCalled();

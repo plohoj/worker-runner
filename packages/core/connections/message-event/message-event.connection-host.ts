@@ -1,6 +1,6 @@
+import { BestStrategyResolverHost } from '../../best-strategy-resolver/host/best-strategy-resolver.host';
 import { MessageEventConnectionChannel } from '../../connection-channels/message-event.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
-import { fetchAndChooseBestStrategy } from '../../fetch-best-strategy/fetch-and-choose-best-strategy';
 import { IMessageEventTarget } from '../../types/message-event-target.interface';
 import { BaseConnectionHost, ConnectionHostHandler } from '../base/base.connection-host';
 
@@ -12,6 +12,7 @@ export interface IMessageEventConnectionHostConfig {
 export class MessageEventConnectionHost extends BaseConnectionHost {
     private readonly target: IMessageEventTarget;
     private readonly strategies: BaseConnectionStrategyHost[];
+    private stopCallback?: () => void;
 
     constructor(config: IMessageEventConnectionHostConfig) {
         super();
@@ -19,21 +20,34 @@ export class MessageEventConnectionHost extends BaseConnectionHost {
         this.strategies = config.strategies;
     }
 
-    public async startListen(handler: ConnectionHostHandler): Promise<void> {
+    public override startListen(handler: ConnectionHostHandler): void {
         const connectionChannel = new MessageEventConnectionChannel({
             target: this.target,
         });
-        // The ConnectionChannel running will be called  in the fetchAndChooseBestStrategy method
-        const strategy = await fetchAndChooseBestStrategy({
+        // The BaseConnectionChannel.run() will be called in the BestStrategyResolverHost.run() method
+        const bestStrategyResolver = new BestStrategyResolverHost({
             connectionChannel,
             availableStrategies: this.strategies,
-            hasStrategyPriority: false,
-            sendConnectAction: true,
+            sendPingAction: true,
         });
-        handler({connectionChannel, strategy});
+        bestStrategyResolver.run(
+            strategy => handler({
+                connectionChannel: new MessageEventConnectionChannel({
+                    target: this.target,
+                }),
+                strategy,
+            }),
+            error => {
+                throw error;
+            },
+        );
+        this.stopCallback = () => {
+            bestStrategyResolver.stop();
+            this.stopCallback = undefined;
+        }
     }
 
-    public stop(): void {
-        // Nothing to do
+    public override stop(): void {
+        this.stopCallback?.();
     }
 }

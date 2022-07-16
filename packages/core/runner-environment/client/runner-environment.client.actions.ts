@@ -30,7 +30,6 @@ export type IRunnerEnvironmentClientExecuteAction = {
     type: RunnerEnvironmentClientAction.EXECUTE;
     method: string;
     args: IRunnerSerializedArgument[];
-    transfer?: Transferable[]
 }
 
 export type IRunnerEnvironmentClientCloneAction = {

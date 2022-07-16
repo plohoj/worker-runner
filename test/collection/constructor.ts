@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerNotFound, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
+import { ResolvedRunner, RunnerNotFound, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { apartHostClientResolvers, resolverClientList, localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
@@ -20,7 +20,7 @@ each(allResolvers, (mode, resolver) =>
             await resolver.destroy();
         });
 
-        it ('with arguments', async () => {
+        it('with arguments', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -31,7 +31,7 @@ each(allResolvers, (mode, resolver) =>
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
 
-        it ('with arguments by token', async () => {
+        it('with arguments by token', async () => {
             const storageData = {
                 id: 186,
                 type: 'STORAGE_DATA',
@@ -42,7 +42,7 @@ each(allResolvers, (mode, resolver) =>
             await expectAsync(executableStubRunner.getStage()).toBeResolvedTo(storageData);
         });
 
-        it ('with Resolved Runner in arguments', async () => {
+        it('with Resolved Runner in arguments', async () => {
             const storageData = {
                 id: 675,
                 type: 'STORAGE_DATA',
@@ -56,13 +56,13 @@ each(allResolvers, (mode, resolver) =>
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage()).toBeResolvedTo(storageData);
         });
 
-        it ('with Resolved Runner in arguments from another resolver', async () => {
+        it('with Resolved Runner in arguments from another resolver', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
             };
             const localResolver =  new RunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const executableStubRunner = await localResolver
                 .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
@@ -74,7 +74,7 @@ each(allResolvers, (mode, resolver) =>
             await localResolver.destroy();
         });
 
-        it ('with destroyed Resolved Runner in arguments', async () => {
+        it('with destroyed Resolved Runner in arguments', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
 
             await executableStubRunner.destroy();
@@ -88,18 +88,18 @@ each(allResolvers, (mode, resolver) =>
                     }),
                     name: RunnerInitError.name,
                     stack: jasmine.stringMatching(/.+/),
-                    originalErrors: [errorContaining(ConnectionWasClosedError, {
+                    originalErrors: [errorContaining(ConnectionClosedError, {
                         message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
-                        name: ConnectionWasClosedError.name,
+                        name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     })],
                 }));
         });
 
-        it ('with destroyed Resolved Runner in arguments at runtime', async () => {
+        it('with destroyed Resolved Runner in arguments at runtime', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -118,12 +118,12 @@ each(allResolvers, (mode, resolver) =>
 
             await expectAsync(withOtherInstanceStubRunner$).toBeResolved();
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: ConnectionWasClosedError.name,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
 
@@ -140,7 +140,7 @@ each(allResolvers, (mode, resolver) =>
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
         });
 
-        it ('with exception', async () => {
+        it('with exception', async () => {
             const errorMessage = 'Constructor Error';
             await expectAsync(resolver.resolve(ErrorStubRunner, errorMessage))
                 .toBeRejectedWith(errorContaining(RunnerInitError, {
@@ -150,7 +150,7 @@ each(allResolvers, (mode, resolver) =>
                 }));
         });
 
-        it ('not exist by token', async () => {
+        it('not exist by token', async () => {
             const token = 'NotExistRunnerToken';
             await expectAsync(resolver.resolve(token)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({ token }),
@@ -176,7 +176,7 @@ each(resolverClientList, (mode, resolver) =>
             await expectAsync(executableStubRunner.amount(7, 35)).toBeResolvedTo(42);
         });
 
-        it ('not exist', async () => {
+        it('not exist', async () => {
             class AnonymRunner {}
             await expectAsync(resolver.resolve(AnonymRunner)).toBeRejectedWith(errorContaining(RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND({token: AnonymRunner.name}),
@@ -189,10 +189,10 @@ each(resolverClientList, (mode, resolver) =>
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} constructor`, () => {
-        it ('resolving without configuration', async () => {
+        it('resolving without configuration', async () => {
             class RunnerStub {}
             const localResolver = new IterateRunnerResolverLocal();
-            await localResolver.run();
+            localResolver.run();
 
             await localResolver.resolve(RunnerStub)
             await expectAsync(localResolver.resolve(RunnerStub)).toBeResolved();
@@ -204,7 +204,7 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
 
 each(apartHostClientResolvers, (mode, resolvers) => 
     describe(`${mode} constructor`, () => {
-        it ('by token without Client configuration', async () => {
+        it('by token without Client configuration', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 hostConfig: {
                     runners: [
@@ -226,7 +226,7 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             await apartConfiguredRunnerResolvers.destroy();
         });
 
-        it ('by runner constructor without Client configuration', async () => {
+        it('by runner constructor without Client configuration', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 hostConfig: {
                     runners: [ExecutableStubRunner],
@@ -243,7 +243,7 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             await apartConfiguredRunnerResolvers.destroy();
         });
 
-        it ('with Resolved Runner in arguments and without Client/Host configuration', async () => {
+        it('with Resolved Runner in arguments and without Client/Host configuration', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 clientConfig: {
                     runners: [WithOtherInstanceStubRunner],
@@ -258,7 +258,7 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             });
 
             const localResolver = new RunnerResolverLocal();
-            await localResolver.run();
+            localResolver.run();
             const resolvedExecutableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             
             await apartConfiguredRunnerResolvers.run();

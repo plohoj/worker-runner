@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { IRunnerIdentifierConfig, RunnerIdentifier } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promise";
+import { PortalConnectionClient } from 'packages/core/connections/portal/portal.connection-client';
 
 // Type check:
 () => {
+    const connectionStub = new PortalConnectionClient({connectionChannel: undefined as never})
     class Runner1 { declare method1: () => void; declare method12: () => void }
     class Runner2 { declare method2: () => void; declare method12: () => void }
     class Runner3 { declare method3: () => void; }
@@ -226,7 +230,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
     // soft token
     async () => {
         const check0 = await new RunnerResolverClient({
-            connection: self,
+            connection: connectionStub,
             runners: [
                 {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1>,
                 Runner2,
@@ -238,7 +242,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check0.method12();
 
         const check1 = await new RunnerResolverClient({
-            connection: self,
+            connection: connectionStub,
             runners: [
                 {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1, 'Runner1'>,
                 Runner2,
@@ -254,7 +258,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
     async () => {
         const identifier = 'Runner1' as RunnerIdentifier<typeof Runner1>;
         const check0 = await new RunnerResolverClient({
-            connection: self,
+            connection: connectionStub,
             runners: []
         }).resolve(identifier);
         check0.method1();
@@ -263,7 +267,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check0.method12();
 
         const check1 = await new RunnerResolverClient({
-            connection: self,
+            connection: connectionStub,
             runners: [
                 {token: 'Runner1'},
                 Runner2,
@@ -275,7 +279,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check1.method12();
 
         const check2 = await new RunnerResolverClient({
-            connection: self,
+            connection: connectionStub,
             runners: [
                 {token: 'Runner1' as const},
                 Runner2,

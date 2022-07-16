@@ -1,4 +1,4 @@
 export enum ConnectionStrategyEnum {
     MessageChannel = 'MESSAGE_CHANNEL',
-    Repeat = 'Repeat',
+    Repeat = 'REPEAT',
 }

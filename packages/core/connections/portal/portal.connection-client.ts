@@ -15,14 +15,13 @@ export class PortalConnectionClient extends BaseConnectionClient {
         this.connectionChannel = config.connectionChannel;
     }
 
-    public connect(): IEstablishedConnectionClientData {
+    public override connect(): IEstablishedConnectionClientData {
+        const repeatStrategy = new RepeatConnectionStrategyClient();
+        repeatStrategy.run();
         return {
             connectionChannel: this.connectionChannel,
             // TODO MessagePortConnectionStrategy for LocalRunnerResolver
-            strategy: new RepeatConnectionStrategyClient(),
+            strategy: repeatStrategy,
         }
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public stop(): void {}
 }

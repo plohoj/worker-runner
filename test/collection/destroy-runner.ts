@@ -1,4 +1,4 @@
-import { ResolvedRunner, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -17,13 +17,13 @@ each(allResolvers, (mode, resolver) =>
             await resolver.destroy();
         });
 
-        it ('simple', async () => {
+        it('simple', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             const destroyData = await executableStubRunner.destroy();
             expect(destroyData).toBe(undefined);
         });
 
-        it ('with exception in method', async () => {
+        it('with exception in method', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(errorContaining(Error, {
                 message: 'DESTROY_EXCEPTION',
@@ -32,18 +32,16 @@ each(allResolvers, (mode, resolver) =>
             }));
         });
 
-        it ('which is used', async () => {
-            const executableStubRunner = await resolver
-                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+        it('which is used', async () => {
+            const executableStubRunner = await resolver .resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await resolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
-                    WithOtherInstanceStubRunner>;
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner);
 
             await executableStubRunner.destroy();
 
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    name: ConnectionWasClosedError.name,
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
+                    name: ConnectionClosedError.name,
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
@@ -52,14 +50,14 @@ each(allResolvers, (mode, resolver) =>
                 }));
         });
 
-        it ('that has already been destroyed', async () => {
+        it('that has already been destroyed', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
 
             await executableStubRunner.destroy();
 
             await expectAsync(executableStubRunner.destroy())
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
-                    name: ConnectionWasClosedError.name,
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
+                    name: ConnectionClosedError.name,
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
@@ -72,7 +70,7 @@ each(allResolvers, (mode, resolver) =>
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} destroy runner`, () => {
-        it ('with extended method', async () => {
+        it('with extended method', async () => {
             class DestroyableRunner {
                 public destroy(): void {
                     // stub
@@ -80,7 +78,7 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             }
             const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyableRunner] });
-            await localResolver.run();
+            localResolver.run();
             const destroyableRunner = await localResolver.resolve(DestroyableRunner);
 
             await destroyableRunner.destroy();
@@ -89,22 +87,20 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             await localResolver.destroy();
         });
 
-        it ('with resolved another runner', async () => {
+        it('with resolved another runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
-            await localResolver.run();
+            localResolver.run();
 
-            const executableStubRunner = await localResolver
-                .resolve(ExecutableStubRunner) as ResolvedRunner<ExecutableStubRunner>;
+            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer()) as ResolvedRunner<
-                    WithOtherInstanceStubRunner>;
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
             const runnerEnvironmentHosts
-                = [...localResolver['resolverBridge']?.runnerResolverHost['runnerEnvironmentHosts'] || []];
+                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'] || []];
 
             const runnerEnvironmentHost = runnerEnvironmentHosts
-                .find(runnerEnvironmentHost => runnerEnvironmentHost.token === WithOtherInstanceStubRunner.name);
+                .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
 
             expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
             await withOtherInstanceStubRunner.destroy();

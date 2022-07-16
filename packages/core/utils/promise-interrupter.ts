@@ -1,11 +1,10 @@
 export class PromiseInterrupter {
     /**
-     * Throws an exception if the interrupt method is called.
-     * The exception is the current instance of {@link PromiseInterrupter}
+     * Emit itself if the {@link interrupt} method is called.
      */
-    public promise!: Promise<void>;
+    public promise!: Promise<this>;
     /**
-     * Throws an exception for the {@link promise}.
+     * Emit itself for the {@link promise}.
      * Then creates a new {@link promise} and a {@link interrupt} method
      */
     public interrupt!: () => void;
@@ -15,9 +14,9 @@ export class PromiseInterrupter {
     }
 
     private buildInterrupter(): void {
-        this.promise = new Promise<void>((_resolve, reject) => {
+        this.promise = new Promise((resolve) => {
             this.interrupt = () => {
-                reject(this);
+                resolve(this);
                 this.buildInterrupter();
             };
         });

@@ -43,7 +43,7 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
     }
 
     /** Returns a runner control object that will call the methods of the source instance */
-    public resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerController> {
+    public async resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerController> {
         if (!this.connectedResolver) { // TODO Check connection validation everywhere
             throw new ConnectionClosedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
@@ -53,13 +53,21 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
     }
 
     /** Destroying of all resolved Runners instance */
-    public destroy(): Promise<void> {
-        if (!this.connectedResolver) {
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-            });
+    public async destroy(): Promise<void> {
+        try {
+            if (!this.connectedResolver) {
+                throw new ConnectionClosedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                });
+            }
+            try {
+                await this.connectedResolver.destroy();
+            } finally {
+                this.connectedResolver = undefined;
+            }
+        } finally {
+            await this.connection.stop?.();
         }
-        return this.connectedResolver.destroy();
     }
 
     protected buildErrorSerializer(): ErrorSerializer {

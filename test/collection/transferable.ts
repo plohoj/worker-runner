@@ -1,9 +1,9 @@
 import { TransferRunnerData } from '@worker-runner/core';
-import { allResolvers } from '../client/resolver-list';
+import { resolverClientList } from '../client/resolver-list';
 import { WithTransferableRunnerStub } from '../common/stubs/with-transferable-data.stub';
 import { each } from '../utils/each';
 
-each(allResolvers, (mode, resolver) =>
+each(resolverClientList, (mode, resolver) =>
     describe(`${mode} Transfer data`, () => {
 
         beforeAll(async () => {

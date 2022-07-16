@@ -7,7 +7,7 @@ function noop(){}
 export class LocalPortalConnectionChannel extends BaseConnectionChannel {
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public sendAction: (data: IAction, transfer?: Transferable[]) => void = noop; 
+    public override sendAction: (data: IAction, transfer?: Transferable[]) => void = noop; 
 
     private target!: LocalPortalConnectionChannel;
 
@@ -29,7 +29,6 @@ export class LocalPortalConnectionChannel extends BaseConnectionChannel {
     }
 
     protected override afterDestroy(): void {
-        super.afterDestroy();
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         this.target.sendAction = noop;
     }

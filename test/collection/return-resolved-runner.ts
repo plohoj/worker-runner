@@ -17,7 +17,7 @@ each(allResolvers, (mode, resolver) =>
             await resolver.destroy();
         });
 
-        it ('without mark for transfer', async () => {
+        it('without mark for transfer', async () => {
             const storageData = {
                 id: 4326,
                 type: 'STORAGE_DATA',
@@ -33,10 +33,10 @@ each(allResolvers, (mode, resolver) =>
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} return resolved runner`, () => {
-        it ('with mark for transfer and disconnect', async () => {
+        it('with mark for transfer and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const withLocalResolverStub = await localResolver
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .resolve(WithLocalResolverStub) as ResolvedRunner<WithLocalResolverStub<any>>;
@@ -45,13 +45,13 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             expect(destroySpy).not.toHaveBeenCalled();
             await executableStubRunner.disconnect();
             expect(destroySpy).toHaveBeenCalled();
-            localResolver.destroy();
+            await localResolver.destroy();
         });
 
-        it ('without mark for transfer and disconnect', async () => {
+        it('without mark for transfer and disconnect', async () => {
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const withLocalResolverStub = await localResolver
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .resolve(WithLocalResolverStub) as ResolvedRunner<WithLocalResolverStub<any>>;
@@ -68,7 +68,7 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
 
 each(apartHostClientResolvers, (mode, resolvers) => 
     describe(`${mode} return resolved runner`, () => {
-        it ('without Client configuration', async () => {
+        it('without Client configuration', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 hostConfig: {
                     runners: [
@@ -91,7 +91,7 @@ each(apartHostClientResolvers, (mode, resolvers) =>
             await apartConfiguredRunnerResolvers.destroy();
         });
 
-        it ('without Client and Host configuration', async () => {
+        it('without Client and Host configuration', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 hostConfig: {
                     runners: [WithLocalResolverStub],

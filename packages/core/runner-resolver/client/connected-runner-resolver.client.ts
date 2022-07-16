@@ -59,7 +59,7 @@ export class ConnectedRunnerResolverClient {
             this.runnerIdentifierConfigCollection.defineRunnerController(token, action.methodsNames);
         }
         const runnerEnvironmentClient = await this.runnerEnvironmentClientCollection
-            .initRunnerEnvironmentClientByPartConfigAndAttachToList({
+            .initRunnerEnvironmentClientByPartConfig({
                 token,
                 connectionChannel: this.connectionStrategy.resolveConnectionForRunner(
                     this.actionController.connectionChannel,
@@ -85,7 +85,6 @@ export class ConnectedRunnerResolverClient {
             token: token,
             connectionChannel,
         });
-        this.runnerEnvironmentClientCollection.add(runnerEnvironmentClient);
         runnerEnvironmentClient.initSync({ runnerControllerConstructor });
 
         return runnerEnvironmentClient.resolvedRunner;
@@ -153,8 +152,7 @@ export class ConnectedRunnerResolverClient {
                         : RunnerResolverClientAction.SOFT_INIT_RUNNER,
                     token: token,
                     args: serializedArguments.arguments,
-                    transfer: serializedArguments.transfer,
-                });
+                }, serializedArguments.transfer);
             return responseAction;
         } catch (error) {
             throw this.errorSerializer.normalize(error, RunnerInitError, {
@@ -182,11 +180,11 @@ export class ConnectedRunnerResolverClient {
         return token;
     }
 
-    private async resolveActionAndHandleError<
+    private async resolveActionAndHandleError< // TODO Move duplicated code to actionController?
         I extends IRunnerResolverClientAction,
         O extends IRunnerResolverHostAction = IRunnerResolverHostAction,
-    >(action: I): Promise<O & IActionWithId> {
-        const responseAction = await this.actionController.resolveAction<I, O>(action);
+    >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
+        const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerResolverHostAction.ERROR) {
             throw this.errorSerializer.deserialize(
                 (responseAction as unknown as IRunnerResolverHostErrorAction).error,

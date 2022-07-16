@@ -6,51 +6,51 @@ import { each } from '../utils/each';
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} wrap runner`, () => {
-        it ('after disconnect', async () => {
+        it('after disconnect', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
             };
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const executableStubRunner = new ExecutableStubRunner(storageData);
-            const resolvedExecutableStubRunner = await localResolver.wrapRunner(executableStubRunner);
+            const resolvedExecutableStubRunner = localResolver.wrapRunner(executableStubRunner);
             const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
-            const resolvedWithOtherInstanceResolverStub = await localResolver.wrapRunner(withOtherInstanceResolverStub);
+            const resolvedWithOtherInstanceResolverStub = localResolver.wrapRunner(withOtherInstanceResolverStub);
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
                 .toBeResolved(storageData);
             expect(destroySpy).not.toHaveBeenCalled();
-            resolvedWithOtherInstanceResolverStub.destroy();
+            await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedExecutableStubRunner.disconnect();
             expect(destroySpy).toHaveBeenCalled();
             await localResolver.destroy();
         });
 
-        it ('after destroy', async () => {
+        it('after destroy', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
             };
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const localResolver = new IterateRunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const executableStubRunner = new ExecutableStubRunner(storageData);
-            const resolvedExecutableStubRunner = await localResolver.wrapRunner(executableStubRunner);
+            const resolvedExecutableStubRunner = localResolver.wrapRunner(executableStubRunner);
             const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
-            const resolvedWithOtherInstanceResolverStub = await localResolver.wrapRunner(withOtherInstanceResolverStub);
+            const resolvedWithOtherInstanceResolverStub = localResolver.wrapRunner(withOtherInstanceResolverStub);
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
                 .toBeResolved(storageData);
             expect(destroySpy).not.toHaveBeenCalled();
-            resolvedWithOtherInstanceResolverStub.destroy();
+            await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedExecutableStubRunner.destroy();
             expect(destroySpy).toHaveBeenCalled();
             await localResolver.destroy();
         });
 
-        it ('without configuration', async () => {
+        it('without configuration', async () => {
             const helloMessage = 'Hello';
             const runnerSub = new class RunnerStub {
                 public getHelloMessage() {
@@ -58,9 +58,9 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
                 }
             }
             const localResolver = new IterateRunnerResolverLocal();
-            await localResolver.run();
+            localResolver.run();
 
-            const resolvedRunnerSub = await localResolver.wrapRunner(runnerSub);
+            const resolvedRunnerSub = localResolver.wrapRunner(runnerSub);
             await expectAsync(resolvedRunnerSub.getHelloMessage()).toBeResolvedTo(helloMessage)
 
             await localResolver.destroy();

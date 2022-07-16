@@ -15,13 +15,10 @@ export class PortalConnectionHost extends BaseConnectionHost {
         this.connectionChannel = config.connectionChannel;
     }
 
-    public startListen(handler: ConnectionHostHandler): void {
+    public override startListen(handler: ConnectionHostHandler): void {
         handler({
             connectionChannel: this.connectionChannel,
             strategy: new RepeatConnectionStrategyHost(),
         });
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public stop(): void {}
 }

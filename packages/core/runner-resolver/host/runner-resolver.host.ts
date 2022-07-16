@@ -1,14 +1,14 @@
-import { RunnerConstructor, WORKER_RUNNER_ERROR_MESSAGES } from '../..';
 import { ArgumentsDeserializer } from '../../arguments-serialization/arguments-deserializer';
 import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
-import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { IArgumentSerialization } from '../../types/argument-serialization.interface';
+import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
 import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
@@ -26,7 +26,6 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     protected readonly errorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
-    private readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<AvailableRunnersFromList<L>>>();
     private readonly connection: BaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
     private readonly argumentSerializationByStrategyMap
@@ -45,9 +44,10 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
 
     public async destroy(): Promise<void> {
         const possibleErrors = await allPromisesCollectErrors(
-            [...this.runnerEnvironmentHosts]
-                .map(runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy())
+            [...this.connectedResolvers]
+                .map(connectedResolver => connectedResolver.handleDestroy())
         )
+        await this.connection.stop?.();
         if ('errors' in possibleErrors) {
             throw new RunnerResolverHostDestroyError({ 
                 originalErrors: possibleErrors.errors,

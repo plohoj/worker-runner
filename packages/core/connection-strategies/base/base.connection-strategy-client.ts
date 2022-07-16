@@ -20,15 +20,17 @@ export interface IPreparedForSendRunnerData {
 
 export interface IPreparedForSendProxyRunnerData {
     proxyChannel: BaseConnectionChannel;
-    identifier: unknown;
+    identifier: PreparedDataIdentifier;
     preparedData: IPreparedForSendRunnerData;
 }
+
+export type PreparedDataIdentifier = 'FAKE_TYPE_FOR_PREPARED_DATA_IDENTIFIER' | symbol;
 
 export abstract class BaseConnectionStrategyClient {
 
     // TODO handle destroy strategy?
     /** {identifier: resolvedConnection} */
-    protected readonly resolvedConnectionMap = new Map<unknown, BaseConnectionChannel>();
+    protected readonly resolvedConnectionMap = new Map<PreparedDataIdentifier, BaseConnectionChannel>();
     public abstract readonly type: ConnectionStrategyEnum | string;
 
     /**
@@ -60,6 +62,8 @@ export abstract class BaseConnectionStrategyClient {
         }
         return RunnerEnvironmentClient.disconnectConnection(resolvedConnection);
     }
+
+    public run?(): void;
 
     protected prepareRunnerForSendByConnectionChannel(
         currentChannel: BaseConnectionChannel,
@@ -99,5 +103,5 @@ export abstract class BaseConnectionStrategyClient {
     ): BaseConnectionChannel;
 
     protected abstract prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData;
-    protected abstract getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner,): unknown;
+    protected abstract getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner,): PreparedDataIdentifier;
 }

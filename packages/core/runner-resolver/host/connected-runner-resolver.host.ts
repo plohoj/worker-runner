@@ -1,6 +1,7 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { ArgumentsDeserializer } from '../../arguments-serialization/arguments-deserializer';
 import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
+import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
@@ -61,13 +62,13 @@ export class ConnectedRunnerResolverHost {
             const destroyedAction: IRunnerResolverHostDestroyedAction = {
                 type: RunnerResolverHostAction.DESTROYED,
             }
-            if (actionId) {
+            if (actionId === undefined) {
+                this.actionController.sendAction<IRunnerResolverHostDestroyedAction>(destroyedAction);
+            } else {
                 this.actionController.sendActionResponse<IRunnerResolverHostDestroyedAction>({
                     ...destroyedAction,
                     id: actionId,
                 });
-            } else {
-                this.actionController.sendAction<IRunnerResolverHostDestroyedAction>(destroyedAction);
             }
             this.actionController.destroy();
             this.onDestroy();
@@ -108,7 +109,7 @@ export class ConnectedRunnerResolverHost {
     }
         
     private handleAction = async (
-        action: IRunnerResolverClientAction & IActionWithId,
+        action: IRunnerResolverClientAction & IActionWithId | IBestStrategyResolverClientConnectAction,
     ): Promise<void> => {
         try {
             switch (action.type) {
@@ -119,6 +120,9 @@ export class ConnectedRunnerResolverHost {
                 case RunnerResolverClientAction.DESTROY:
                     await this.handleDestroy(action.id)
                     break;
+                // Ignore side effects of connection establishment
+                case BestStrategyResolverClientActions.CONNECT:
+                    return;
                 default:
                     throw new WorkerRunnerUnexpectedError({
                         message: 'Unexpected Action type for Host Runner Resolver',
@@ -131,7 +135,7 @@ export class ConnectedRunnerResolverHost {
                 );
                 this.actionController.sendActionResponse<IRunnerResolverHostErrorAction>({
                     type: RunnerResolverHostAction.ERROR,
-                    id: action.id,
+                    id: action.id as unknown as number,
                     error: serializedError,
                 });
             } else {
@@ -152,7 +156,7 @@ export class ConnectedRunnerResolverHost {
             });
         }
     }
-    
+
     private async initRunnerInstance(
         action: (IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction) & IActionWithId,
     ): Promise<void> {
@@ -184,7 +188,7 @@ export class ConnectedRunnerResolverHost {
                 throw error;
             }
             this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
-            this.actionController.sendActionResponse(responseAction);
+            this.actionController.sendActionResponse(responseAction, preparedData.transfer);
         } catch (error: unknown) {
             throw this.errorSerializer.normalize(error, RunnerInitError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({

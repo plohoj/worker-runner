@@ -12,7 +12,8 @@ import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { RunnerToken, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IRunnerEnvironmentHostOwnMetadataAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, IRunnerEnvironmentHostClonedAction, RunnerEnvironmentHostAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
+import { PromiseInterrupter } from '../../utils/promise-interrupter';
+import { IRunnerEnvironmentHostOwnMetadataAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, IRunnerEnvironmentHostClonedAction, RunnerEnvironmentHostAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostDestroyedAction } from '../host/runner-environment.host.actions';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientDestroyAction, IRunnerEnvironmentClientDisconnectAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientInitiatedAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
 
 interface IRunnerEnvironmentClientInitSyncConfig {
@@ -54,6 +55,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
 
     private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
     private _isMarkedForTransfer = false;
+    private destroyInterrupter = new PromiseInterrupter();
 
     constructor(config: Readonly<IRunnerEnvironmentClientConfig<R>>) {
         this.token = config.token;
@@ -159,6 +161,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
                 message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
                     token: this.token,
                     runnerName: this.runnerIdentifierConfigCollection.getRunnerConstructorSoft(this.token)?.name,
+                    methodName,
                 }),
                 originalErrors: errors,
             }),
@@ -173,29 +176,20 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
             type: RunnerEnvironmentClientAction.EXECUTE,
             args: serializedArgumentsData.arguments,
             method: methodName,
-            transfer: serializedArgumentsData.transfer,
-        });
+        }, serializedArgumentsData.transfer);
         return this.handleExecuteResult(actionResult);
     }
 
-    public async disconnect(): Promise<void> {
-        try {
-            await this.resolveActionAndHandleError<IRunnerEnvironmentClientDisconnectAction>({
-                type: RunnerEnvironmentClientAction.DISCONNECT,
-            });
-        } finally {
-            this.handleDestroy();
-        }
+    public disconnect(): Promise<void> {
+        return this.resolveAndHandleDestroyOrDisconnectAction({
+            type: RunnerEnvironmentClientAction.DISCONNECT,
+        });
     }
 
-    public async destroy(): Promise<void> {
-        try {
-            await this.resolveActionAndHandleError<IRunnerEnvironmentClientDestroyAction>({
-                type: RunnerEnvironmentClientAction.DESTROY,
-            });
-        } finally {
-            this.handleDestroy();
-        }
+    public destroy(): Promise<void> {
+        return this.resolveAndHandleDestroyOrDisconnectAction({
+            type: RunnerEnvironmentClientAction.DESTROY,
+        });
     }
 
     public markForTransfer(): void {
@@ -241,6 +235,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
     }
 
     private handleDestroy(): void {
+        this.destroyInterrupter.interrupt();
         this.actionController.destroy();
         this.onDestroyed();
     }
@@ -261,17 +256,48 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor> {
         }
     }
 
-    private async resolveActionAndHandleError<
+    private async resolveActionAndHandleError< // TODO Move duplicated code to actionController?
         I extends IRunnerEnvironmentClientAction,
         O extends IRunnerEnvironmentHostAction = IRunnerEnvironmentHostAction,
-    >(action: I): Promise<O & IActionWithId> {
-        const responseAction = await this.actionController.resolveAction<I, O>(action);
+    >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
+        const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
             throw this.errorSerializer.deserialize(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }
         return responseAction;
+    }
+
+    /**
+     * Prevents throwing an error if, at the time of the disconnect or destroy request,
+     * the action was handled on a different "thread"
+     */
+    private async resolveAndHandleDestroyOrDisconnectAction(
+        action: IRunnerEnvironmentClientDisconnectAction | IRunnerEnvironmentClientDestroyAction
+    ): Promise<void> {
+        type ResponseActionType = | IRunnerEnvironmentHostDisconnectedAction
+            | IRunnerEnvironmentHostDestroyedAction
+            | IRunnerEnvironmentHostErrorAction;
+        let responseAction: (ResponseActionType & IActionWithId<string>) | PromiseInterrupter;
+        try {
+            responseAction = await Promise.race([
+                this.actionController.resolveAction<typeof action, ResponseActionType>(action),
+                this.destroyInterrupter.promise,
+            ]);
+        } catch (error) {
+            this.handleDestroy();
+            throw error;
+        }
+        if (responseAction instanceof PromiseInterrupter) {
+            return;
+        }
+        this.handleDestroy();
+        if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
+            throw this.errorSerializer.deserialize(
+                (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
+            );
+        }
     }
 
     private async handleExecuteWithRunnerResult(

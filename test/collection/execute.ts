@@ -1,4 +1,4 @@
-import { ResolvedRunner, RunnerExecuteError, ConnectionWasClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ResolvedRunner, RunnerExecuteError, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { apartHostClientResolvers, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
@@ -28,7 +28,7 @@ each(allResolvers, (mode, resolver) =>
             expect(result).toBe(85);
         });
 
-        it ('with Resolved Runner in arguments', async () => {
+        it('with Resolved Runner in arguments', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -43,13 +43,13 @@ each(allResolvers, (mode, resolver) =>
                 .toBeResolvedTo(storageData);
         });
 
-        it ('with Resolved Runner in arguments from another resolver', async () => {
+        it('with Resolved Runner in arguments from another resolver', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
             };
             const localResolver = new RunnerResolverLocal({ runners });
-            await localResolver.run();
+            localResolver.run();
             const executableStubRunner = await localResolver
                 .resolve(ExecutableStubRunner, storageData) as ResolvedRunner<
                     ExecutableStubRunner<typeof storageData>>;
@@ -61,7 +61,7 @@ each(allResolvers, (mode, resolver) =>
             await localResolver.destroy();
         });
 
-        it ('with destroyed Resolved Runner in arguments', async () => {
+        it('with destroyed Resolved Runner in arguments', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
@@ -70,29 +70,30 @@ each(allResolvers, (mode, resolver) =>
                     message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
                         token: WithOtherInstanceStubRunner.name,
                         runnerName: WithOtherInstanceStubRunner.name,
+                        methodName: 'pullInstanceStage',
                     }),
                     name: RunnerExecuteError.name,
                     stack: jasmine.stringMatching(/.+/),
-                    originalErrors: [errorContaining(ConnectionWasClosedError, {
+                    originalErrors: [errorContaining(ConnectionClosedError, {
                         message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
-                        name: ConnectionWasClosedError.name,
+                        name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     })],
                 }));
         });
 
-        it ('with destroyed Resolved Runner in arguments at runtime', async () => {
+        it('with destroyed Resolved Runner in arguments at runtime', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
-            const executableStubRinnerConnectionErrorMather = errorContaining(ConnectionWasClosedError, {
+            const executableStubRunnerConnectionErrorMather = errorContaining(ConnectionClosedError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                     token: EXECUTABLE_STUB_RUNNER_TOKEN,
                     runnerName: ExecutableStubRunner.name,
                 }),
-                name: ConnectionWasClosedError.name,
+                name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             });
 
@@ -104,12 +105,13 @@ each(allResolvers, (mode, resolver) =>
                     message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
                         token: WithOtherInstanceStubRunner.name,
                         runnerName: WithOtherInstanceStubRunner.name,
+                        methodName: 'pullInstanceStage',
                     }),
                     name: RunnerExecuteError.name,
                     stack: jasmine.stringMatching(/.+/),
                     originalErrors: [
-                        executableStubRinnerConnectionErrorMather,
-                        executableStubRinnerConnectionErrorMather,
+                        executableStubRunnerConnectionErrorMather,
+                        executableStubRunnerConnectionErrorMather,
                     ],
                 }));
         });
@@ -119,7 +121,7 @@ each(allResolvers, (mode, resolver) =>
             await expectAsync(executableStubRunner.delay(4)).toBeResolved();
         });
 
-        it ('with exception', async () => {
+        it('with exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
             await expectAsync(errorStubRunner.throwError(exceptionError))
@@ -133,7 +135,7 @@ each(allResolvers, (mode, resolver) =>
             });
         });
 
-        it ('with stack trace exception', async () => {
+        it('with stack trace exception', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION';
             await expectAsync(errorStubRunner.throwErrorTrace(exceptionError))
@@ -147,7 +149,7 @@ each(allResolvers, (mode, resolver) =>
             });
         });
 
-        it ('with delay exceptions', async () => {
+        it('with delay exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
             await expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, 6))
@@ -161,7 +163,7 @@ each(allResolvers, (mode, resolver) =>
             });
         });
 
-        it ('with delay stack trace exceptions', async () => {
+        it('with delay stack trace exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
             await expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, 7))
@@ -175,16 +177,16 @@ each(allResolvers, (mode, resolver) =>
             });
         });
 
-        it ('destroyed runner', async () => {
+        it('destroyed runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await executableStubRunner.destroy();
             await expectAsync(executableStubRunner.amount(53, 95))
-                .toBeRejectedWith(errorContaining(ConnectionWasClosedError, {
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
-                    name: ConnectionWasClosedError.name,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
@@ -198,7 +200,7 @@ each(allResolvers, (mode, resolver) =>
 
 each(apartHostClientResolvers, (mode, resolvers) => 
     describe(`${mode} execute`, () => {
-        it ('with soft runner argument', async () => {
+        it('with soft runner argument', async () => {
             const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
                 clientConfig: {
                     runners: [WithLocalResolverStub],

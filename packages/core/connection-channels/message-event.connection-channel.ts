@@ -15,16 +15,16 @@ export class MessageEventConnectionChannel extends BaseConnectionChannel {
         this.target = config.target;
     }
 
-    public sendAction(action: IAction, transfer?: Transferable[]): void {
+    public override sendAction(action: IAction, transfer?: Transferable[]): void {
         this.target.postMessage(action, transfer)
     }
 
     public override run(): void {
+        super.run();
         this.target.addEventListener('message', this.messageHandler);
     }
 
     protected override afterDestroy(): void {
-        super.afterDestroy();
         this.target.removeEventListener('message', this.messageHandler);
     }
 

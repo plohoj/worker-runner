@@ -1,5 +1,9 @@
-import { IRunnerResolverClientBaseConfig, IRunnerResolverHostConfigBase, RunnerIdentifierConfigList } from "@worker-runner/core";
+import { IRunnerResolverClientBaseConfig, RunnerIdentifierConfigList } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost } from "@worker-runner/promise";
+import { RepeatConnectionStrategyClient } from 'packages/core/connection-strategies/repeat/repeat.connection-strategy-client';
+import { RepeatConnectionStrategyHost } from 'packages/core/connection-strategies/repeat/repeat.connection-strategy-host';
+import { MessageEventConnectionClient } from 'packages/core/connections/message-event/message-event.connection-client';
+import { MessageEventConnectionHost } from 'packages/core/connections/message-event/message-event.connection-host';
 
 interface IApartConfiguredRunnerResolvers<
     CL extends RunnerIdentifierConfigList,
@@ -16,34 +20,42 @@ export function createApartClientHostResolvers<
     HL extends RunnerIdentifierConfigList,
 >(config: {
     clientConfig?: Omit<IRunnerResolverClientBaseConfig<CL>, 'connection'>,
-    hostConfig: IRunnerResolverHostConfigBase<HL>,
+    hostConfig: {
+        runners: HL
+    },
     runnerResolverClientConstructor: typeof RunnerResolverClient,
     runnerResolverHostConstructor: typeof RunnerResolverHost,
 }): IApartConfiguredRunnerResolvers<CL, HL> {
-    const messageChanel = new MessageChannel();
+    const messageChannel = new MessageChannel();
     const runnerResolverClient = new config.runnerResolverClientConstructor({
         ...config.clientConfig,
-        connection: messageChanel.port1,
+        connection: new MessageEventConnectionClient({
+            target: messageChannel.port1,
+            strategies: [new RepeatConnectionStrategyClient()],
+        }),
     });
     const runnerResolverHost = new config.runnerResolverHostConstructor({
         ...config.hostConfig,
-        connections: [messageChanel.port2],
+        connection: new MessageEventConnectionHost({
+            target: messageChannel.port2,
+            strategies: [new RepeatConnectionStrategyHost()],
+        }),
     });
 
     const result: IApartConfiguredRunnerResolvers<CL, HL> = {
         client: runnerResolverClient,
         host: runnerResolverHost,
         async run(): Promise<void> {
-            messageChanel.port1.start();
-            messageChanel.port2.start();
+            messageChannel.port1.start();
+            messageChannel.port2.start();
             runnerResolverHost.run();
             await runnerResolverClient.run();
         },
         async destroy(): Promise<void> {
             await runnerResolverClient.destroy();
             await runnerResolverHost.destroy();
-            messageChanel.port1.close();
-            messageChanel.port2.close();
+            messageChannel.port1.close();
+            messageChannel.port2.close();
         },
     };
     return result;
