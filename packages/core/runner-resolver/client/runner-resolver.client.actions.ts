@@ -1,5 +1,5 @@
+import { ICollectionTransferPluginSendArrayData } from '../../plugins/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerToken } from "../../types/runner-identifier";
-import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
 
 export enum RunnerResolverClientAction {
     INIT_RUNNER = 'INIT_RUNNER',
@@ -18,19 +18,18 @@ export enum RunnerResolverClientAction {
 export type IRunnerResolverClientInitRunnerAction = {
     type: RunnerResolverClientAction.INIT_RUNNER;
     token: RunnerToken;
-    args: IRunnerSerializedArgument[];
+    args: ICollectionTransferPluginSendArrayData;
 }
 
 export type IRunnerResolverClientSoftInitRunnerAction = {
     type: RunnerResolverClientAction.SOFT_INIT_RUNNER;
     token: RunnerToken;
-    args: IRunnerSerializedArgument[];
+    args: ICollectionTransferPluginSendArrayData;
 }
 
 export type IRunnerResolverClientDestroyAction = {
     type: RunnerResolverClientAction.DESTROY;
 }
-
 
 export type IRunnerResolverClientAction
     = IRunnerResolverClientInitRunnerAction

@@ -1,5 +1,5 @@
 import { IMessagePortTarget } from '../../types/message-port-target.interface';
 
-export interface IMessageChannelConnectionRunnerAttachData {
+export interface IMessageChannelConnectionRunnerSendData {
     port: IMessagePortTarget;
 }

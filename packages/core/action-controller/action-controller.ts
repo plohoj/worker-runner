@@ -10,7 +10,7 @@ export interface IPromiseMethods<T = unknown, E = unknown> {
 }
 
 export interface IActionControllerConfig {
-    connectionChannel: BaseConnectionChannel,
+    connectionChannel: BaseConnectionChannel;
     disconnectErrorFactory?: DisconnectErrorFactory;
 }
 

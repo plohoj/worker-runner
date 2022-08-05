@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+export { ActionController } from './action-controller/action-controller';
 export { LocalPortalConnectionChannel } from './connection-channels/local-portal.connection-channel';
 export { PortalConnectionClient } from './connections/portal/portal.connection-client';
 export { PortalConnectionHost } from './connections/portal/portal.connection-host';
@@ -13,7 +14,7 @@ export { IRunnerEnvironmentClientConfig, RunnerEnvironmentClient } from './runne
 export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientExecuteAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
 export { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
 export { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from './runner-environment/host/runner-environment.host';
-export { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostExecutedWithRunnerResultAction, IRunnerEnvironmentHostExecuteResultAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
+export { IRunnerEnvironmentHostAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
 export { IRunnerResolverClientBaseConfig, RunnerResolverClientBase } from './runner-resolver/client/runner-resolver.client';
 export { RunnerResolverClientAction } from './runner-resolver/client/runner-resolver.client.actions';
 export { IRunnerResolverHostConfigBase, RunnerResolverHostBase } from './runner-resolver/host/runner-resolver.host';
@@ -24,4 +25,5 @@ export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMe
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonLike, TransferableJsonLike } from './types/json-like';
 export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerByIdentifier, RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from './types/runner-identifier';
-export { TransferRunnerData } from './utils/transfer-runner-data';
+export { TransferRunnerData } from './transfer-data/transfer-runner-data';
+

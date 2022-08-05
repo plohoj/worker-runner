@@ -18,7 +18,7 @@ interface IRunnerCollectionDataByTokenRecord {
     [token: string]: undefined | IRunnerCollectionData;
 }
 
-export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigList> {
+export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
     public readonly runnerByTokenDataRecord: IRunnerCollectionDataByTokenRecord = {};
     public readonly runnerTokenMap = new Map<RunnerConstructor, RunnerToken>();
 

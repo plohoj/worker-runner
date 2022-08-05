@@ -1,4 +1,5 @@
 import { ResolvedRunner, RunnerNotFound, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES, RunnerInitError } from '@worker-runner/core';
+import { RunnerDataTransferError } from '@worker-runner/core/errors/runner-errors';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { apartHostClientResolvers, resolverClientList, localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
@@ -81,12 +82,9 @@ each(allResolvers, (mode, resolver) =>
             const withOtherInstanceStubRunner$ = resolver.resolve(WithOtherInstanceStubRunner, executableStubRunner);
 
             await expectAsync(withOtherInstanceStubRunner$)
-                .toBeRejectedWith(errorContaining(RunnerInitError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
-                        token: WithOtherInstanceStubRunner.name,
-                        runnerName: WithOtherInstanceStubRunner.name,
-                    }),
-                    name: RunnerInitError.name,
+                .toBeRejectedWith(errorContaining(RunnerDataTransferError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.DATA_TRANSFER_PREPARATION_ERROR(),
+                    name: RunnerDataTransferError.name,
                     stack: jasmine.stringMatching(/.+/),
                     originalErrors: [errorContaining(ConnectionClosedError, {
                         message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({

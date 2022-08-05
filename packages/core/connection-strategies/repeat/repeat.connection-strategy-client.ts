@@ -2,15 +2,15 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { ConnectionChannelProxyData, ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../../utils/identifier-generator';
-import { BaseConnectionStrategyClient, IAttachDataForSendRunner, IPreparedForSendProxyRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IRepeatConnectionClientRunnerProxyAttachData, IRepeatConnectionNewClientRunnerAttachData, IRepeatConnectionRunnerAttachData, RepeatConnectionClientRunnerAttachDataFields } from './repeat-connection-prepared-data.interface';
+import { IRepeatConnectionClientRunnerProxySendData, IRepeatConnectionNewClientRunnerSendData, IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data.interface';
 
 export interface IRepeatConnectionStrategyClientRunConfig {
     identifierGenerator?: IdentifierGenerator;
     prepareRunnerProxyKey?:
-        | RepeatConnectionClientRunnerAttachDataFields.ClientId
-        | RepeatConnectionClientRunnerAttachDataFields.HostId;
+        | RepeatConnectionClientRunnerSendDataFields.ClientId
+        | RepeatConnectionClientRunnerSendDataFields.HostId;
 }
 
 export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient {
@@ -18,31 +18,31 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
     public readonly type: ConnectionStrategyEnum = ConnectionStrategyEnum.Repeat;
     private identifierGenerator!: IdentifierGenerator;
     private prepareRunnerProxyKey: 
-        | RepeatConnectionClientRunnerAttachDataFields.ClientId
-        | RepeatConnectionClientRunnerAttachDataFields.HostId
-        = RepeatConnectionClientRunnerAttachDataFields.ClientId;
-    private newRunnerProxyAttachDataKey:
-        | RepeatConnectionClientRunnerAttachDataFields.NewClientId
-        | RepeatConnectionClientRunnerAttachDataFields.NewHostId
-        = RepeatConnectionClientRunnerAttachDataFields.NewClientId;
+        | RepeatConnectionClientRunnerSendDataFields.ClientId
+        | RepeatConnectionClientRunnerSendDataFields.HostId
+        = RepeatConnectionClientRunnerSendDataFields.ClientId;
+    private newRunnerProxySendDataKey:
+        | RepeatConnectionClientRunnerSendDataFields.NewClientId
+        | RepeatConnectionClientRunnerSendDataFields.NewHostId
+        = RepeatConnectionClientRunnerSendDataFields.NewClientId;
 
     public resolveConnectionForRunner(
         currentChannel: BaseConnectionChannel,
-        attachedData: IAttachDataForSendRunner,
+        sendData: DataForSendRunner,
     ): BaseConnectionChannel {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }
         const proxyData: ConnectionChannelProxyData | undefined
             = this.getProxyDataForPrimaryField(
-                attachedData as unknown as IRepeatConnectionRunnerAttachData,
-                RepeatConnectionClientRunnerAttachDataFields.ClientId,
-                RepeatConnectionClientRunnerAttachDataFields.NewClientId,
+                sendData as unknown as IRepeatConnectionRunnerSendData,
+                RepeatConnectionClientRunnerSendDataFields.ClientId,
+                RepeatConnectionClientRunnerSendDataFields.NewClientId,
             )
             || this.getProxyDataForPrimaryField(
-                attachedData as unknown as IRepeatConnectionRunnerAttachData,
-                RepeatConnectionClientRunnerAttachDataFields.HostId,
-                RepeatConnectionClientRunnerAttachDataFields.NewHostId,
+                sendData as unknown as IRepeatConnectionRunnerSendData,
+                RepeatConnectionClientRunnerSendDataFields.HostId,
+                RepeatConnectionClientRunnerSendDataFields.NewHostId,
             );
         if (!proxyData) {
             throw new WorkerRunnerUnexpectedError({
@@ -57,45 +57,45 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
         this.identifierGenerator = config.identifierGenerator || new IdentifierGenerator();
         if (config.prepareRunnerProxyKey) {
             this.prepareRunnerProxyKey = config.prepareRunnerProxyKey;
-            this.newRunnerProxyAttachDataKey
-                = this.prepareRunnerProxyKey === RepeatConnectionClientRunnerAttachDataFields.ClientId
-                ? RepeatConnectionClientRunnerAttachDataFields.NewClientId
-                : RepeatConnectionClientRunnerAttachDataFields.NewHostId;
+            this.newRunnerProxySendDataKey
+                = this.prepareRunnerProxyKey === RepeatConnectionClientRunnerSendDataFields.ClientId
+                ? RepeatConnectionClientRunnerSendDataFields.NewClientId
+                : RepeatConnectionClientRunnerSendDataFields.NewHostId;
         }
     }
 
     protected prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData {
         const identifier: WorkerRunnerIdentifier = this.identifierGenerator.generate();
         const proxyChannel = new ProxyConnectionChannel(currentChannel, [this.prepareRunnerProxyKey, identifier]);
-        const attachData = {
-            [this.newRunnerProxyAttachDataKey]: identifier
-        } as unknown as IRepeatConnectionClientRunnerProxyAttachData;
+        const sendData = {
+            [this.newRunnerProxySendDataKey]: identifier
+        } as unknown as IRepeatConnectionClientRunnerProxySendData;
         return {
             proxyChannel,
             identifier: identifier as unknown as PreparedDataIdentifier,
             preparedData: {
-                attachData: attachData as unknown as IAttachDataForSendRunner,
+                data: sendData as unknown as DataForSendRunner,
             },
         };
     }
 
-    protected getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner): PreparedDataIdentifier {
-        return (attachedData as unknown as IRepeatConnectionNewClientRunnerAttachData)
+    protected getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier {
+        return (sendData as unknown as IRepeatConnectionNewClientRunnerSendData)
             .newClientId as unknown as PreparedDataIdentifier;
     }
 
     private getProxyDataForPrimaryField(
-        attachedData: IRepeatConnectionRunnerAttachData,
-        primaryField: RepeatConnectionClientRunnerAttachDataFields,
-        secondaryField: RepeatConnectionClientRunnerAttachDataFields,
+        sendData: IRepeatConnectionRunnerSendData,
+        primaryField: RepeatConnectionClientRunnerSendDataFields,
+        secondaryField: RepeatConnectionClientRunnerSendDataFields,
     ): ConnectionChannelProxyData | undefined {
-        if (primaryField in attachedData) {
+        if (primaryField in sendData) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-            return [primaryField, (attachedData as any)[primaryField]];
+            return [primaryField, (sendData as any)[primaryField]];
         }
-        if (secondaryField in attachedData) {
+        if (secondaryField in sendData) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-            return [primaryField, (attachedData as any)[secondaryField]];
+            return [primaryField, (sendData as any)[secondaryField]];
         }
     }
 }

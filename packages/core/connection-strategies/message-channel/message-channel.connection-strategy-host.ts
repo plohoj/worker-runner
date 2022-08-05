@@ -1,8 +1,8 @@
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
-import { IAttachDataForSendRunner } from '../base/base.connection-strategy-client';
+import { DataForSendRunner } from '../base/base.connection-strategy-client';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IMessageChannelConnectionRunnerAttachData } from './message-channel-connection-prepared-data.interface';
+import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data.interface';
 import { MessageChannelConnectionStrategyClient } from './message-channel.connection-strategy-client';
 
 
@@ -12,11 +12,11 @@ export class MessageChannelConnectionStrategyHost extends BaseConnectionStrategy
 
     public prepareRunnerForSend(): IPreparedForSendRunnerDataWithConnectionChannel {
         const messageChannel = new MessageChannel();
-        const attachData: IMessageChannelConnectionRunnerAttachData = {
+        const sendData: IMessageChannelConnectionRunnerSendData = {
             port: messageChannel.port2
         }
         const preparedData: IPreparedForSendRunnerDataWithConnectionChannel = {
-            attachData: attachData as unknown as IAttachDataForSendRunner,
+            data: sendData as unknown as DataForSendRunner,
             connectionChannel: new MessagePortConnectionChannel({target: messageChannel.port1}),
             transfer: [messageChannel.port2],
         };

@@ -1,4 +1,5 @@
 import { ResolvedRunner, RunnerExecuteError, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { RunnerDataTransferError } from '@worker-runner/core/errors/runner-errors';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { apartHostClientResolvers, allResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
@@ -66,13 +67,9 @@ each(allResolvers, (mode, resolver) =>
             await executableStubRunner.destroy();
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
             await expectAsync(withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner))
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
-                        token: WithOtherInstanceStubRunner.name,
-                        runnerName: WithOtherInstanceStubRunner.name,
-                        methodName: 'pullInstanceStage',
-                    }),
-                    name: RunnerExecuteError.name,
+                .toBeRejectedWith(errorContaining(RunnerDataTransferError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.DATA_TRANSFER_PREPARATION_ERROR(),
+                    name: RunnerDataTransferError.name,
                     stack: jasmine.stringMatching(/.+/),
                     originalErrors: [errorContaining(ConnectionClosedError, {
                         message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
@@ -88,31 +85,18 @@ each(allResolvers, (mode, resolver) =>
         it('with destroyed Resolved Runner in arguments at runtime', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
-            const executableStubRunnerConnectionErrorMather = errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
-                    token: EXECUTABLE_STUB_RUNNER_TOKEN,
-                    runnerName: ExecutableStubRunner.name,
-                }),
-                name: ConnectionClosedError.name,
-                stack: jasmine.stringMatching(/.+/),
-            });
 
             const executeResponse$ = withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner);
             await executableStubRunner.destroy();
 
             await expectAsync(executeResponse$)
-                .toBeRejectedWith(errorContaining(RunnerExecuteError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
-                        token: WithOtherInstanceStubRunner.name,
-                        runnerName: WithOtherInstanceStubRunner.name,
-                        methodName: 'pullInstanceStage',
+                .toBeRejectedWith(errorContaining(ConnectionClosedError, {
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        token: EXECUTABLE_STUB_RUNNER_TOKEN,
+                        runnerName: ExecutableStubRunner.name,
                     }),
-                    name: RunnerExecuteError.name,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
-                    originalErrors: [
-                        executableStubRunnerConnectionErrorMather,
-                        executableStubRunnerConnectionErrorMather,
-                    ],
                 }));
         });
 

@@ -1,5 +1,4 @@
-import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
-import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
 import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
@@ -13,23 +12,24 @@ import { ConnectedRunnerResolverClient } from './connected-runner-resolver.clien
 export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList> = {
     connection: BaseConnectionClient
     runners?: L;
+    plugins?: IPlugin[];
 };
 
 export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
-    
-    protected readonly errorSerializer: ErrorSerializer = this.buildErrorSerializer();
+
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     protected connectedResolver?: ConnectedRunnerResolverClient;
     
+    private readonly errorSerializer: ErrorSerializer = this.buildErrorSerializer();
     private readonly connection: BaseConnectionClient;
-    private readonly argumentSerializerByStrategyMap
-        = new Map<BaseConnectionStrategyClient, ArgumentsSerializer>();
+    private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {
         this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({
             runners: config.runners || [],
         });
         this.connection = config.connection;
+        this.plugins = config.plugins;
     }
 
     /** Launches and prepares RunnerResolver for work */
@@ -74,24 +74,13 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
         return WORKER_RUNNER_ERROR_SERIALIZER;
     }
 
-    private getOrCreateSerializerByConnectionStrategy(
-        strategy: BaseConnectionStrategyClient
-    ): ArgumentsSerializer {
-        let serializer = this.argumentSerializerByStrategyMap.get(strategy);
-        if (!serializer) {
-            serializer =  new ArgumentsSerializer({connectionStrategy: strategy});
-            this.argumentSerializerByStrategyMap.set(strategy, serializer);
-        }
-        return serializer;
-    }
-
     private buildAndRunConnectedResolver(establishedConnectionData: IEstablishedConnectionClientData): void {
         this.connectedResolver = new ConnectedRunnerResolverClient({
             connectionChannel: establishedConnectionData.connectionChannel,
             connectionStrategy: establishedConnectionData.strategy,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             errorSerializer: this.errorSerializer,
-            argumentSerializer: this.getOrCreateSerializerByConnectionStrategy(establishedConnectionData.strategy),
+            plugins: this.plugins,
         });
         this.connectedResolver.run();
     }

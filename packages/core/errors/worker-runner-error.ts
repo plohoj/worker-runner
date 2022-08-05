@@ -3,17 +3,17 @@ import { WorkerRunnerErrorCode } from './error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 
 export interface IRunnerErrorConfigBase {
-    name?: string;
+    name?: string; // TODO deprecated?
     message?: string;
 }
 
 interface IRunnerErrorConfigStack {
-    stack?: string;
+    stack?: string; // TODO deprecated?
 }
 
 export interface IRunnerErrorConfigCaptureOpt {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    captureOpt?: ((...args: any[]) => any) | Constructor | AbstractConstructor;
+    captureOpt?: ((...args: any[]) => any) | Constructor | AbstractConstructor; // TODO deprecated?
 }
 
 export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase

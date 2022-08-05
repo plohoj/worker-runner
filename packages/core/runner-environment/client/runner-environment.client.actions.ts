@@ -1,4 +1,4 @@
-import { IRunnerSerializedArgument } from '../../types/runner-serialized-argument';
+import { ICollectionTransferPluginSendArrayData } from '../../plugins/collection-transfer-plugin/collection-transfer-plugin-data';
 
 export enum RunnerEnvironmentClientAction {
     /** 
@@ -29,7 +29,7 @@ export type IRunnerEnvironmentClientInitiatedAction = {
 export type IRunnerEnvironmentClientExecuteAction = {
     type: RunnerEnvironmentClientAction.EXECUTE;
     method: string;
-    args: IRunnerSerializedArgument[];
+    args: ICollectionTransferPluginSendArrayData;
 }
 
 export type IRunnerEnvironmentClientCloneAction = {

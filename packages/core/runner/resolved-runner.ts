@@ -1,6 +1,6 @@
 import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
 import { JsonLike, TransferableJsonLike } from '../types/json-like';
-import { TransferRunnerData } from '../utils/transfer-runner-data';
+import { TransferRunnerData } from '../transfer-data/transfer-runner-data';
 import { RunnerController } from './runner.controller';
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
@@ -33,4 +33,7 @@ type ResolvedRunnerMethods<T> = {
     [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolvedRunnerMethod<T[P]> : never;
 };
 
+// TODO It may be worth allowing any type of argument and return type,
+// so that plugins can handle any type of transmitted data.
+// Then how to convert the type?
 export type ResolvedRunner<T> = ResolvedRunnerMethods<T> & RunnerController;

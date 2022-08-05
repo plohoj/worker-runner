@@ -1,6 +1,6 @@
-import { ConnectionClosedError } from '../..';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { ConnectionClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { isAction } from '../../utils/is-action';

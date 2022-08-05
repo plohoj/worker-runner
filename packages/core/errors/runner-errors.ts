@@ -24,7 +24,7 @@ export class RunnerNotFound extends WorkerRunnerError {
     }
 }
 
-export class RunnerInitError extends WorkerRunnerMultipleError {
+export class RunnerInitError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_INIT_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
@@ -35,7 +35,7 @@ export class RunnerInitError extends WorkerRunnerMultipleError {
     }
 }
 
-export class RunnerExecuteError extends WorkerRunnerMultipleError {
+export class RunnerExecuteError extends WorkerRunnerError {
     public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
@@ -53,6 +53,17 @@ export class RunnerDestroyError extends WorkerRunnerMultipleError {
             name: RunnerDestroyError.name,
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
             captureOpt: RunnerDestroyError,
+        }));
+    }
+}
+
+export class RunnerDataTransferError extends WorkerRunnerMultipleError {
+    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DATA_TRANSFER_ERROR;
+    constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
+        super(combineErrorConfig(config, {
+            name: RunnerDataTransferError.name,
+            message: WORKER_RUNNER_ERROR_MESSAGES.DATA_TRANSFER_PREPARATION_ERROR(),
+            captureOpt: RunnerDataTransferError,
         }));
     }
 }

@@ -1,9 +1,11 @@
 import { AvailableRunnersFromList, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, PortalConnectionClient, LocalPortalConnectionChannel, PortalConnectionHost, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
 import { RunnerResolverClient } from './runner-resolver.client';
 import { RunnerResolverHost } from './runner-resolver.host';
 
 interface IRunnerResolverLocalConfig<L extends RunnerIdentifierConfigList> {
     runners?: L
+    plugins?: IPlugin[],
 }
 
 export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClient<L> {
@@ -23,6 +25,7 @@ export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> exte
                 connectionChannel: localChannels[1]
             }),
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            plugins: config?.plugins,
         });
     }
 

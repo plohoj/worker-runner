@@ -1,9 +1,9 @@
+import { BaseConnectionStrategyClient } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
 import { ActionController } from '../../action-controller/action-controller';
-import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
-import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionClosedError } from '../../errors/runner-errors';
+import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -13,10 +13,10 @@ export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdenti
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     connectionStrategy: BaseConnectionStrategyClient,
     errorSerializer: ErrorSerializer,
-    argumentSerializer: ArgumentsSerializer;
+    pluginsResolver: PluginsResolver;
 }
 
-export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList> {
+export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
 
     public readonly runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<AnyRunnerFromList<L>>;
     public readonly runnerEnvironmentClients = new Set<RunnerEnvironmentClient<AnyRunnerFromList<L>>>();
@@ -24,13 +24,13 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
     private readonly errorSerializer: ErrorSerializer;
-    private readonly argumentSerializer: ArgumentsSerializer;
+    private readonly pluginsResolver: PluginsResolver;
 
     constructor(config: IRunnerEnvironmentClientCollectionConfig<L>) {
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
         this.errorSerializer = config.errorSerializer;
-        this.argumentSerializer = config.argumentSerializer;
+        this.pluginsResolver = config.pluginsResolver;
         this.runnerEnvironmentClientPartFactory = this.initRunnerEnvironmentClientByPartConfig;
     }
     
@@ -61,7 +61,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             connectionStrategy: this.connectionStrategy,
             errorSerializer: this.errorSerializer,
-            argumentSerializer: this.argumentSerializer,
+            pluginsResolver: this.pluginsResolver,
             disconnectErrorFactory,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientPartFactory,
             onDestroyed: () => this.runnerEnvironmentClients.delete(environmentClient),
@@ -71,6 +71,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
         // * If an error thrown during initialization, remove the environment from the list again.
         // If destroying occurs after successful initialization,
         // the environment will be removed from the list by calling the onDestroyed method.
+        // TODO can be added after destroy environment collection
         this.runnerEnvironmentClients.add(environmentClient);
         return environmentClient;
     }

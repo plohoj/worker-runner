@@ -69,6 +69,12 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     COMMON_CONNECTION_STRATEGY_ERROR(): string {
         return `Common connection strategy for Client and Host not found`;
     },
+    DATA_TRANSFER_PREPARATION_ERROR(): string {
+        return `An error occurred while preparing data for transfer`;
+    },
+    DATA_TRANSFER_UNEXPECTED_TYPE_ERROR(): string {
+        return `An unexpected data type was received for transfer`;
+    },
 
     UNEXPECTED_ERROR(config: Readonly<IRunnerMessageConfig> = {}): string {
         return `Unexpected Error${this.formatRunnerInfo(config, 'for')}`;

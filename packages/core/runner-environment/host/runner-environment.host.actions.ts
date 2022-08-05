@@ -1,16 +1,9 @@
 import { ISerializedError } from '../../errors/error.serializer';
-import { TransferableJsonLike } from '../../types/json-like';
-import { RunnerToken } from "../../types/runner-identifier";
+import { TransferPluginDataType, TransferPluginSendData } from '../../plugins/transfer-plugin/transfer-plugin-data';
 
 export enum RunnerEnvironmentHostAction {
     /** Method execution result */
-    EXECUTED = 'EXECUTED',
-    // TODO
-    /**
-     * @deprecate There must be an implementation that handles different types of return values
-     * with and without Transferable wrapper
-     */
-    EXECUTED_WITH_RUNNER_RESULT = 'EXECUTED_WITH_RUNNER_RESULT',
+    EXECUTED = 'EXECUTED', // TODO rename to RESPONSE
     /** Error while executing an action */
     ERROR = 'ERROR',
     /** Duplicated environment that manages the same Runner instance */
@@ -29,12 +22,8 @@ export enum RunnerEnvironmentHostAction {
 
 export type IRunnerEnvironmentHostExecutedAction = {
     type: RunnerEnvironmentHostAction.EXECUTED;
-    response: TransferableJsonLike;
-}
-
-export type IRunnerEnvironmentHostExecutedWithRunnerResultAction = {
-    type: RunnerEnvironmentHostAction.EXECUTED_WITH_RUNNER_RESULT;
-    token: RunnerToken;
+    responseType: TransferPluginDataType;
+    response: TransferPluginSendData;
 }
 
 export type IRunnerEnvironmentHostErrorAction = {
@@ -59,13 +48,8 @@ export type IRunnerEnvironmentHostDestroyedAction = {
     type: RunnerEnvironmentHostAction.DESTROYED;
 }
 
-export type IRunnerEnvironmentHostExecuteResultAction = 
-    | IRunnerEnvironmentHostExecutedAction
-    | IRunnerEnvironmentHostExecutedWithRunnerResultAction;
-
 export type IRunnerEnvironmentHostAction = 
     | IRunnerEnvironmentHostExecutedAction
-    | IRunnerEnvironmentHostExecutedWithRunnerResultAction
     | IRunnerEnvironmentHostErrorAction
     | IRunnerEnvironmentHostClonedAction
     | IRunnerEnvironmentHostOwnMetadataAction

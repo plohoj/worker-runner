@@ -2,19 +2,16 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { RunnerConstructor } from '../../types/constructor';
-import { TransferableJsonLike } from '../../types/json-like';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 
 /**
  * Fields that must be attached to an object with a serialized Runner as an argument
  * or to an action with the result of a method execution
  */
-export interface IAttachDataForSendRunner {
-    [dataField: string]: TransferableJsonLike,
-}
+export type DataForSendRunner = 'FAKE_TYPE_FOR_DATA_FOR_SEND_RUNNER' | symbol;
 
 export interface IPreparedForSendRunnerData {
-    attachData: IAttachDataForSendRunner,
+    data: DataForSendRunner,
     transfer?: Transferable[],
 }
 
@@ -52,11 +49,12 @@ export abstract class BaseConnectionStrategyClient {
             );
     }
 
+    // TODO prepareRunnerForSend must return cancel method
     /** Canceling submission of prepared data for control when an error occurs while preparing arguments */
     public cancelSendAttachRunnerData(
-        attachData: IAttachDataForSendRunner,
+        sendData: DataForSendRunner,
     ): void | Promise<void> {
-        const resolvedConnection = this.resolvedConnectionMap.get(this.getIdentifierForPreparedData(attachData));
+        const resolvedConnection = this.resolvedConnectionMap.get(this.getIdentifierForPreparedData(sendData));
         if (!resolvedConnection) {
             return;
         }
@@ -99,9 +97,9 @@ export abstract class BaseConnectionStrategyClient {
          * or modified for Environment client
          */
         currentChannel: BaseConnectionChannel,
-        attachedData: IAttachDataForSendRunner,
+        receivedData: DataForSendRunner,
     ): BaseConnectionChannel;
 
     protected abstract prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData;
-    protected abstract getIdentifierForPreparedData(attachedData: IAttachDataForSendRunner,): PreparedDataIdentifier;
+    protected abstract getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier;
 }

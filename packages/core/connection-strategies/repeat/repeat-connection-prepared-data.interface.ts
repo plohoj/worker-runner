@@ -1,6 +1,6 @@
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 
-export enum RepeatConnectionClientRunnerAttachDataFields {
+export enum RepeatConnectionClientRunnerSendDataFields {
     NewClientId = 'newClientId',
     ClientId = 'clientId',
     NewHostId = 'newHostId',
@@ -12,16 +12,16 @@ export enum RepeatConnectionClientRunnerAttachDataFields {
  * Data for a **new** connection with the runner. The data that was sent by the client to the host in case of:
  * * Method/constructor argument;
  */
-export interface IRepeatConnectionNewClientRunnerAttachData {
-    [RepeatConnectionClientRunnerAttachDataFields.NewClientId]: WorkerRunnerIdentifier;
+export interface IRepeatConnectionNewClientRunnerSendData {
+    [RepeatConnectionClientRunnerSendDataFields.NewClientId]: WorkerRunnerIdentifier;
 }
 
 /**
  * Data for an **existing** connection to the runner. The data that was sent by the client to the host in case of:
  * * Method/constructor argument;
  */
-export interface IRepeatConnectionClientRunnerProxyAttachData {
-    [RepeatConnectionClientRunnerAttachDataFields.ClientId]: WorkerRunnerIdentifier;
+export interface IRepeatConnectionClientRunnerProxySendData {
+    [RepeatConnectionClientRunnerSendDataFields.ClientId]: WorkerRunnerIdentifier;
 }
 
 /**
@@ -30,8 +30,8 @@ export interface IRepeatConnectionClientRunnerProxyAttachData {
  * * Result of requesting new Runner using Resolver;
  * * Result on a connection clone request
  */
-export interface IRepeatConnectionNewHostRunnerAttachData {
-    [RepeatConnectionClientRunnerAttachDataFields.NewHostId]: WorkerRunnerIdentifier;
+export interface IRepeatConnectionNewHostRunnerSendData {
+    [RepeatConnectionClientRunnerSendDataFields.NewHostId]: WorkerRunnerIdentifier;
 }
 
 /**
@@ -40,8 +40,8 @@ export interface IRepeatConnectionNewHostRunnerAttachData {
  * * Result of requesting new Runner using Resolver;
  * * Result on a connection clone request
  */
-export interface IRepeatConnectionHostRunnerProxyAttachData {
-    [RepeatConnectionClientRunnerAttachDataFields.HostId]: WorkerRunnerIdentifier;
+export interface IRepeatConnectionHostRunnerProxySendData {
+    [RepeatConnectionClientRunnerSendDataFields.HostId]: WorkerRunnerIdentifier;
 }
 
 // TODO implement
@@ -49,21 +49,21 @@ export interface IRepeatConnectionHostRunnerProxyAttachData {
  * The original connection to the original Runner instance goes through the HostResolver.
  * The HostResolver environment must find this instance and use its connection to shorten the action forwarding route
  */
-export interface IRepeatConnectionTransferRunnerAttachData {
-    [RepeatConnectionClientRunnerAttachDataFields.TransferId]: WorkerRunnerIdentifier;
+export interface IRepeatConnectionTransferRunnerSendData {
+    [RepeatConnectionClientRunnerSendDataFields.TransferId]: WorkerRunnerIdentifier;
 }
 
-export type IRepeatConnectionRunnerAttachData =
-    | IRepeatConnectionNewClientRunnerAttachData    
-    | IRepeatConnectionClientRunnerProxyAttachData
-    | IRepeatConnectionNewHostRunnerAttachData
-    | IRepeatConnectionHostRunnerProxyAttachData
-    | IRepeatConnectionTransferRunnerAttachData;
+export type IRepeatConnectionRunnerSendData =
+    | IRepeatConnectionNewClientRunnerSendData    
+    | IRepeatConnectionClientRunnerProxySendData
+    | IRepeatConnectionNewHostRunnerSendData
+    | IRepeatConnectionHostRunnerProxySendData
+    | IRepeatConnectionTransferRunnerSendData;
 
-export type RepeatConnectionRunnerAttachDataKeys = keyof (
-    & IRepeatConnectionNewClientRunnerAttachData
-    & IRepeatConnectionClientRunnerProxyAttachData
-    & IRepeatConnectionNewHostRunnerAttachData
-    & IRepeatConnectionHostRunnerProxyAttachData
-    & IRepeatConnectionTransferRunnerAttachData
+export type RepeatConnectionRunnerSendDataKeys = keyof (
+    & IRepeatConnectionNewClientRunnerSendData
+    & IRepeatConnectionClientRunnerProxySendData
+    & IRepeatConnectionNewHostRunnerSendData
+    & IRepeatConnectionHostRunnerProxySendData
+    & IRepeatConnectionTransferRunnerSendData
 );

@@ -1,6 +1,7 @@
+import { PluginsResolver } from '@worker-runner/core/plugins/plugins.resolver';
+import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
+import { RunnerTransferPlugin } from '@worker-runner/core/plugins/runner-transfer-plugin/runner-transfer.plugin';
 import { ActionController } from '../../action-controller/action-controller';
-import { ArgumentsDeserializer } from '../../arguments-serialization/arguments-deserializer';
-import { ArgumentsSerializer } from '../../arguments-serialization/arguments-serializer';
 import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
@@ -13,7 +14,7 @@ import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { allPromisesCollectErrors } from '../../utils/all-promises-collect-errors';
+import { collectPromisesErrors } from '../../utils/collect-promises-errors';
 import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from '../client/runner-resolver.client.actions';
 import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from './runner-resolver.host.actions';
 
@@ -22,8 +23,7 @@ export interface IConnectedRunnerResolverHostConfig {
     connectionStrategy: BaseConnectionStrategyHost,
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     errorSerializer: ErrorSerializer,
-    argumentSerializer: ArgumentsSerializer;
-    argumentDeserializer: ArgumentsDeserializer;
+    plugins?: IPlugin[];
     onDestroy: () => void;
 }
 
@@ -32,20 +32,26 @@ export class ConnectedRunnerResolverHost {
     public readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<RunnerConstructor>>();
 
     private readonly actionController: ActionController;
-    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
+    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
     private readonly connectionStrategy: BaseConnectionStrategyHost;
     private readonly errorSerializer: ErrorSerializer;
-    private readonly argumentSerializer: ArgumentsSerializer;
-    private readonly argumentDeserializer: ArgumentsDeserializer;
+    private readonly pluginsResolver: PluginsResolver;
     private onDestroy: () => void;
 
     constructor(config: IConnectedRunnerResolverHostConfig) {
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
         this.errorSerializer = config.errorSerializer;
-        this.argumentSerializer = config.argumentSerializer;
-        this.argumentDeserializer = config.argumentDeserializer;
         this.actionController = new ActionController({connectionChannel: config.connectionChannel});
+        const runnerTransferPlugin = new RunnerTransferPlugin({
+            connectionStrategy: this.connectionStrategy.strategyClient,
+        })
+        this.pluginsResolver = new PluginsResolver({
+            plugins: [
+                ...config.plugins || [],
+                runnerTransferPlugin,
+            ],
+        });
         this.onDestroy = config.onDestroy;
     }
 
@@ -99,15 +105,14 @@ export class ConnectedRunnerResolverHost {
         const runnerEnvironmentHost = this.buildRunnerEnvironmentHost({
             errorSerializer: this.errorSerializer,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            argumentSerializer: this.argumentSerializer,
-            argumentDeserializer: this.argumentDeserializer,
             connectionStrategy: this.connectionStrategy,
+            pluginsResolver: this.pluginsResolver,
             onDestroyed: () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost),
             ...config,
         });
         return runnerEnvironmentHost;
     }
-        
+
     private handleAction = async (
         action: IRunnerResolverClientAction & IActionWithId | IBestStrategyResolverClientConnectAction,
     ): Promise<void> => {
@@ -145,15 +150,15 @@ export class ConnectedRunnerResolverHost {
     }
 
     private async clearEnvironments(): Promise<void> {
-        const possibleErrors = await allPromisesCollectErrors(
-            [...this.runnerEnvironmentHosts]
-                .map(runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy())
-        )
-        this.runnerEnvironmentHosts.clear();
-        if ('errors' in possibleErrors) {
-            throw new RunnerResolverHostDestroyError({ 
-                originalErrors: possibleErrors.errors,
+        try {
+            await collectPromisesErrors({
+                values: this.runnerEnvironmentHosts,
+                stopAtFirstError: false,
+                mapper: runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy(),
+                errorFactory: originalErrors => new RunnerResolverHostDestroyError({originalErrors})
             });
+        } finally {
+            this.runnerEnvironmentHosts.clear();
         }
     }
 
@@ -174,7 +179,7 @@ export class ConnectedRunnerResolverHost {
                     };
             const preparedData = this.connectionStrategy
                 .prepareRunnerForSend(this.actionController.connectionChannel);
-            Object.assign(responseAction, preparedData.attachData);
+            Object.assign(responseAction, preparedData.data);
             const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
                 token: action.token,
             });
@@ -187,6 +192,7 @@ export class ConnectedRunnerResolverHost {
                 runnerEnvironmentHost.cancel();
                 throw error;
             }
+            // TODO can be added after destroy action from RunnerResolverClient
             this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
             this.actionController.sendActionResponse(responseAction, preparedData.transfer);
         } catch (error: unknown) {

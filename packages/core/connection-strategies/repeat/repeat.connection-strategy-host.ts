@@ -1,10 +1,10 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { IdentifierGenerator } from '../../utils/identifier-generator';
-import { IAttachDataForSendRunner } from '../base/base.connection-strategy-client';
+import { DataForSendRunner } from '../base/base.connection-strategy-client';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IRepeatConnectionNewHostRunnerAttachData, RepeatConnectionClientRunnerAttachDataFields } from './repeat-connection-prepared-data.interface';
+import { IRepeatConnectionNewHostRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data.interface';
 import { RepeatConnectionStrategyClient } from './repeat.connection-strategy-client';
 
 export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
@@ -16,7 +16,7 @@ export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
         super();
         this.strategyClient.run({
             identifierGenerator: this.identifierGenerator,
-            prepareRunnerProxyKey: RepeatConnectionClientRunnerAttachDataFields.HostId,
+            prepareRunnerProxyKey: RepeatConnectionClientRunnerSendDataFields.HostId,
         });
     }
 
@@ -27,13 +27,13 @@ export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
             currentChannel = currentChannel.getRootOriginalChannel();
         }
         const newHostId = this.identifierGenerator.generate();
-        const proxyKey = RepeatConnectionClientRunnerAttachDataFields.HostId;
+        const proxyKey = RepeatConnectionClientRunnerSendDataFields.HostId;
         const connectionChannel: BaseConnectionChannel = new ProxyConnectionChannel(currentChannel, [proxyKey, newHostId]);
-        const attachData: IRepeatConnectionNewHostRunnerAttachData = {
-            [RepeatConnectionClientRunnerAttachDataFields.NewHostId]: newHostId,
+        const sendData: IRepeatConnectionNewHostRunnerSendData = {
+            [RepeatConnectionClientRunnerSendDataFields.NewHostId]: newHostId,
         };
         return {
-            attachData: attachData as unknown as IAttachDataForSendRunner,
+            data: sendData as unknown as DataForSendRunner,
             connectionChannel,
         }
     }
