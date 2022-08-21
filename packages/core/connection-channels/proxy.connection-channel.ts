@@ -1,5 +1,5 @@
-import { JsonLike } from '..';
 import { IAction } from '../types/action';
+import { JsonLike } from '../types/json-like';
 import { WorkerRunnerIdentifier } from '../utils/identifier-generator';
 import { BaseConnectionChannel } from './base.connection-channel';
 

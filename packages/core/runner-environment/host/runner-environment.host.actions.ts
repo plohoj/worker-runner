@@ -1,5 +1,5 @@
-import { ISerializedError } from '../../errors/error.serializer';
-import { TransferPluginDataType, TransferPluginSendData } from '../../plugins/transfer-plugin/transfer-plugin-data';
+import { ISerializedError } from '../../plugins/error-serialization-plugin/base/error-serialization-plugin-data';
+import { TransferPluginDataType, TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 
 export enum RunnerEnvironmentHostAction {
     /** Method execution result */

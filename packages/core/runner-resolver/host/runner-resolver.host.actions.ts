@@ -1,4 +1,4 @@
-import { ISerializedError } from '../../errors/error.serializer';
+import { ISerializedError } from '../../plugins/error-serialization-plugin/base/error-serialization-plugin-data';
 
 export enum RunnerResolverHostAction {
     RUNNER_INITED = 'RUNNER_INITED',

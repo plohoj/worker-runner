@@ -1,8 +1,7 @@
-import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
+import { IPluginHost } from '@worker-runner/core/plugins/plugins.type';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerConstructor } from '../../types/constructor';
@@ -12,7 +11,7 @@ import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
 
 export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> = {
     connection: BaseConnectionHost;
-    plugins?: IPlugin[];
+    plugins?: IPluginHost[];
 } & ({
     runners: L
 } | {
@@ -22,11 +21,10 @@ export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> 
 export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigList> {
     
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
-    protected readonly errorSerializer = WORKER_RUNNER_ERROR_SERIALIZER;
 
     private readonly connection: BaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
-    private readonly plugins?: IPlugin[];
+    private readonly plugins?: IPluginHost[];
 
     constructor(config: IRunnerResolverHostConfigBase<L>) {
         this.runnerIdentifierConfigCollection = 'runners' in config
@@ -71,7 +69,6 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
             connectionChannel: newConnectionData.connectionChannel,
             connectionStrategy: newConnectionData.strategy,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            errorSerializer: this.errorSerializer,
             plugins: this.plugins,
             onDestroy: () => this.connectedResolvers.delete(connectedResolver),
         });

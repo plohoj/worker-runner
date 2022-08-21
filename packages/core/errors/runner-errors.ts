@@ -1,9 +1,7 @@
-import { WorkerRunnerErrorCode } from './error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
-import { combineErrorConfig, IWorkerRunnerErrorConfig, IWorkerRunnerMultipleErrorConfig, WorkerRunnerError, WorkerRunnerMultipleError, WORKER_RUNNER_ERROR_CODE } from './worker-runner-error';
+import { combineErrorConfig, IWorkerRunnerErrorConfig, IWorkerRunnerMultipleErrorConfig, WorkerRunnerError, WorkerRunnerMultipleError } from './worker-runner-error';
 
 export class ConnectionClosedError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.CONNECTION_CLOSED;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: ConnectionClosedError.name,
@@ -14,7 +12,6 @@ export class ConnectionClosedError extends WorkerRunnerError {
 }
 
 export class RunnerNotFound extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_NOT_FOUND;
     constructor(config: Readonly<IWorkerRunnerErrorConfig> = {}) {
         super(combineErrorConfig(config, {
             name: RunnerNotFound.name,
@@ -25,7 +22,6 @@ export class RunnerNotFound extends WorkerRunnerError {
 }
 
 export class RunnerInitError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_INIT_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerInitError.name,
@@ -36,7 +32,6 @@ export class RunnerInitError extends WorkerRunnerError {
 }
 
 export class RunnerExecuteError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_EXECUTE_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerExecuteError.name,
@@ -47,7 +42,6 @@ export class RunnerExecuteError extends WorkerRunnerError {
 }
 
 export class RunnerDestroyError extends WorkerRunnerMultipleError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerDestroyError.name,
@@ -58,7 +52,6 @@ export class RunnerDestroyError extends WorkerRunnerMultipleError {
 }
 
 export class RunnerDataTransferError extends WorkerRunnerMultipleError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DATA_TRANSFER_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerDataTransferError.name,
@@ -69,7 +62,6 @@ export class RunnerDataTransferError extends WorkerRunnerMultipleError {
 }
 
 export class RunnerResolverClientDestroyError extends WorkerRunnerMultipleError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerResolverClientDestroyError.name,
@@ -80,7 +72,6 @@ export class RunnerResolverClientDestroyError extends WorkerRunnerMultipleError 
 }
 
 export class RunnerResolverHostDestroyError extends WorkerRunnerMultipleError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.RUNNER_DESTROY_ERROR;
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerResolverHostDestroyError.name,

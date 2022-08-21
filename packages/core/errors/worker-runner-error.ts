@@ -1,5 +1,4 @@
 import { AbstractConstructor, Constructor } from '../types/constructor';
-import { WorkerRunnerErrorCode } from './error-code';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 
 export interface IRunnerErrorConfigBase {
@@ -19,11 +18,9 @@ export interface IRunnerErrorConfigCaptureOpt {
 export type IWorkerRunnerErrorConfig = IRunnerErrorConfigBase
     & (IRunnerErrorConfigStack | IRunnerErrorConfigCaptureOpt);
 
-export const WORKER_RUNNER_ERROR_CODE = '__workerRunner_errorCode';
+export type WorkerRunnerErrorConstructor = Constructor<WorkerRunnerError, [IWorkerRunnerMultipleErrorConfig]>;
 
 export abstract class WorkerRunnerError extends Error {
-    public abstract [WORKER_RUNNER_ERROR_CODE]: string;
-
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(config.message);
         if ((config as IRunnerErrorConfigStack).stack) {
@@ -57,8 +54,6 @@ export abstract class WorkerRunnerMultipleError extends WorkerRunnerError {
 }
 
 export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.UNEXPECTED_ERROR;
-
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: WorkerRunnerUnexpectedError.name,
@@ -69,8 +64,6 @@ export class WorkerRunnerUnexpectedError extends WorkerRunnerError {
 }
 
 export class WorkerRunnerCommonConnectionStrategyError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = WorkerRunnerErrorCode.UNEXPECTED_ERROR;
-
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: WorkerRunnerCommonConnectionStrategyError.name,

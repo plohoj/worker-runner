@@ -1,7 +1,6 @@
-import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
+import { IPluginClient } from '@worker-runner/core/plugins/plugins.type';
 import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { ErrorSerializer, WORKER_RUNNER_ERROR_SERIALIZER } from '../../errors/error.serializer';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController } from '../../runner/runner.controller';
@@ -12,17 +11,16 @@ import { ConnectedRunnerResolverClient } from './connected-runner-resolver.clien
 export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList> = {
     connection: BaseConnectionClient
     runners?: L;
-    plugins?: IPlugin[];
+    plugins?: IPluginClient[];
 };
 
 export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
 
     protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     protected connectedResolver?: ConnectedRunnerResolverClient;
-    
-    private readonly errorSerializer: ErrorSerializer = this.buildErrorSerializer();
+
     private readonly connection: BaseConnectionClient;
-    private readonly plugins?: IPlugin[];
+    private readonly plugins?: IPluginClient[];
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {
         this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({
@@ -70,16 +68,11 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
         }
     }
 
-    protected buildErrorSerializer(): ErrorSerializer {
-        return WORKER_RUNNER_ERROR_SERIALIZER;
-    }
-
     private buildAndRunConnectedResolver(establishedConnectionData: IEstablishedConnectionClientData): void {
         this.connectedResolver = new ConnectedRunnerResolverClient({
             connectionChannel: establishedConnectionData.connectionChannel,
             connectionStrategy: establishedConnectionData.strategy,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            errorSerializer: this.errorSerializer,
             plugins: this.plugins,
         });
         this.connectedResolver.run();

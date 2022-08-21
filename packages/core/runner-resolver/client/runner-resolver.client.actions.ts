@@ -1,4 +1,4 @@
-import { ICollectionTransferPluginSendArrayData } from '../../plugins/collection-transfer-plugin/collection-transfer-plugin-data';
+import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerToken } from "../../types/runner-identifier";
 
 export enum RunnerResolverClientAction {

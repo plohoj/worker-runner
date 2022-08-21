@@ -1,9 +1,8 @@
 import { BaseConnectionStrategyClient } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
 import { ActionController } from '../../action-controller/action-controller';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { ErrorSerializer } from "../../errors/error.serializer";
 import { ConnectionClosedError } from '../../errors/runner-errors';
-import { PluginsResolver } from '../../plugins/plugins.resolver';
+import { PluginsResolverClient } from '../../plugins/resolver/plugins.resolver.client';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -12,8 +11,7 @@ import { IRunnerEnvironmentClientConfig, IRunnerEnvironmentClientPartFactoryConf
 export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdentifierConfigList> {
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     connectionStrategy: BaseConnectionStrategyClient,
-    errorSerializer: ErrorSerializer,
-    pluginsResolver: PluginsResolver;
+    pluginsResolver: PluginsResolverClient;
 }
 
 export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
@@ -23,13 +21,11 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
 
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
-    private readonly errorSerializer: ErrorSerializer;
-    private readonly pluginsResolver: PluginsResolver;
+    private readonly pluginsResolver: PluginsResolverClient;
 
     constructor(config: IRunnerEnvironmentClientCollectionConfig<L>) {
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
-        this.errorSerializer = config.errorSerializer;
         this.pluginsResolver = config.pluginsResolver;
         this.runnerEnvironmentClientPartFactory = this.initRunnerEnvironmentClientByPartConfig;
     }
@@ -60,7 +56,6 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             actionController,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             connectionStrategy: this.connectionStrategy,
-            errorSerializer: this.errorSerializer,
             pluginsResolver: this.pluginsResolver,
             disconnectErrorFactory,
             runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientPartFactory,

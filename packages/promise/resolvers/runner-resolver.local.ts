@@ -1,11 +1,11 @@
 import { AvailableRunnersFromList, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, PortalConnectionClient, LocalPortalConnectionChannel, PortalConnectionHost, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { IPlugin } from '@worker-runner/core/plugins/plugins.type';
+import { IPluginHost } from '@worker-runner/core/plugins/plugins.type';
 import { RunnerResolverClient } from './runner-resolver.client';
 import { RunnerResolverHost } from './runner-resolver.host';
 
 interface IRunnerResolverLocalConfig<L extends RunnerIdentifierConfigList> {
     runners?: L
-    plugins?: IPlugin[],
+    plugins?: IPluginHost[],
 }
 
 export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClient<L> {

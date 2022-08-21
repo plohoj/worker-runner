@@ -1,11 +1,10 @@
-import { TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/transfer-plugins.resolver';
+import { TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
-import { ErrorSerializer } from '../../errors/error.serializer';
 import { ConnectionClosedError } from '../../errors/runner-errors';
-import { ICollectionTransferPluginSendArrayData } from '../../plugins/collection-transfer-plugin/collection-transfer-plugin-data';
-import { PluginsResolver } from '../../plugins/plugins.resolver';
+import { PluginsResolverClient } from '../../plugins/resolver/plugins.resolver.client';
+import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { IRunnerControllerConstructor } from '../../runner/runner.controller';
@@ -35,8 +34,7 @@ export interface IRunnerEnvironmentClientConfig<R extends RunnerConstructor> {
     actionController: ActionController;
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     connectionStrategy: BaseConnectionStrategyClient,
-    errorSerializer: ErrorSerializer,
-    pluginsResolver: PluginsResolver;
+    pluginsResolver: PluginsResolverClient;
     disconnectErrorFactory: DisconnectErrorFactory;
     runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<R>;
     onDestroyed: () => void;
@@ -47,12 +45,11 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
 
     protected readonly actionController: ActionController;
     protected readonly connectionStrategy: BaseConnectionStrategyClient;
-    protected readonly errorSerializer: ErrorSerializer;
     protected readonly disconnectErrorFactory: DisconnectErrorFactory;
     protected readonly onDestroyed: () => void;
     
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolver;
+    private readonly pluginsResolver: PluginsResolverClient;
     private readonly transferPluginsResolver: TransferPluginsResolver;
 
     private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
@@ -64,7 +61,6 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         this.actionController = config.actionController;
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
-        this.errorSerializer = config.errorSerializer;
         this.pluginsResolver = config.pluginsResolver;
         this.transferPluginsResolver = this.pluginsResolver.resolveTransferResolver();
         this.disconnectErrorFactory = config.disconnectErrorFactory;
@@ -263,7 +259,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.errorSerializer.deserialize(
+            throw this.pluginsResolver.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }
@@ -295,7 +291,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         }
         this.handleDestroy();
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.errorSerializer.deserialize(
+            throw this.pluginsResolver.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }

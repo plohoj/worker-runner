@@ -1,16 +1,16 @@
-import { PluginsResolver } from '@worker-runner/core/plugins/plugins.resolver';
-import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginSendData } from '@worker-runner/core/plugins/transfer-plugin/transfer-plugin-data';
-import { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/transfer-plugins.resolver';
+import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginSendData } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugin-data';
+import { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { ErrorSerializer } from '../../errors/error.serializer';
+import { normalizeError } from '../../errors/normalize-error';
 import { ConnectionClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
-import { ARRAY_TRANSFER_TYPE } from '../../plugins/array-transfer-plugin/array-transfer-plugin-data';
-import { ICollectionTransferPluginSendArrayData } from '../../plugins/collection-transfer-plugin/collection-transfer-plugin-data';
-import { ITransferPluginControllerTransferDataConfig } from '../../plugins/transfer-plugin/transfer.plugin-controller';
+import { PluginsResolverHost } from '../../plugins/resolver/plugins.resolver.host';
+import { ARRAY_TRANSFER_TYPE } from '../../plugins/transfer-plugin/array-transfer-plugin/array-transfer-plugin-data';
+import { ITransferPluginControllerTransferDataConfig } from '../../plugins/transfer-plugin/base/transfer.plugin-controller';
+import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { ActionHandler, IActionWithId } from '../../types/action';
 import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor';
@@ -35,9 +35,8 @@ interface IRunnerEnvironmentHostAsyncInitConfig {
 export interface IRunnerEnvironmentHostConfig {
     token: RunnerToken;
     connectionStrategy: BaseConnectionStrategyHost,
-    errorSerializer: ErrorSerializer;
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
-    pluginsResolver: PluginsResolver;
+    pluginsResolver: PluginsResolverHost;
     onDestroyed: () => void;
 }
 
@@ -63,14 +62,12 @@ const WAIT_FOR_RESPONSE_DESTROYED_ACTION_TIMEOUT = 10_000;
 export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstructor> {
 
     public readonly connectionStrategy: BaseConnectionStrategyHost;
-
-    protected readonly errorSerializer: ErrorSerializer;
     
     private readonly token: RunnerToken;
     private readonly connectDataMap = new Map<ActionController, IRunnerEnvironmentHostActionControllerConnectData>();
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolver;
+    private readonly pluginsResolver: PluginsResolverHost;
     private readonly transferPluginsResolver: TransferPluginsResolver;
     private readonly onDestroyed: () => void;
 
@@ -79,12 +76,10 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
 
     constructor(config: Readonly<IRunnerEnvironmentHostConfig>) {
         this.token = config.token;
-        this.errorSerializer = config.errorSerializer;
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
         this.pluginsResolver = config.pluginsResolver;
         this.runnerEnvironmentClientCollection = new RunnerEnvironmentClientCollection({
-            errorSerializer: this.errorSerializer,
             connectionStrategy: this.connectionStrategy.strategyClient,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             pluginsResolver: this.pluginsResolver,
@@ -230,7 +225,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 ]))
                 : notAwaitedResult;
         } catch (error) {
-            throw this.errorSerializer.normalize(error, RunnerExecuteError, {
+            throw normalizeError(error, RunnerExecuteError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.EXECUTE_ERROR({
                     ...this.getErrorMessageConfig(),
                     methodName: action.method,
@@ -341,8 +336,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             }
         } catch (error) {
             if ('id' in action) {
-                const serializedError = this.errorSerializer.serialize(
-                    this.errorSerializer.normalize(
+                const serializedError = this.pluginsResolver.serializeError(
+                    normalizeError(
                         error,
                         WorkerRunnerUnexpectedError,
                         {
@@ -394,7 +389,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 await (this.runnerInstance.destroy as () => void | Promise<void>)();
             }
         } catch(error: unknown) {
-            caughtError = this.errorSerializer.normalize(error, RunnerDestroyError, {
+            caughtError = normalizeError(error, RunnerDestroyError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
                     this.getErrorMessageConfig(),
                 ),
@@ -427,7 +422,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 = caughtError
                     ? {
                         type: RunnerEnvironmentHostAction.ERROR,
-                        error: this.errorSerializer.serialize(caughtError),
+                        error: this.pluginsResolver.serializeError(caughtError),
                     } : {
                         type: RunnerEnvironmentHostAction.DESTROYED,
                     };
@@ -524,7 +519,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         try {
             methodsNames = this.runnerIdentifierConfigCollection.getRunnerMethodsNames(this.token)
         } catch (error) { // TODO NEED TEST
-            throw this.errorSerializer.normalize(error, RunnerNotFound, {
+            throw normalizeError(error, RunnerNotFound, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.CONSTRUCTOR_NOT_FOUND(
                     this.getErrorMessageConfig(),
                 ),
