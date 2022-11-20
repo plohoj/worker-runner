@@ -1,9 +1,9 @@
-import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
-import { RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from '@worker-runner/core/runner-environment/client/runner-environment.client';
-import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '@worker-runner/core/runner/runner.controller';
-import { RunnerToken } from '@worker-runner/core/types/runner-identifier';
-import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
+import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from '../../../connection-strategies/base/base.connection-strategy-client';
+import { RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
+import { RunnerToken } from '../../../types/runner-identifier';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
+import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
 import { IRunnerTransferPluginData, RUNNER_TRANSFER_TYPE } from './runner-transfer-plugin-data';
 

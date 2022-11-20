@@ -21,6 +21,7 @@ export class ProxyConnectionChannel<
         this.onProxyDestroyed = BaseConnectionChannel.attachProxy(originalChannel, proxyData, this);
     }
 
+    // TODO Proxy connection will not be able to resend transferable data
     public override sendAction(action: IAction, transfer?: Transferable[]): void {
         const proxyAction = {...action};
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any

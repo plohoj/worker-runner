@@ -1,11 +1,11 @@
 import { RunnerDataTransferError } from '../../../errors/runner-errors';
 import { TransferRunnerObject } from '../../../transfer-data/transfer-runner-object';
 import { collectPromisesErrors } from '../../../utils/collect-promises-errors';
-import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginCancelPreparedDataFunction, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
+import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginCancelPreparedDataFunction, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { TransferPluginsResolver } from '../base/transfer-plugins.resolver';
 import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
-import { ICollectionTransferPluginFieldData, ICollectionTransferPluginSendData, ICollectionTransferPluginReceivedData, CollectionTransferData } from './collection-transfer-plugin-data';
+import { CollectionTransferData, ICollectionTransferPluginFieldData, ICollectionTransferPluginReceivedData, ICollectionTransferPluginSendData } from './collection-transfer-plugin-data';
 
 function runnerDataTransferErrorFactory(originalErrors: unknown[]): RunnerDataTransferError {
     return new RunnerDataTransferError({originalErrors});
@@ -16,9 +16,9 @@ export abstract class BaseCollectionTransferPluginController<
     Send extends ICollectionTransferPluginSendData,
     Received extends ICollectionTransferPluginReceivedData,
 > implements ITransferPluginController {
+    private transferPluginsResolver!: TransferPluginsResolver;
+    
     protected abstract readonly type: TransferPluginDataType;
-
-    transferPluginsResolver!: TransferPluginsResolver;
 
     public registerTransferPluginsResolver(transferPluginsResolver: TransferPluginsResolver): void {
         this.transferPluginsResolver = transferPluginsResolver;
@@ -27,7 +27,7 @@ export abstract class BaseCollectionTransferPluginController<
     public transferData(
         config: ITransferPluginControllerTransferDataConfig
     ): Promise<ITransferPluginPreparedData> | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        if (!this.isCollectionData(config.data as unknown as TransferRunnerObject)) {
+        if (!this.isCollectionData(config.data as TransferRunnerObject)) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
         return this.transferDataAsync(config);
@@ -36,7 +36,7 @@ export abstract class BaseCollectionTransferPluginController<
     public cancelTransferData(
         config: ITransferPluginControllerTransferDataConfig,
     ): Promise<void> | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        if (!this.isCollectionData(config.data as unknown as TransferRunnerObject)) {
+        if (!this.isCollectionData(config.data as TransferRunnerObject)) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
         const iterator = this.getTransferDataIterator(config.data as Input);
@@ -48,7 +48,7 @@ export abstract class BaseCollectionTransferPluginController<
                 data,
             }),
             errorFactory: runnerDataTransferErrorFactory,
-        }).then();
+        }) as unknown as Promise<void>
     }
 
     public async receiveData(
@@ -84,37 +84,10 @@ export abstract class BaseCollectionTransferPluginController<
                 data: data.data,
             }),
             errorFactory: runnerDataTransferErrorFactory,
-        }).then();
+        }) as unknown as Promise<void>;
     }
 
-    protected abstract isCollectionData(data: unknown): data is Input;
-
-    protected abstract getTransferDataEntries(
-        data: Input,
-    ): Iterable<[keyof Send, unknown]>;
-    protected abstract getTransferDataIterator(
-        data: Input,
-    ): Iterable<unknown>;
-    protected abstract getTransferEmptyCollection(): Send;
-    protected abstract setTransferCollectionData(
-        collection: Send,
-        field: keyof Send,
-        data: ICollectionTransferPluginFieldData,
-    ): void;
-
-    protected abstract getReceivedDataEntries(
-        data: Send
-    ): Iterable<[keyof Received, ICollectionTransferPluginFieldData]>;
-    protected abstract getReceivedDataIterator(
-        data: Send
-    ): Iterable<ICollectionTransferPluginFieldData>;
-    protected abstract getReceivedEmptyCollection(): Received;
-    protected abstract setReceivedCollectionData(
-        collection: Received,
-        field: keyof Received,
-        data: TransferPluginReceivedData,
-    ): void;
-
+    
     private async transferDataAsync(
         config: ITransferPluginControllerTransferDataConfig
     ): Promise<ITransferPluginPreparedData> {
@@ -158,10 +131,10 @@ export abstract class BaseCollectionTransferPluginController<
                 });
                 return [collectionIdentifier, preparedData];
             },
-            cancelMapped([collectionIdentifier, preparedData]) {
+            cancelMapped([, preparedData]) {
                 return preparedData.cancel?.();
             },
-            cancelRest: ([collectionIdentifier, fieldValue]) => {
+            cancelRest: ([, fieldValue]) => {
                 return this.transferPluginsResolver.cancelTransferData({
                     ...config,
                     data: fieldValue,
@@ -188,10 +161,10 @@ export abstract class BaseCollectionTransferPluginController<
                 });
                 return [collectionIdentifier, receivedData];
             },
-            cancelMapped([collectionIdentifier, receivedData]) {
+            cancelMapped([, receivedData]) {
                 return receivedData.cancel?.();
             },
-            cancelRest: ([collectionIdentifier, fieldValue]) => {
+            cancelRest: ([, fieldValue]) => {
                 return this.transferPluginsResolver.cancelReceiveData({
                     ...config,
                     type: fieldValue.type,
@@ -215,4 +188,32 @@ export abstract class BaseCollectionTransferPluginController<
             });
         }
     }
+
+    protected abstract isCollectionData(data: unknown): data is Input;
+
+    protected abstract getTransferDataEntries(
+        data: Input,
+    ): Iterable<[keyof Send, unknown]>;
+    protected abstract getTransferDataIterator(
+        data: Input,
+    ): Iterable<unknown>;
+    protected abstract getTransferEmptyCollection(): Send;
+    protected abstract setTransferCollectionData(
+        collection: Send,
+        field: keyof Send,
+        data: ICollectionTransferPluginFieldData,
+    ): void;
+
+    protected abstract getReceivedDataEntries(
+        data: Send
+    ): Iterable<[keyof Received, ICollectionTransferPluginFieldData]>;
+    protected abstract getReceivedDataIterator(
+        data: Send
+    ): Iterable<ICollectionTransferPluginFieldData>;
+    protected abstract getReceivedEmptyCollection(): Received;
+    protected abstract setReceivedCollectionData(
+        collection: Received,
+        field: keyof Received,
+        data: TransferPluginReceivedData,
+    ): void;
 }

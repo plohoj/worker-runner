@@ -1,13 +1,13 @@
-import { BaseConnectionStrategyClient, DataForSendRunner } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
-import { IPluginClient } from '@worker-runner/core/plugins/plugins.type';
-import { RunnerTransferPlugin } from '@worker-runner/core/plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
-import { PluginsResolverClient } from '../../plugins/resolver/plugins.resolver.client';
+import { IPlugin } from '../../plugins/plugins.type';
+import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
+import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
@@ -24,7 +24,7 @@ export interface IConnectedRunnerResolverClientConfig {
     connectionChannel: BaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyClient,
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    plugins?: IPluginClient[],
+    plugins?: IPlugin[],
 }
 
 export class ConnectedRunnerResolverClient {
@@ -33,7 +33,7 @@ export class ConnectedRunnerResolverClient {
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
     private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolverClient;
+    private readonly pluginsResolver: PluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
 
     constructor(config: IConnectedRunnerResolverClientConfig) {
@@ -43,7 +43,7 @@ export class ConnectedRunnerResolverClient {
         const runnerTransferPlugin = new RunnerTransferPlugin({
             connectionStrategy: this.connectionStrategy,
         })
-        this.pluginsResolver = new PluginsResolverClient({
+        this.pluginsResolver = new PluginsResolver({
             plugins: [
                 ...config.plugins || [],
                 runnerTransferPlugin,
@@ -198,7 +198,7 @@ export class ConnectedRunnerResolverClient {
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerResolverHostAction.ERROR) {
-            throw this.pluginsResolver.deserializeError(
+            throw this.pluginsResolver.errorSerialization.deserializeError(
                 (responseAction as unknown as IRunnerResolverHostErrorAction).error,
             );
         }

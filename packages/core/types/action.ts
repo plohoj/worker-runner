@@ -1,7 +1,9 @@
+import { WorkerRunnerIdentifier } from '../utils/identifier-generator';
+
 export type ActionType = string;
 
 export interface IActionWithId<T extends ActionType = ActionType> extends IAction<T> {
-    id: number;
+    id: WorkerRunnerIdentifier;
 }
 
 export interface IAction<T extends ActionType = ActionType> {

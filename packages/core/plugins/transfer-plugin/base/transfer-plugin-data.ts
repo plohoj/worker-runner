@@ -14,4 +14,4 @@ export interface ITransferPluginPreparedData {
 export interface ITransferPluginReceivedData {
     data: TransferPluginReceivedData;
     cancel?: TransferPluginCancelPreparedDataFunction;
-};
+}

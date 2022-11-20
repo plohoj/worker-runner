@@ -1,7 +1,7 @@
 import { TransferRunnerArray } from '../../../transfer-data/transfer-runner-array';
+import { TransferPluginReceivedData } from '../base/transfer-plugin-data';
 import { ICollectionTransferPluginFieldData, ICollectionTransferPluginReceivedArrayData, ICollectionTransferPluginSendArrayData } from '../collection-transfer-plugin/collection-transfer-plugin-data';
 import { BaseCollectionTransferPluginController } from '../collection-transfer-plugin/collection-transfer.plugin-controller';
-import { TransferPluginReceivedData } from '../base/transfer-plugin-data';
 import { ARRAY_TRANSFER_TYPE } from './array-transfer-plugin-data';
 
 export class ArrayTransferPluginController extends BaseCollectionTransferPluginController<

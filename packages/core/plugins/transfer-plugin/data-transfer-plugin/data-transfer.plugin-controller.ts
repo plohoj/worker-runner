@@ -1,6 +1,6 @@
 import { TransferRunnerData } from '../../../transfer-data/transfer-runner-data';
-import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
+import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
 import { DATA_TRANSFER_TYPE } from './data-transfer-plugin-data';
 
@@ -9,7 +9,7 @@ export class DataTransferPluginController implements ITransferPluginController {
     public transferData(
         config: ITransferPluginControllerTransferDataConfig
     ): ITransferPluginPreparedData | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        const wrappedData = config.data as unknown as TransferRunnerData
+        const wrappedData = config.data as TransferRunnerData
         if (!(wrappedData instanceof TransferRunnerData)) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }

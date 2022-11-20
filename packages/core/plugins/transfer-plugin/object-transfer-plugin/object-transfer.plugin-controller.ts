@@ -1,7 +1,7 @@
 import { TransferRunnerObject } from '../../../transfer-data/transfer-runner-object';
+import { TransferPluginReceivedData } from '../base/transfer-plugin-data';
 import { ICollectionTransferPluginFieldData, ICollectionTransferPluginReceivedObjectData, ICollectionTransferPluginSendObjectData } from '../collection-transfer-plugin/collection-transfer-plugin-data';
 import { BaseCollectionTransferPluginController } from '../collection-transfer-plugin/collection-transfer.plugin-controller';
-import { TransferPluginReceivedData } from '../base/transfer-plugin-data';
 import { OBJECT_TRANSFER_TYPE } from './object-transfer-plugin-data';
 
 export class ObjectTransferPluginController extends BaseCollectionTransferPluginController<

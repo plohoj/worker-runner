@@ -1,7 +1,6 @@
-import { WorkerRunnerErrorConstructor, WorkerRunnerUnexpectedError } from '../../../errors/worker-runner-error';
 import { WorkerRunnerCoreErrorCode } from './core-error-code';
-import { RunnerDestroyError, RunnerExecuteError, RunnerNotFound, ConnectionClosedError, RunnerResolverHostDestroyError, RunnerInitError, RunnerDataTransferError } from '../../../errors/runner-errors';
-
+import { ConnectionClosedError, RunnerDataTransferError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound, RunnerResolverHostDestroyError } from './runner-errors';
+import { WorkerRunnerErrorConstructor, WorkerRunnerUnexpectedError } from './worker-runner-error';
 
 export type ICoreCodeToErrorMap = Record<string, WorkerRunnerErrorConstructor>
 

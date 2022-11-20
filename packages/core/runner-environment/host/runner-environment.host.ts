@@ -1,5 +1,3 @@
-import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginSendData } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugin-data';
-import { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
@@ -7,8 +5,11 @@ import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors
 import { normalizeError } from '../../errors/normalize-error';
 import { ConnectionClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
-import { PluginsResolverHost } from '../../plugins/resolver/plugins.resolver.host';
+import { ErrorSerializationPluginsResolver } from '../../plugins/error-serialization-plugin/base/error-serialization-plugins.resolver';
+import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { ARRAY_TRANSFER_TYPE } from '../../plugins/transfer-plugin/array-transfer-plugin/array-transfer-plugin-data';
+import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
+import { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ITransferPluginControllerTransferDataConfig } from '../../plugins/transfer-plugin/base/transfer.plugin-controller';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
@@ -17,6 +18,7 @@ import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor'
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
 import { collectPromisesErrors } from '../../utils/collect-promises-errors';
+import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
 import { RunnerEnvironmentClientCollection } from '../client/runner-environment.client.collection';
@@ -36,7 +38,7 @@ export interface IRunnerEnvironmentHostConfig {
     token: RunnerToken;
     connectionStrategy: BaseConnectionStrategyHost,
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
-    pluginsResolver: PluginsResolverHost;
+    pluginsResolver: PluginsResolver;
     onDestroyed: () => void;
 }
 
@@ -49,7 +51,7 @@ export interface IRunnerEnvironmentHostActionControllerConnectData {
 
 export interface IRunnerEnvironmentHostDestroyActionTrigger {
     actionController: ActionController;
-    actionId: number;
+    actionId: WorkerRunnerIdentifier;
 }
 
 export interface IRunnerEnvironmentHostDestroyProcessData {
@@ -67,7 +69,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
     private readonly connectDataMap = new Map<ActionController, IRunnerEnvironmentHostActionControllerConnectData>();
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolverHost;
+    private readonly errorSerialization: ErrorSerializationPluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
     private readonly onDestroyed: () => void;
 
@@ -78,13 +80,14 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.token = config.token;
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
-        this.pluginsResolver = config.pluginsResolver;
+        const pluginsResolver = config.pluginsResolver;
         this.runnerEnvironmentClientCollection = new RunnerEnvironmentClientCollection({
             connectionStrategy: this.connectionStrategy.strategyClient,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            pluginsResolver: this.pluginsResolver,
+            pluginsResolver: pluginsResolver,
         });
-        this.transferPluginsResolver = this.pluginsResolver.resolveTransferResolver();
+        this.transferPluginsResolver = pluginsResolver.resolveTransferResolver();
+        this.errorSerialization = pluginsResolver.errorSerialization;
         this.onDestroyed = config.onDestroyed;
         this.transferPluginsResolver.registerRunnerEnvironmentClientPartFactory(
             this.runnerEnvironmentClientCollection.runnerEnvironmentClientPartFactory
@@ -203,6 +206,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         };
         if (typeof this.runnerInstance[action.method] !== 'function') {
             await this.transferPluginsResolver.cancelReceiveData(receiveDataConfig);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             this.runnerInstance[action.method]();
             throw new WorkerRunnerUnexpectedError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.UNEXPECTED_ERROR(this.getErrorMessageConfig())
@@ -241,8 +245,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
 
     /** The destruction process can be triggered by parallel calls */
     public handleDestroy(): Promise<void>;
-    public handleDestroy(actionController: ActionController, actionId: number): Promise<void>;
-    public async handleDestroy(actionController?: ActionController, actionId?: number): Promise<void> {
+    public handleDestroy(actionController: ActionController, actionId: WorkerRunnerIdentifier): Promise<void>;
+    public async handleDestroy(actionController?: ActionController, actionId?: WorkerRunnerIdentifier): Promise<void> {
         const hasDestroyProcess = !!this.destroyProcess;
         if (!hasDestroyProcess) {
             this.destroyProcess = {
@@ -254,14 +258,16 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             this.destroyProcess!.actionTriggers.push({actionController, actionId: actionId!});
         }
         if (!hasDestroyProcess) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.destroyProcess!.promise$ = this.runDestroyProcess()
                 .finally(() => this.destroyProcess = undefined);
         }
         if (actionController) {
             // If an ActionController is specified, then the error will be sent to the RunnerEnvironmentClient
-            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-non-null-assertion
             return this.destroyProcess!.promise$!.catch(() => {});
         }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this.destroyProcess!.promise$
     }
 
@@ -278,7 +284,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.connectDataMap.clear();
     }
 
-    protected async handleDisconnect(actionController: ActionController, actionId: number): Promise<void> {
+    protected async handleDisconnect(actionController: ActionController, actionId: WorkerRunnerIdentifier): Promise<void> {
         if (this.connectDataMap.size <= 1) {
             await this.handleDestroy(actionController, actionId);
             return;
@@ -336,7 +342,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             }
         } catch (error) {
             if ('id' in action) {
-                const serializedError = this.pluginsResolver.serializeError(
+                const serializedError = this.errorSerialization.serializeError(
                     normalizeError(
                         error,
                         WorkerRunnerUnexpectedError,
@@ -422,7 +428,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 = caughtError
                     ? {
                         type: RunnerEnvironmentHostAction.ERROR,
-                        error: this.pluginsResolver.serializeError(caughtError),
+                        error: this.errorSerialization.serializeError(caughtError),
                     } : {
                         type: RunnerEnvironmentHostAction.DESTROYED,
                     };
@@ -480,7 +486,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.connectDataMap.get(actionController)!.interrupter.interrupt();
     }
 
-    private handleCloneAction(actionController: ActionController, actionId: number): void {
+    private handleCloneAction(actionController: ActionController, actionId: WorkerRunnerIdentifier): void {
         const clonedAction: IRunnerEnvironmentHostClonedAction & IActionWithId = {
             type: RunnerEnvironmentHostAction.CLONED,
             id: actionId,
@@ -514,7 +520,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         actionController.addActionHandler(handler);
     }
 
-    private handleOwnMetadataAction(actionController: ActionController, actionId: number): void {
+    private handleOwnMetadataAction(actionController: ActionController, actionId: WorkerRunnerIdentifier): void {
         let methodsNames: string[];
         try {
             methodsNames = this.runnerIdentifierConfigCollection.getRunnerMethodsNames(this.token)

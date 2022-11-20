@@ -1,9 +1,9 @@
-import { TransferPluginsResolver } from '@worker-runner/core/plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
 import { ConnectionClosedError } from '../../errors/runner-errors';
-import { PluginsResolverClient } from '../../plugins/resolver/plugins.resolver.client';
+import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
+import { TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
@@ -13,6 +13,7 @@ import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
+import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientDestroyAction, IRunnerEnvironmentClientDisconnectAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientInitiatedAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
@@ -34,11 +35,13 @@ export interface IRunnerEnvironmentClientConfig<R extends RunnerConstructor> {
     actionController: ActionController;
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
     connectionStrategy: BaseConnectionStrategyClient,
-    pluginsResolver: PluginsResolverClient;
+    pluginsResolver: PluginsResolver;
     disconnectErrorFactory: DisconnectErrorFactory;
     runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<R>;
     onDestroyed: () => void;
 }
+
+const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' as unknown as WorkerRunnerIdentifier;
 
 export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstructor> {
     public readonly token: RunnerToken;
@@ -49,7 +52,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     protected readonly onDestroyed: () => void;
     
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolverClient;
+    private readonly pluginsResolver: PluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
 
     private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
@@ -97,7 +100,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     public static disconnectConnection(connectionChannel: BaseConnectionChannel): Promise<void> {
         const promise$ = RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(connectionChannel);
         const disconnectAction: IRunnerEnvironmentClientDisconnectAction & IActionWithId = {
-            id: -1,
+            id: DISCONNECT_ACTION_ID,
             type: RunnerEnvironmentClientAction.DISCONNECT,
         }
         connectionChannel.sendAction(disconnectAction);
@@ -109,7 +112,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         return new Promise(resolve => {
             function disconnectHandler(action: IRunnerEnvironmentHostAction & IActionWithId): void {
                 const isDisconnectionResponse: boolean
-                    = action.id === -1 // Disconnected with error
+                    = action.id === DISCONNECT_ACTION_ID // Disconnected with error
                     || action.type === RunnerEnvironmentHostAction.DISCONNECTED
                     || action.type === RunnerEnvironmentHostAction.DESTROYED;
                 if (isDisconnectionResponse) {
@@ -259,7 +262,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.pluginsResolver.deserializeError(
+            throw this.pluginsResolver.errorSerialization.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }
@@ -291,7 +294,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         }
         this.handleDestroy();
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.pluginsResolver.deserializeError(
+            throw this.pluginsResolver.errorSerialization.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }

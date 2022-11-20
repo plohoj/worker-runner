@@ -1,7 +1,7 @@
-import { IPluginClient } from '@worker-runner/core/plugins/plugins.type';
 import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
+import { IPlugin } from '../../plugins/plugins.type';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController } from '../../runner/runner.controller';
 import { IRunnerParameter } from '../../types/constructor';
@@ -11,7 +11,7 @@ import { ConnectedRunnerResolverClient } from './connected-runner-resolver.clien
 export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList> = {
     connection: BaseConnectionClient
     runners?: L;
-    plugins?: IPluginClient[];
+    plugins?: IPlugin[];
 };
 
 export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
@@ -20,7 +20,7 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
     protected connectedResolver?: ConnectedRunnerResolverClient;
 
     private readonly connection: BaseConnectionClient;
-    private readonly plugins?: IPluginClient[];
+    private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {
         this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({

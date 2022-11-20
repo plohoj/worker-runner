@@ -1,5 +1,7 @@
 import { WorkerRunnerMultipleError } from '../errors/worker-runner-error';
 
+// TODO Implement a fake promise that will call the callback immediately when there is no need to wait
+
 export interface IMapPromisesErrorConfig<I, O> {
     values: Iterable<I> | I[];
     /** Stop converting at the first error and start the process of canceling */
@@ -81,7 +83,7 @@ export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O
             if (mappedValuesMap.size > 0) {
                 handledValuesLength -= mappedValuesMap.size;
                 for (const needCancelMappedValue of mappedValuesMap.values()) {
-                    cancelMapped(needCancelMappedValue);
+                    void cancelMapped(needCancelMappedValue);
                 }
                 mappedValuesMap.clear();
             }
@@ -89,7 +91,7 @@ export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O
 
         function addMapped(index: number, value: O): void {
             if (errors.length > 0) {
-                cancelMapped(value);
+                void cancelMapped(value);
             } else {
                 mappedValuesMap.set(index, value);
                 handledValuesLength++;
@@ -100,14 +102,14 @@ export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O
         for (const iteratedValue of config.values) {
             if (errors.length > 0 && config.stopAtFirstError) {
                 // TODO NEED TEST About rest exist
-                cancelRest(iteratedValue);
+                void cancelRest(iteratedValue);
             } else {
                 let mappedResult: O | Promise<O>; 
                 try {
                     mappedResult = config.mapper(iteratedValue);
                 } catch (error) {
                     errors.push(error);
-                    cancelRest(iteratedValue);
+                    void cancelRest(iteratedValue);
                     onError();
                     continue;
                 }
@@ -118,7 +120,7 @@ export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O
                         .then(response => addMapped(index, response))
                         .catch(error => {
                             errors.push(error);
-                            cancelError(iteratedValue);
+                            void cancelError(iteratedValue);
                             onError();
                         });
                 } else {

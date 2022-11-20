@@ -1,8 +1,8 @@
-import { BaseConnectionStrategyClient } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
 import { ActionController } from '../../action-controller/action-controller';
+import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
-import { PluginsResolverClient } from '../../plugins/resolver/plugins.resolver.client';
+import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -11,7 +11,7 @@ import { IRunnerEnvironmentClientConfig, IRunnerEnvironmentClientPartFactoryConf
 export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdentifierConfigList> {
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     connectionStrategy: BaseConnectionStrategyClient,
-    pluginsResolver: PluginsResolverClient;
+    pluginsResolver: PluginsResolver;
 }
 
 export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
@@ -21,7 +21,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
 
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
-    private readonly pluginsResolver: PluginsResolverClient;
+    private readonly pluginsResolver: PluginsResolver;
 
     constructor(config: IRunnerEnvironmentClientCollectionConfig<L>) {
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;

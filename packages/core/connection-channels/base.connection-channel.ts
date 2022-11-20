@@ -1,10 +1,11 @@
 import { ActionHandler, IAction } from '../types/action';
+import { IActionTarget } from '../types/action-target';
 import { ConnectionChannelProxyData } from './proxy.connection-channel';
 
 /**
  * A wrapper for any type of connection that implements a set of methods for exchanging actions
  */
-export abstract class BaseConnectionChannel {
+export abstract class BaseConnectionChannel implements IActionTarget {
 
     protected readonly handlers = new Set<ActionHandler>();
     protected saveConnectionOpened = false;
@@ -42,7 +43,7 @@ export abstract class BaseConnectionChannel {
      * it is preferable to add listeners using the {@link addActionHandler} method
      * before calling this initialization method.
      */
-    public run(): void{
+    public run(): void {
         this._isConnected = true;
         this.isDestroyed = false;
         this.saveConnectionOpened = false;
@@ -51,7 +52,7 @@ export abstract class BaseConnectionChannel {
     /** 
      * If the connection has a proxy, then the connection will not be terminated until all proxies are destroyed.
      */
-    public destroy(saveConnectionOpened = false): void{
+    public destroy(saveConnectionOpened = false): void {
         this._isConnected = false;
         this.isDestroyed = true;
         this.saveConnectionOpened = saveConnectionOpened;
@@ -71,6 +72,7 @@ export abstract class BaseConnectionChannel {
 
     protected readonly actionHandler: ActionHandler = (action: IAction): void => {
         for (const [proxyField, valueHandlerMap] of this.proxyChannels) {
+            // TODO Maybe it's better to use the filtering method in the proxy instance?
             if (proxyField in action) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
                 const {[proxyField]: _, ...originalAction} = action as Record<any, any>;

@@ -1,15 +1,17 @@
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { RunnerDataTransferError } from '../../../errors/runner-errors';
 import { RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
+import { ErrorSerializationPluginsResolver } from '../../error-serialization-plugin/base/error-serialization-plugins.resolver';
+import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { RUNNER_TRANSFER_TYPE } from '../runner-transfer-plugin/runner-transfer-plugin-data';
 import { RunnerTransferPluginController } from '../runner-transfer-plugin/runner-transfer.plugin-controller';
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginDataType } from './transfer-plugin-data';
-import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPlugin } from './transfer.plugin';
 import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './transfer.plugin-controller';
 
 export interface ITransferPluginsResolverConfig {
     plugins: ITransferPlugin[];
+    errorSerialization: ErrorSerializationPluginsResolver; 
 }
 
 export interface ITransferPluginsResolverReceiveDataConfig extends ITransferPluginControllerReceiveDataConfig {
@@ -18,8 +20,10 @@ export interface ITransferPluginsResolverReceiveDataConfig extends ITransferPlug
 
 export class TransferPluginsResolver implements Omit<ITransferPluginController, 'type'> {
     private readonly pluginControllers = new Map<TransferPluginDataType, ITransferPluginController>();
+    private readonly errorSerialization: ErrorSerializationPluginsResolver; 
 
     constructor(config: ITransferPluginsResolverConfig) {
+        this.errorSerialization = config.errorSerialization;
         this.registerPlugins(config.plugins);
     }
 
@@ -55,7 +59,11 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
     ): Promise<ITransferPluginReceivedData> | ITransferPluginReceivedData {
         const pluginController = this.pluginControllers.get(config.type);
         if (pluginController) {
-            const {type, ...transferConfig } = config;
+            const {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                type,
+                ...transferConfig
+            } = config;
             const receivedData = pluginController.receiveData(transferConfig);
             if (receivedData !== PLUGIN_CANNOT_PROCESS_DATA) {
                 return receivedData as Promise<ITransferPluginReceivedData> | ITransferPluginReceivedData;
@@ -71,7 +79,11 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
     ): void | Promise<void> {
         const pluginController = this.pluginControllers.get(config.type);
         if (pluginController) {
-            const {type, ...transferConfig } = config;
+            const {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                type,
+                ...transferConfig
+            } = config;
             return pluginController.cancelReceiveData?.(transferConfig);
         }
     }
@@ -89,6 +101,7 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
             const pluginController = plugin.resolveTransferController();
             this.pluginControllers.set(plugin.type, pluginController);
             pluginController.registerTransferPluginsResolver?.(this);
+            pluginController.registerErrorSerialization?.(this.errorSerialization);
         }
     }
 }

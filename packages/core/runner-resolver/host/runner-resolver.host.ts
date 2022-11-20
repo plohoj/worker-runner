@@ -1,8 +1,8 @@
-import { IPluginHost } from '@worker-runner/core/plugins/plugins.type';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
+import { IPlugin } from '../../plugins/plugins.type';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -11,7 +11,7 @@ import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
 
 export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> = {
     connection: BaseConnectionHost;
-    plugins?: IPluginHost[];
+    plugins?: IPlugin[];
 } & ({
     runners: L
 } | {
@@ -24,7 +24,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
 
     private readonly connection: BaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
-    private readonly plugins?: IPluginHost[];
+    private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverHostConfigBase<L>) {
         this.runnerIdentifierConfigCollection = 'runners' in config

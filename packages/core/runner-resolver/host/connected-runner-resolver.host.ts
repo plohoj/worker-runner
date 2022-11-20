@@ -1,28 +1,29 @@
-import { IPluginHost } from '@worker-runner/core/plugins/plugins.type';
-import { RunnerTransferPlugin } from '@worker-runner/core/plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { ActionController } from '../../action-controller/action-controller';
 import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
+import { normalizeError } from '../../errors/normalize-error';
 import { RunnerInitError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
+import { IPlugin } from '../../plugins/plugins.type';
+import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
+import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { collectPromisesErrors } from '../../utils/collect-promises-errors';
+import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from '../client/runner-resolver.client.actions';
 import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from './runner-resolver.host.actions';
-import { PluginsResolverHost } from '../../plugins/resolver/plugins.resolver.host';
-import { normalizeError } from '../../errors/normalize-error';
 
 export interface IConnectedRunnerResolverHostConfig {
     connectionChannel: BaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyHost,
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    plugins?: IPluginHost[];
+    plugins?: IPlugin[];
     onDestroy: () => void;
 }
 
@@ -33,7 +34,7 @@ export class ConnectedRunnerResolverHost {
     private readonly actionController: ActionController;
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
     private readonly connectionStrategy: BaseConnectionStrategyHost;
-    private readonly pluginsResolver: PluginsResolverHost;
+    private readonly pluginsResolver: PluginsResolver;
     private onDestroy: () => void;
 
     constructor(config: IConnectedRunnerResolverHostConfig) {
@@ -43,7 +44,7 @@ export class ConnectedRunnerResolverHost {
         const runnerTransferPlugin = new RunnerTransferPlugin({
             connectionStrategy: this.connectionStrategy.strategyClient,
         })
-        this.pluginsResolver = new PluginsResolverHost({
+        this.pluginsResolver = new PluginsResolver({
             plugins: [
                 ...config.plugins || [],
                 runnerTransferPlugin,
@@ -58,7 +59,7 @@ export class ConnectedRunnerResolverHost {
         this.actionController.run();
     }
 
-    public async handleDestroy(actionId?: number): Promise<void> {
+    public async handleDestroy(actionId?: WorkerRunnerIdentifier): Promise<void> {
         try {
             await this.clearEnvironments();
         } finally {
@@ -131,12 +132,12 @@ export class ConnectedRunnerResolverHost {
             }
         } catch (error) {
             if ('id' in action) {
-                const serializedError = this.pluginsResolver.serializeError(
+                const serializedError = this.pluginsResolver.errorSerialization.serializeError(
                     normalizeError(error, WorkerRunnerUnexpectedError),
                 );
                 this.actionController.sendActionResponse<IRunnerResolverHostErrorAction>({
                     type: RunnerResolverHostAction.ERROR,
-                    id: action.id as unknown as number,
+                    id: action.id,
                     error: serializedError,
                 });
             } else {

@@ -1,6 +1,7 @@
-import { ActionController } from '@worker-runner/core/action-controller/action-controller';
-import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginSendData } from './transfer-plugin-data';
+import { ActionController } from '../../../action-controller/action-controller';
+import { ErrorSerializationPluginsResolver } from '../../error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
+import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginSendData } from './transfer-plugin-data';
 import { TransferPluginsResolver } from './transfer-plugins.resolver';
 
 export interface ITransferPluginControllerTransferDataConfig {
@@ -15,6 +16,7 @@ export interface ITransferPluginControllerReceiveDataConfig {
 
 export interface ITransferPluginController {
     registerTransferPluginsResolver?(transferPluginsResolver: TransferPluginsResolver): void;
+    registerErrorSerialization?(errorSerialization: ErrorSerializationPluginsResolver): void;
 
     transferData(
         config: ITransferPluginControllerTransferDataConfig,

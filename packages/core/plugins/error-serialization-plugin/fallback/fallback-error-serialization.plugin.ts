@@ -1,12 +1,12 @@
+import { WorkerRunnerCoreErrorCode } from '../../../errors/core-error-code';
 import { WorkerRunnerUnexpectedError } from '../../../errors/worker-runner-error';
 import { PLUGIN_CANNOT_PROCESS_DATA } from '../../plugin-cannot-process-data';
 import { DeserializedError, ISerializedError, SerializedErrorType } from '../base/error-serialization-plugin-data';
-import { IErrorSerializationPluginHost } from '../base/error-serialization.plugin.host';
-import { WorkerRunnerCoreErrorCode } from '../core-error-code-map/core-error-code';
+import { IErrorSerializationPlugin } from '../base/error-serialization.plugin';
 
-export class FallbackErrorSerializationPluginHost implements IErrorSerializationPluginHost {
+export class FallbackErrorSerializationPlugin implements IErrorSerializationPlugin {
 
-    public deserializeError(serializedError: ISerializedError): DeserializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
+    public deserializeError(): DeserializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
         throw new WorkerRunnerUnexpectedError({
             message: 'Unknown errors should be converted to a generalized unexpected error.'
         });

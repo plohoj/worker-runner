@@ -2,7 +2,10 @@ import { BaseConnectionChannel } from '../connection-channels/base.connection-ch
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
+import { IActionTarget } from '../types/action-target';
+import { IDestroyTarget } from '../types/destroy-target';
 import { DisconnectErrorFactory } from '../types/disconnect-error-factory';
+import { IdentifierGenerator, WorkerRunnerIdentifier } from '../utils/identifier-generator';
 
 export interface IPromiseMethods<T = unknown, E = unknown> {
     resolve: (data: T) => void;
@@ -20,17 +23,18 @@ export interface IActionControllerConfig {
  * Allows to get a promise for actions that are guaranteed to receive one response action.
  * Also allows to track actions by type or ID.
  */
-export class ActionController {
+export class ActionController implements IActionTarget, IDestroyTarget {
     public readonly sendActionResponse: <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
     public readonly addActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;
     public readonly removeActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;
     public readonly connectionChannel: BaseConnectionChannel;
 
     private readonly disconnectErrorFactory: DisconnectErrorFactory;
-    private readonly handlersByIdMap = new Map<number, Set<ActionHandler<IActionWithId>>>();
+    private readonly destroyHandlers = new Set<(saveConnectionOpened: boolean) => void>();
+    private readonly handlersByIdMap = new Map<WorkerRunnerIdentifier, Set<ActionHandler<IActionWithId>>>();
     private readonly resolveActionRejectSet = new Set<(error: unknown) => void>(); 
     // TODO Action Id controller to solve the problem of id intersection when using one worker in several resolvers
-    private lastActionId = 0;
+    private readonly identifierGenerator = new IdentifierGenerator();
 
     constructor(config: IActionControllerConfig) {
         this.connectionChannel = config.connectionChannel;
@@ -47,7 +51,7 @@ export class ActionController {
         if (!this.connectionChannel.isConnected) {
             throw this.disconnectErrorFactory(new ConnectionClosedError());
         }
-        const actionId = this.resolveActionId();
+        const actionId = this.generateActionIdentifier();
         const actionWidthId: IActionWithId = {
             ...action,
             id: actionId,
@@ -82,9 +86,22 @@ export class ActionController {
         this.connectionChannel.run();
     }
 
+    
+    public addDestroyHandler(handler: (saveConnectionOpened: boolean) => void): void {
+        this.destroyHandlers.add(handler);
+    }
+
+    public removeDestroyHandler(handler: (saveConnectionOpened: boolean) => void): void {
+        this.destroyHandlers.delete(handler);
+    }
+
     /** Stops listening to all events and calls the destroy method on the Connection channel */
     public destroy(saveConnectionOpened = false): void {
         this.rejectResolingAllActions();
+        for (const destroyHandler of this.destroyHandlers) {
+            destroyHandler(saveConnectionOpened);
+        }
+        this.destroyHandlers.clear();
         this.connectionChannel.destroy(saveConnectionOpened);
         this.handlersByIdMap.clear();
     }
@@ -99,8 +116,11 @@ export class ActionController {
         this.resolveActionRejectSet.clear();
     }
 
-    // TODO it's used anywhere?
-    public addActionHandlerById<A extends IAction>(actionId: number, handler: ActionHandler<A>): void {
+    public generateActionIdentifier(): WorkerRunnerIdentifier {
+        return this.identifierGenerator.generate();
+    }
+
+    private addActionHandlerById<A extends IAction>(actionId: WorkerRunnerIdentifier, handler: ActionHandler<A>): void {
         let handlers: Set<ActionHandler<IActionWithId>> | undefined = this.handlersByIdMap.get(actionId);
         if (!handlers) {
             handlers = new Set();
@@ -109,7 +129,7 @@ export class ActionController {
         handlers.add(handler as unknown as ActionHandler);
     }
 
-    public removeActionHandlerById<A extends IAction>(actionId: number, handler: ActionHandler<A>): void {
+    private removeActionHandlerById<A extends IAction>(actionId: WorkerRunnerIdentifier, handler: ActionHandler<A>): void {
         const handlers: Set<ActionHandler<IActionWithId>> | undefined = this.handlersByIdMap.get(actionId);
         if (!handlers) {
             return;
@@ -118,11 +138,6 @@ export class ActionController {
         if (handlers.size === 0) {
             this.handlersByIdMap.delete(actionId);
         }
-    }
-
-    // TODO Inject id generator
-    public resolveActionId(): number {
-        return this.lastActionId++;
     }
 
     private readonly defaultDisconnectErrorFactory = (error: ConnectionClosedError): ConnectionClosedError => {

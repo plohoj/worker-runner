@@ -1,5 +1,5 @@
-import { BaseConnectionStrategyClient } from '@worker-runner/core/connection-strategies/base/base.connection-strategy-client';
-import { RunnerEnvironmentClientPartFactory } from '@worker-runner/core/runner-environment/client/runner-environment.client';
+import { BaseConnectionStrategyClient } from '../../../connection-strategies/base/base.connection-strategy-client';
+import { RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
 import { ITransferPlugin } from '../base/transfer.plugin';
 import { RUNNER_TRANSFER_TYPE } from './runner-transfer-plugin-data';
 import { RunnerTransferPluginController } from './runner-transfer.plugin-controller';
