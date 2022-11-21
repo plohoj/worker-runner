@@ -1,9 +1,16 @@
+/* eslint-disable import/no-named-as-default-member */
+/* eslint-disable import/order */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { exec } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from "node:path";
 import semver from 'semver';
 
-// eslint-disable-next-line no-undef
 const versionTypeArgument = process.argv.find(argument => /--type[ =].+/.test(argument));
 let versionType = 'patch';
 if (versionTypeArgument) {
@@ -19,8 +26,8 @@ const moduleNamesDirent = await readdir(path.resolve('packages'), {withFileTypes
 const moduleNames = moduleNamesDirent.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 /**
- * @param {string} directory 
- * @param {'major' | 'minor' | 'patch'} type
+ * @param {string} path 
+ * @param {boolean} isExcludeUpdateDependencies
  * @returns {Promise<string>}
  */
 async function updateVersion(path, isExcludeUpdateDependencies) {
@@ -29,14 +36,13 @@ async function updateVersion(path, isExcludeUpdateDependencies) {
     if (!isExcludeUpdateDependencies && 'dependencies' in packageData) {
         for (const dependency in packageData.dependencies) {
             if (dependency.includes('@worker-runner/')) {
-                packageData.dependencies[dependency] = '^' + dependencyVersion;
+                packageData.dependencies[dependency] = `^${dependencyVersion}`;
             }
         }
     }
     const modifiedPackageDataString = JSON.stringify(packageData, undefined, '  ') + '\n'
     await writeFile(path, modifiedPackageDataString, 'utf8');
-    // eslint-disable-next-line no-undef
-    console.log(`${path}\t-->\t ${newVersion}`);
+    console.log(`${path}\t→\t ${newVersion}`);
 }
 
 /**

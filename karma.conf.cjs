@@ -27,4 +27,7 @@ const karmaConfig = {
   },
 };
 
+/**
+ * @param {import('karma').Config} config 
+ */
 module.exports = (config) => config.set(karmaConfig);

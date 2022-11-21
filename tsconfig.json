@@ -8,7 +8,10 @@
         "moduleResolution": "Node",
         "sourceMap": true,
         "importHelpers": true,
-        "noImplicitOverride": true
+        "noImplicitOverride": true,
+        "paths": {
+            "@worker-runner/*": ["./packages/*"]
+        }
     },
     "exclude": [
         "node_modules",

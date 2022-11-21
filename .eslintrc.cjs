@@ -1,5 +1,11 @@
+const { readdirSync } = require('node:fs');
+const path = require("node:path");
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const tsConfig = require('./tsconfig.json');
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+const modulesDirent = readdirSync(path.resolve('packages'), {withFileTypes: true});
+const modules = modulesDirent.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
 /** @type {import('eslint').Linter.Config} */
 module.exports = {
@@ -11,6 +17,7 @@ module.exports = {
         'plugin:unicorn/recommended',
         'plugin:promise/recommended',
         'plugin:import/warnings',
+        'plugin:import/typescript',
         // TODO lint rxjs
     ],
     plugins: ['es'],
@@ -125,6 +132,41 @@ module.exports = {
                     order: 'asc',
                     caseInsensitive: true,
                 },
+                "groups": [
+                    ["external", "internal"],
+                    "builtin",
+                    "index",
+                    "parent",
+                    "object",
+                    "sibling",
+                    "type"
+                ]
+            },
+        ],
+        'import/no-restricted-paths': [
+            'error',
+            {
+                basePath: "./",
+                zones: [
+                    ...modules.flatMap(moduleI => modules
+                        .filter(moduleJ => moduleI != moduleJ)
+                        .map(moduleJ => ({
+                            from: `./packages/${moduleI}/*/**/*`,
+                            target: `./packages/${moduleJ}/**/*`,
+                            message: 'Forbidden to import using a path deep onto another package'
+                        })),
+                    ),
+                    ...modules.map(module => ({
+                        from: `./packages/${module}/*/**/*`,
+                        target: `./test/**/*`,
+                        message: 'Forbidden to import into tests using a path deep onto another package'
+                    })),
+                    ...modules.map(module => ({
+                        from: `./packages/${module}/index.ts`,
+                        target: `./packages/${module}/**/*`,
+                        message: 'Forbidden to import from the index file of the current package'
+                    })),
+                ],
             },
         ],
 
@@ -146,12 +188,8 @@ module.exports = {
             'error',
             {
                 patterns: [
+                    '@worker-runner/*/**/*',
                     'rxjs/Rx',
-                    '@worker-runner/*/**',
-                    '**/modules',
-                    '**/../core',
-                    '**/../promise',
-                    '**/../rx',
                     'test/'
                 ],
             },
@@ -173,4 +211,9 @@ module.exports = {
     ],
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     ignorePatterns: tsConfig.exclude,
+    settings: {
+        'import/resolver': {
+            typescript: true,
+        }
+    }
 };

@@ -1,8 +1,10 @@
-const path = require('path');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const CircularDependencyPlugin = require('circular-dependency-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { BannerPlugin } = require('webpack');
+const path = require('path');
 
 const publicPath = '/base/dist';
 
@@ -55,6 +57,18 @@ module.exports = {
     plugins: [
         new ESLintPlugin({
             extensions: ["ts", "tsx"],
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        new CircularDependencyPlugin({
+            // exclude detection of files based on a RegExp
+            exclude: /runner-list\.ts|with-local-resolver-stub\.runner\.ts|node_modules/,
+            // add errors to webpack instead of warnings
+            failOnError: true,
+            // allow import cycles that include an asynchronous import,
+            // e.g. via import(/* webpackMode: "weak" */ './file.js')
+            allowAsyncCycles: false,
+            // set the current working directory for displaying module paths
+            cwd: process.cwd(),
         }),
         ...isDebugMode
             ? []

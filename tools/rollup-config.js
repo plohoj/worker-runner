@@ -13,6 +13,9 @@ const globalLibs = {
 
 const moduleFormats = ["umd", "esm"];
 
+/**
+ * @param {string} packageName 
+ */
 export function generateRollupBuildConfig(packageName) {
     /** @type {import('rollup').OutputOptions} */
     const baseOutput = {
