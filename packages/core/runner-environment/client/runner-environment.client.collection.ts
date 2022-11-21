@@ -6,7 +6,7 @@ import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { IRunnerEnvironmentClientConfig, IRunnerEnvironmentClientPartFactoryConfig, RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from "./runner-environment.client";
+import { IRunnerEnvironmentClientPartFactoryConfig, RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from "./runner-environment.client";
 
 export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdentifierConfigList> {
     runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
@@ -51,7 +51,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             connectionChannel: config.connectionChannel,
             disconnectErrorFactory,
         })
-        const environmentClient: RunnerEnvironmentClient<AnyRunnerFromList<L>> = this.buildRunnerEnvironmentClient({
+        const environmentClient: RunnerEnvironmentClient<AnyRunnerFromList<L>> = new RunnerEnvironmentClient({
             token: config.token,
             actionController,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
@@ -85,11 +85,5 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             throw error;
         }
         return environmentClient;
-    }
-
-    protected buildRunnerEnvironmentClient(
-        config: IRunnerEnvironmentClientConfig<AnyRunnerFromList<L>>
-    ): RunnerEnvironmentClient<AnyRunnerFromList<L>> {
-        return new RunnerEnvironmentClient(config);
     }
 }

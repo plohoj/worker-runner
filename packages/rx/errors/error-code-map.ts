@@ -1,10 +1,8 @@
-import { CODE_TO_ERROR_MAP, ICodeToErrorMap } from '@worker-runner/core';
+import { ICoreCodeToErrorMap } from '@worker-runner/core';
 import { RxWorkerRunnerErrorCode } from './error-code';
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from './runner-errors';
 
-export const CODE_TO_RX_ERROR_MAP: ICodeToErrorMap = {
-    ... CODE_TO_ERROR_MAP,
-
+export const RX_ERROR_CODE_MAP: ICoreCodeToErrorMap = {
     [RxWorkerRunnerErrorCode.SUBSCRIPTION_NOT_FOUND]: RxSubscriptionNotFoundError,
     [RxWorkerRunnerErrorCode.ERROR_EMIT]: RxRunnerEmitError,
 };

@@ -8,7 +8,7 @@ import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
-import { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
+import { RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerController } from '../../runner/runner.controller';
@@ -50,7 +50,7 @@ export class ConnectedRunnerResolverClient {
             ],
         });
         this.transferPluginsResolver = this.pluginsResolver.resolveTransferResolver();
-        this.runnerEnvironmentClientCollection = this.buildRunnerEnvironmentClientCollection({
+        this.runnerEnvironmentClientCollection = new RunnerEnvironmentClientCollection({
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
@@ -134,12 +134,6 @@ export class ConnectedRunnerResolverClient {
         if (caughtError) {
             throw caughtError;
         }
-    }
-
-    protected buildRunnerEnvironmentClientCollection(
-        config: IRunnerEnvironmentClientCollectionConfig<RunnerIdentifierConfigList>
-    ): RunnerEnvironmentClientCollection<RunnerIdentifierConfigList> {
-        return new RunnerEnvironmentClientCollection(config);
     }
 
     protected async resolveInitAction(

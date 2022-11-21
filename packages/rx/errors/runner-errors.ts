@@ -1,10 +1,8 @@
-import { combineErrorConfig, IWorkerRunnerErrorConfig, WorkerRunnerError, WORKER_RUNNER_ERROR_CODE } from '@worker-runner/core';
-import { RxWorkerRunnerErrorCode } from './error-code';
+import { combineErrorConfig, IWorkerRunnerErrorConfig, WorkerRunnerError } from '@worker-runner/core';
 import { RX_WORKER_RUNNER_ERROR_MESSAGES } from './error-messages';
 
 // TODO NEED TEST
 export class RxSubscriptionNotFoundError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = RxWorkerRunnerErrorCode.SUBSCRIPTION_NOT_FOUND;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RxSubscriptionNotFoundError.name,
@@ -15,7 +13,6 @@ export class RxSubscriptionNotFoundError extends WorkerRunnerError {
 }
 
 export class RxRunnerEmitError extends WorkerRunnerError {
-    public [WORKER_RUNNER_ERROR_CODE] = RxWorkerRunnerErrorCode.ERROR_EMIT;
     constructor(config: IWorkerRunnerErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RxRunnerEmitError.name,

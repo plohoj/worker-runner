@@ -90,17 +90,11 @@ export class ConnectedRunnerResolverHost {
 
         this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
     }
-
-    protected buildRunnerEnvironmentHost(
-        config: IRunnerEnvironmentHostConfig
-    ): RunnerEnvironmentHost<RunnerConstructor> {
-        return new RunnerEnvironmentHost(config);
-    }
     
     private buildRunnerEnvironmentHostByPartConfig(
         config: Pick<IRunnerEnvironmentHostConfig, 'token'>
     ): RunnerEnvironmentHost<RunnerConstructor> {
-        const runnerEnvironmentHost = this.buildRunnerEnvironmentHost({
+        const runnerEnvironmentHost: RunnerEnvironmentHost = new RunnerEnvironmentHost({
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
