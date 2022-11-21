@@ -1,9 +1,5 @@
-import { IRunnerResolverClientBaseConfig, RunnerIdentifierConfigList } from "@worker-runner/core";
+import { IRunnerResolverClientBaseConfig, MessageEventConnectionClient, MessageEventConnectionHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost } from "@worker-runner/promise";
-import { RepeatConnectionStrategyClient } from 'packages/core/connection-strategies/repeat/repeat.connection-strategy-client';
-import { RepeatConnectionStrategyHost } from 'packages/core/connection-strategies/repeat/repeat.connection-strategy-host';
-import { MessageEventConnectionClient } from 'packages/core/connections/message-event/message-event.connection-client';
-import { MessageEventConnectionHost } from 'packages/core/connections/message-event/message-event.connection-host';
 
 interface IApartConfiguredRunnerResolvers<
     CL extends RunnerIdentifierConfigList,

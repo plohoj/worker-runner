@@ -1,7 +1,6 @@
-import { ResolvedRunner, RunnerExecuteError, ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { RunnerDataTransferError } from '@worker-runner/core/errors/runner-errors';
+import { ConnectionClosedError, ResolvedRunner, RunnerDataTransferError, RunnerExecuteError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
-import { apartHostClientResolvers, allResolvers } from '../client/resolver-list';
+import { allResolvers, apartHostClientResolvers } from '../client/resolver-list';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';

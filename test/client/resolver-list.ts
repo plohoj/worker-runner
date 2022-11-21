@@ -1,16 +1,32 @@
-import { IRunnerIdentifierConfig } from "@worker-runner/core";
+import { IRunnerIdentifierConfig, MessageChannelConnectionStrategyClient, RepeatConnectionStrategyClient, WorkerConnectionClient } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost, RunnerResolverLocal } from "@worker-runner/promise";
-import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from "@worker-runner/rx";
+import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from '@worker-runner/rx';
 import { runners } from "../common/runner-list";
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from "../common/stubs/extended-stub.runner";
 
 const clientWorker = new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'});
 const clientRxWorker = new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'});
 
+const connection = new WorkerConnectionClient({
+    target: clientWorker,
+    strategies: [
+        new MessageChannelConnectionStrategyClient(),
+        new RepeatConnectionStrategyClient(),
+    ]
+});
+
+const rxConnection = new WorkerConnectionClient({
+    target: clientRxWorker,
+    strategies: [
+        new MessageChannelConnectionStrategyClient(),
+        new RepeatConnectionStrategyClient(),
+    ]
+});
+
 const resolvers = {
-    Client: new RunnerResolverClient({ runners, connection: clientWorker }),
+    Client: new RunnerResolverClient({ runners, connection }),
     Local: new RunnerResolverLocal({ runners }),
-    'Rx Client': new RxRunnerResolverClient({ runners, connection: clientRxWorker}),
+    'Rx Client': new RxRunnerResolverClient({ runners, connection: rxConnection }),
     'Rx Local': new RxRunnerResolverLocal({ runners }),
 };
 
@@ -38,8 +54,8 @@ const clientRunnerList = [
 ];
 
 export const resolverClientList = {
-    Client: new RunnerResolverClient({ runners: clientRunnerList, connection: clientWorker }),
-    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: clientRxWorker }),
+    Client: new RunnerResolverClient({ runners: clientRunnerList, connection }),
+    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: rxConnection }),
 };
 
 // #endregion
@@ -50,11 +66,11 @@ export const localResolversConstructors = {
 };
 
 export const apartHostClientResolvers = {
-    Client: {
+    Apart: {
         client: RunnerResolverClient,
         host: RunnerResolverHost,
     },
-    'Rx Client': {
+    'Rx Apart': {
         client: RxRunnerResolverClient as typeof RunnerResolverClient,
         host: RxRunnerResolverHost,
     },

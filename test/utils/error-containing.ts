@@ -16,7 +16,7 @@ export function errorContaining<T extends {}>(
     return {
         asymmetricMatch(compareTo, customTesters) {
             const check = compareTo instanceof errorConstructor
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
                 && jasmine.objectContaining(sample as any).asymmetricMatch(compareTo, customTesters);
             return check;
         },

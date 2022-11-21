@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { IRunnerIdentifierConfig, RunnerIdentifier } from "@worker-runner/core";
+import { IRunnerIdentifierConfig, PortalConnectionClient, RunnerIdentifier } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promise";
-import { PortalConnectionClient } from 'packages/core/connections/portal/portal.connection-client';
 
 // Type check:
 () => {

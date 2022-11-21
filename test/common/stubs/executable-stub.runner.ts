@@ -14,6 +14,7 @@ export class ExecutableStubRunner<T extends JsonLike = JsonLike> {
         return x + y;
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     public async amountAsync(x: number, y: number): Promise<number> {
         return this.amount(x, y);
     }
