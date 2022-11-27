@@ -3,7 +3,6 @@ const path = require("node:path");
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const tsConfig = require('./tsconfig.json');
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 const modulesDirent = readdirSync(path.resolve('packages'), {withFileTypes: true});
 const modules = modulesDirent.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
 
@@ -11,6 +10,7 @@ const modules = modulesDirent.filter(dirent => dirent.isDirectory()).map(dirent 
 module.exports = {
     extends: [
         'eslint:recommended',
+        "plugin:eslint-comments/recommended",
         'plugin:@typescript-eslint/recommended',
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
 
@@ -182,6 +182,9 @@ module.exports = {
 
         // plugin:es
         'es/no-symbol': 'error',
+
+        // plugin:eslint-comments
+        "eslint-comments/no-unused-disable": "warn",
 
         // Banned imports
         'no-restricted-imports': [

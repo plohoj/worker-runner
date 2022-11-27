@@ -16,10 +16,11 @@ import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier
 import { ActionHandler, IActionWithId } from '../../types/action';
 import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor';
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
-import { RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
-import { collectPromisesErrors } from '../../utils/collect-promises-errors';
+import { RunnerToken } from "../../types/runner-identifier";
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
+import { parallelPromises } from '../../utils/parallel.promises';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
+import { rowPromisesErrors } from '../../utils/row-promises-errors';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
 import { RunnerEnvironmentClientCollection } from '../client/runner-environment.client.collection';
 import { IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from './runner-environment.host.actions';
@@ -67,8 +68,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
     
     private readonly token: RunnerToken;
     private readonly connectDataMap = new Map<ActionController, IRunnerEnvironmentHostActionControllerConnectData>();
-    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    private readonly runnerEnvironmentClientCollection: RunnerEnvironmentClientCollection<RunnerIdentifierConfigList>;
+    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    private readonly environmentClientCollection: RunnerEnvironmentClientCollection;
     private readonly errorSerialization: ErrorSerializationPluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
     private readonly onDestroyed: () => void;
@@ -81,7 +82,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
         const pluginsResolver = config.pluginsResolver;
-        this.runnerEnvironmentClientCollection = new RunnerEnvironmentClientCollection({
+        this.environmentClientCollection = new RunnerEnvironmentClientCollection({
             connectionStrategy: this.connectionStrategy.strategyClient,
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             pluginsResolver: pluginsResolver,
@@ -90,7 +91,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.errorSerialization = pluginsResolver.errorSerialization;
         this.onDestroyed = config.onDestroyed;
         this.transferPluginsResolver.registerRunnerEnvironmentClientPartFactory(
-            this.runnerEnvironmentClientCollection.runnerEnvironmentClientPartFactory
+            this.environmentClientCollection.runnerEnvironmentClientPartFactory
         );
     }
 
@@ -388,82 +389,104 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         }, preparedData.transfer);
     }
 
-    private async runDestroyProcess(): Promise<void> {
-        let caughtError: unknown | undefined;
+    private sendActionsToDestroyTriggers (
+        action: IRunnerEnvironmentHostErrorAction | IRunnerEnvironmentHostDestroyedAction
+    ): void {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        for (const actionTriggerData of this.destroyProcess!.actionTriggers) {
+            actionTriggerData.actionController.sendActionResponse({
+                ...action,
+                id: actionTriggerData.actionId,
+            });
+        }
+    }
+    
+    private async destroyInstanceAndCollectionAndSendAction() {
+        try {
+            await parallelPromises({
+                values: [
+                    () => this.destroyInstance(),
+                    () => this.disconnectCollection(),
+                ],
+                stopAtFirstError: false,
+                mapper: callback => callback(),
+                errorFactory: originalErrors => new RunnerDestroyError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                        this.getErrorMessageConfig()
+                    ),
+                    originalErrors,
+                }),
+            });
+        } catch (error) {
+            this.sendActionsToDestroyTriggers({
+                type: RunnerEnvironmentHostAction.ERROR,
+                error: this.errorSerialization.serializeError(error),
+            });
+            throw error;
+        }
+        this.sendActionsToDestroyTriggers({
+            type: RunnerEnvironmentHostAction.DESTROYED,
+        });
+    }
+
+    private disconnectCollection() {
+        return this.environmentClientCollection.disconnect(originalErrors => new RunnerDestroyError({
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                this.getErrorMessageConfig()
+            ),
+            originalErrors,
+        }));
+    }
+
+    private async destroyInstance() {
         try {
             if (this.runnerInstance.destroy) {
                 await (this.runnerInstance.destroy as () => void | Promise<void>)();
             }
-        } catch(error: unknown) {
-            caughtError = normalizeError(error, RunnerDestroyError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
-                    this.getErrorMessageConfig(),
-                ),
-            }) ;
-        }
-        try {
-            await collectPromisesErrors({
-                values: this.runnerEnvironmentClientCollection.runnerEnvironmentClients,
-                stopAtFirstError: false,
-                mapper: environmentClient => environmentClient.disconnect(),
-                errorFactory: originalErrors => new RunnerDestroyError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
-                        this.getErrorMessageConfig(),
-                    ),
-                    originalErrors: [
-                        caughtError,
-                        ...originalErrors,
-                    ].filter(Boolean),
-                }),
-            });
         } catch (error) {
-            caughtError = error;
+            throw normalizeError(error, RunnerDestroyError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                    this.getErrorMessageConfig()
+                ),
+            });
         }
+    }
 
-        this.runnerEnvironmentClientCollection.runnerEnvironmentClients.clear();
-
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (this.destroyProcess!.actionTriggers.length > 0) {
-            const action: IRunnerEnvironmentHostErrorAction | IRunnerEnvironmentHostDestroyedAction
-                = caughtError
-                    ? {
-                        type: RunnerEnvironmentHostAction.ERROR,
-                        error: this.errorSerialization.serializeError(caughtError),
-                    } : {
-                        type: RunnerEnvironmentHostAction.DESTROYED,
-                    };
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            for (const actionTriggerData of this.destroyProcess!.actionTriggers) {
-                actionTriggerData.actionController.sendActionResponse({
-                    ...action,
-                    id: actionTriggerData.actionId,
-                });
-            }
-        }
-
-        for (const [iteratedActionController, connectData] of this.connectDataMap) {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const isActionWasSendedForActionController = this.destroyProcess!.actionTriggers
-                .some(actionTriggerData => actionTriggerData.actionController === iteratedActionController);
-            if (!isActionWasSendedForActionController) {
-                iteratedActionController.sendAction<IRunnerEnvironmentHostDestroyedAction>({
-                    type: RunnerEnvironmentHostAction.DESTROYED,
-                });
-            }
-            // TODO Move into the Connection Strategy a check for the need to send an Initiated action
-            // and waiting for any event to resubmit the Disconnect action
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            if (!this.connectDataMap.get(iteratedActionController)!.isInitiated) {
-                iteratedActionController.removeActionHandler(connectData.handler);
-                RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
-            } else {
-                iteratedActionController.destroy();
-            }
-            this.connectDataMap.delete(iteratedActionController);
-        }
-        this.onDestroyed();
-        if (caughtError) {
-            throw caughtError;
+    private async runDestroyProcess(): Promise<void> {
+        try {
+            await rowPromisesErrors([
+                () => this.destroyInstanceAndCollectionAndSendAction(),
+                () => {
+                    for (const [iteratedActionController, connectData] of this.connectDataMap) {
+                        // TODO Move into the Connection Strategy a check for the need to send an Initiated action
+                        // and waiting for any event to resubmit the Disconnect action
+                        if (!connectData.isInitiated) {
+                            iteratedActionController.removeActionHandler(connectData.handler);
+                            RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
+                        } else {
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            const isActionWasSendedForActionController = this.destroyProcess!.actionTriggers
+                                .some(actionTriggerData => actionTriggerData.actionController === iteratedActionController);
+                            if (!isActionWasSendedForActionController) {
+                                iteratedActionController.sendAction<IRunnerEnvironmentHostDestroyedAction>({
+                                    type: RunnerEnvironmentHostAction.DESTROYED,
+                                });
+                            }
+                            iteratedActionController.destroy();
+                        }
+                        this.connectDataMap.delete(iteratedActionController);
+                    }
+                }
+            ], {
+                errorFactory: (originalErrors) => new RunnerDestroyError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(
+                        this.getErrorMessageConfig()
+                    ),
+                    originalErrors,
+                })
+            });
+        } finally {
+            this.onDestroyed();
         }
     }
 
@@ -502,7 +525,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         error: ConnectionClosedError,
     ): ConnectionClosedError => 
         new ConnectionClosedError({
-            // eslint-disable-next-line @typescript-eslint/unbound-method
             captureOpt: this.disconnectErrorFactory,
             ...error,
             message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(this.getErrorMessageConfig())
@@ -510,7 +532,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
 
     private startHandleActionController(actionController: ActionController): void {
         const handler = this.handleAction.bind(this, actionController);
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.connectDataMap.set(actionController, {
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             handler,

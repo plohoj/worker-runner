@@ -63,7 +63,7 @@ each(allResolvers, (mode, resolver) =>
 );
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
-    describe(`${mode} disconnect runner`, () => {
+    describe(`${mode} disconnect runner:`, () => {
         it('with resolved another runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
@@ -73,15 +73,15 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
+
             const runnerEnvironmentHosts
                 = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts']];
-
             const runnerEnvironmentHost = runnerEnvironmentHosts
                 .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(1);
             await withOtherInstanceStubRunner.disconnect();
-            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(0);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(0);
 
             await localResolver.destroy();
         });

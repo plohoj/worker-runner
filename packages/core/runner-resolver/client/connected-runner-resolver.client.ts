@@ -16,7 +16,7 @@ import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
-import { collectPromisesErrors } from '../../utils/collect-promises-errors';
+import { rowPromisesErrors } from '../../utils/row-promises-errors';
 import { IRunnerResolverHostAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from '../host/runner-resolver.host.actions';
 import { IRunnerResolverClientAction, IRunnerResolverClientDestroyAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from './runner-resolver.client.actions';
 
@@ -104,36 +104,16 @@ export class ConnectedRunnerResolverClient {
     }
 
     /** Destroying of all resolved Runners instance */
-    public async destroy(): Promise<void> {
-        let caughtError: unknown | undefined; 
-        try {
-            await this.resolveActionAndHandleError<IRunnerResolverClientDestroyAction>({
+    public destroy(): Promise<void> {
+        return rowPromisesErrors([
+            () => this.resolveActionAndHandleError<IRunnerResolverClientDestroyAction>({
                 type: RunnerResolverClientAction.DESTROY,
-            });
-        } catch (error) {
-            caughtError = error;
-        }
-        try {
-            await collectPromisesErrors({
-                values: this.runnerEnvironmentClientCollection.runnerEnvironmentClients,
-                stopAtFirstError: false,
-                mapper: runnerEnvironment => runnerEnvironment.destroy(),
-                errorFactory: originalErrors => new RunnerResolverClientDestroyError({ 
-                    originalErrors: [
-                        caughtError,
-                        ...originalErrors,
-                    ].filter(Boolean),
-                })
-            });
-        } catch (error) {
-            caughtError = error;
-        }
-
-        this.runnerEnvironmentClientCollection.runnerEnvironmentClients.clear();
-        this.actionController.destroy();
-        if (caughtError) {
-            throw caughtError;
-        }
+            }),
+            () => this.runnerEnvironmentClientCollection.destroy(),
+            () => this.actionController.destroy(),
+        ], {
+            errorFactory: originalErrors => new RunnerResolverClientDestroyError({originalErrors})
+        });
     }
 
     protected async resolveInitAction(

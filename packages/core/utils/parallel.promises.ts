@@ -2,12 +2,14 @@ import { WorkerRunnerMultipleError } from '../errors/worker-runner-error';
 
 // TODO Implement a fake promise that will call the callback immediately when there is no need to wait
 
-export interface IMapPromisesErrorConfig<I, O> {
+export type MultipleErrorFactory = (errors: unknown[]) => WorkerRunnerMultipleError;
+
+export interface IParallelPromisesConfig<I, O> {
     values: Iterable<I> | I[];
     /** Stop converting at the first error and start the process of canceling */
     stopAtFirstError: boolean;
+    errorFactory: MultipleErrorFactory;
     mapper(value: I): Promise<O> | O;
-    errorFactory(errors: unknown[]): WorkerRunnerMultipleError;
     /** Method to canceling successfully mapped data */
     cancelMapped?(result: O): Promise<void> | void;
     /** Method for canceling data that has not yet been mapped */
@@ -17,11 +19,11 @@ export interface IMapPromisesErrorConfig<I, O> {
 }
 
 /**
- * Converting an iterable list to an array of values.
+ * Executes all promises in parallel and collects errors that occurred during execution
  * All thrown errors that occur during the conversion will be handled.
- * @throw generated {@link WorkerRunnerMultipleError} in {@link IMapPromisesErrorConfig.errorFactory}
+ * @throw generated {@link WorkerRunnerMultipleError} in {@link IParallelPromisesConfig.errorFactory}
  */
-export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O>): Promise<O[]> {
+export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): Promise<O[]> {
     return new Promise<O[]>((resolve, reject) => {
         const errors = new Array<unknown>();
         const mappedValuesMap = new Map<number, O>();
@@ -115,7 +117,6 @@ export function collectPromisesErrors<I, O>(config: IMapPromisesErrorConfig<I, O
                 }
                 const index = allValuesLength;
                 if (mappedResult instanceof Promise) {
-                    // eslint-disable-next-line promise/catch-or-return
                     mappedResult
                         .then(response => addMapped(index, response))
                         .catch(error => {

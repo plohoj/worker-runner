@@ -1,6 +1,6 @@
 import { RunnerDataTransferError } from '../../../errors/runner-errors';
 import { TransferRunnerObject } from '../../../transfer-data/transfer-runner-object';
-import { collectPromisesErrors } from '../../../utils/collect-promises-errors';
+import { parallelPromises } from '../../../utils/parallel.promises';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginCancelPreparedDataFunction, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { TransferPluginsResolver } from '../base/transfer-plugins.resolver';
@@ -40,7 +40,7 @@ export abstract class BaseCollectionTransferPluginController<
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
         const iterator = this.getTransferDataIterator(config.data as Input);
-        return collectPromisesErrors({
+        return parallelPromises({
             values: iterator,
             stopAtFirstError: false,
             mapper: data => this.transferPluginsResolver.cancelTransferData({
@@ -75,7 +75,7 @@ export abstract class BaseCollectionTransferPluginController<
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<void> {
         const iterator = this.getReceivedDataIterator(config.data as unknown as Send)
-        return collectPromisesErrors({
+        return parallelPromises({
             values: iterator,
             stopAtFirstError: false,
             mapper: data => this.transferPluginsResolver.cancelReceiveData({
@@ -87,7 +87,6 @@ export abstract class BaseCollectionTransferPluginController<
         }) as unknown as Promise<void>;
     }
 
-    
     private async transferDataAsync(
         config: ITransferPluginControllerTransferDataConfig
     ): Promise<ITransferPluginPreparedData> {
@@ -117,7 +116,7 @@ export abstract class BaseCollectionTransferPluginController<
     }
 
     private async collectFieldsPreparedData(config: ITransferPluginControllerTransferDataConfig) {
-        const preparedData = await collectPromisesErrors<
+        const preparedData = await parallelPromises<
             [keyof Send, unknown],
             [keyof Send, ITransferPluginPreparedData]
         >({
@@ -146,7 +145,7 @@ export abstract class BaseCollectionTransferPluginController<
     }
 
     private async collectFieldsReceivedData(config: ITransferPluginControllerReceiveDataConfig) {
-        const preparedData = await collectPromisesErrors<
+        const preparedData = await parallelPromises<
             [keyof Received, ICollectionTransferPluginFieldData],
             [keyof Received, ITransferPluginReceivedData]
         >({
@@ -178,7 +177,7 @@ export abstract class BaseCollectionTransferPluginController<
 
     private generateCancelFunction(cancelFunctions: TransferPluginCancelPreparedDataFunction[]): TransferPluginCancelPreparedDataFunction {
         return async function cancel(): Promise<void> {
-            await collectPromisesErrors({
+            await parallelPromises({
                 values: cancelFunctions,
                 stopAtFirstError: false,
                 mapper(cancelFunction) {

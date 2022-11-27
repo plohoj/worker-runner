@@ -5,7 +5,7 @@ import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance
 import { each } from '../utils/each';
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
-    describe(`${mode} wrap runner`, () => {
+    describe(`${mode} wrap runner:`, () => {
         it('after disconnect', async () => {
             const storageData = {
                 id: 5326,
@@ -50,7 +50,7 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             await localResolver.destroy();
         });
 
-        it('without configuration', async () => {
+        it('should wrap Runner without configuration', async () => {
             const helloMessage = 'Hello';
             const runnerSub = new class RunnerStub {
                 public getHelloMessage() {

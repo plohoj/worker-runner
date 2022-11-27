@@ -17,7 +17,6 @@ export class RunnerController {
         this[RUNNER_ENVIRONMENT_CLIENT] = controller;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     public static isRunnerController(instance: unknown): instance is RunnerController {
         return !!(instance as RunnerController | undefined)?.[RUNNER_ENVIRONMENT_CLIENT];
     }

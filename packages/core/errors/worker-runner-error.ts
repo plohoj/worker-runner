@@ -36,6 +36,7 @@ export abstract class WorkerRunnerError extends Error {
 }
 
 export interface IRunnerErrorConfigOriginalErrors {
+    // TODO rename to "cause"
     originalErrors?: unknown[];
 }
 

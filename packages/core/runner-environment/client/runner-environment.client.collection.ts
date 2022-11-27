@@ -1,11 +1,12 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
-import { ConnectionClosedError } from '../../errors/runner-errors';
+import { ConnectionClosedError, RunnerDestroyError } from '../../errors/runner-errors';
 import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
 import { DisconnectErrorFactory } from '../../types/disconnect-error-factory';
 import { AnyRunnerFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
+import { parallelPromises, MultipleErrorFactory } from '../../utils/parallel.promises';
 import { IRunnerEnvironmentClientPartFactoryConfig, RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from "./runner-environment.client";
 
 export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdentifierConfigList> {
@@ -17,8 +18,8 @@ export interface IRunnerEnvironmentClientCollectionConfig<L extends RunnerIdenti
 export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
 
     public readonly runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory<AnyRunnerFromList<L>>;
-    public readonly runnerEnvironmentClients = new Set<RunnerEnvironmentClient<AnyRunnerFromList<L>>>();
-
+    
+    private readonly runnerEnvironmentClients = new Set<RunnerEnvironmentClient<AnyRunnerFromList<L>>>();
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
     private readonly pluginsResolver: PluginsResolver;
@@ -30,6 +31,7 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
         this.runnerEnvironmentClientPartFactory = this.initRunnerEnvironmentClientByPartConfig;
     }
     
+    // TODO Move to static method for RunnerEnvironmentClient
     /**
      * Build a {@link RunnerEnvironmentClient} and adds it to the collection.
      * Building occurs **without initialization**
@@ -57,8 +59,6 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
-            disconnectErrorFactory,
-            runnerEnvironmentClientPartFactory: this.runnerEnvironmentClientPartFactory,
             onDestroyed: () => this.runnerEnvironmentClients.delete(environmentClient),
         });
         // At the time of initialization, the environment client can receive the destroy action, so need to:
@@ -85,5 +85,37 @@ export class RunnerEnvironmentClientCollection<L extends RunnerIdentifierConfigL
             throw error;
         }
         return environmentClient;
+    }
+
+    public async disconnect(errorFactory: MultipleErrorFactory = this.destroyErrorFactory): Promise<void> {
+        try {
+            await parallelPromises({
+                values: this.runnerEnvironmentClients,
+                stopAtFirstError: false,
+                mapper: runnerEnvironment => runnerEnvironment.disconnect(),
+                errorFactory,
+            });
+        } finally {
+            this.runnerEnvironmentClients.clear();
+        }
+    }
+
+    public async destroy(errorFactory: MultipleErrorFactory = this.destroyErrorFactory): Promise<void> {
+        try {
+            await parallelPromises({
+                values: this.runnerEnvironmentClients,
+                stopAtFirstError: false,
+                mapper: environmentClient => environmentClient.destroy(),
+                errorFactory,
+            });
+        } finally {
+            this.runnerEnvironmentClients.clear();
+        }
+    }
+
+    private destroyErrorFactory = (originalErrors: unknown[]): RunnerDestroyError => {
+        return new RunnerDestroyError({ 
+            originalErrors,
+        });
     }
 }

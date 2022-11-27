@@ -14,8 +14,8 @@ import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { collectPromisesErrors } from '../../utils/collect-promises-errors';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
+import { parallelPromises } from '../../utils/parallel.promises';
 import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from '../client/runner-resolver.client.actions';
 import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from './runner-resolver.host.actions';
 
@@ -142,7 +142,7 @@ export class ConnectedRunnerResolverHost {
 
     private async clearEnvironments(): Promise<void> {
         try {
-            await collectPromisesErrors({
+            await parallelPromises({
                 values: this.runnerEnvironmentHosts,
                 stopAtFirstError: false,
                 mapper: runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy(),

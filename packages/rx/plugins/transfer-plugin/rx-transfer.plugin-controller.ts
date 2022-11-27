@@ -76,7 +76,6 @@ export class RxTransferPluginController implements ITransferPluginController {
                                 proxyConnection.sendAction(emitAction, preparedData.transfer)
                             }),
                             tap({
-                                // eslint-disable-next-line @typescript-eslint/no-misused-promises
                                 // TODO error was emitted twice? (see main catchError)
                                 error: sendErrorEmit, // TODO Need to destroy the proxy connection?
                                 complete: () => {

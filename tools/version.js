@@ -1,3 +1,4 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable import/no-named-as-default-member */
 /* eslint-disable import/order */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */

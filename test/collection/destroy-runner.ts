@@ -1,4 +1,4 @@
-import { ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -7,7 +7,7 @@ import { each } from '../utils/each';
 import { errorContaining } from '../utils/error-containing';
 
 each(allResolvers, (mode, resolver) =>
-    describe(`${mode} destroy runner`, () => {
+    describe(`${mode} destroy runner:`, () => {
 
         beforeAll(async () => {
             await resolver.run();
@@ -23,12 +23,22 @@ each(allResolvers, (mode, resolver) =>
             expect(destroyData).toBe(undefined);
         });
 
-        it('with exception in method', async () => {
+        it('should throw an error that occurred during Runner destroying', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
-            await expectAsync(errorStubRunner.destroy()).toBeRejectedWith(errorContaining(Error, {
-                message: 'DESTROY_EXCEPTION',
-                name: Error.name,
+
+            const destroyPromise$ = errorStubRunner.destroy();
+
+            await expectAsync(destroyPromise$).toBeRejectedWith(errorContaining(RunnerDestroyError, {
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
+                    token: ErrorStubRunner.name,
+                    runnerName: ErrorStubRunner.name,
+                }),
                 stack: jasmine.stringMatching(/.+/),
+                originalErrors: [errorContaining(Error, {
+                    message: 'DESTROY_EXCEPTION',
+                    name: Error.name,
+                    stack: jasmine.stringMatching(/.+/),
+                })],
             }));
         });
 
@@ -102,9 +112,9 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             const runnerEnvironmentHost = runnerEnvironmentHosts
                 .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(1);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(1);
             await withOtherInstanceStubRunner.destroy();
-            expect(runnerEnvironmentHost?.['runnerEnvironmentClientCollection'].runnerEnvironmentClients.size).toBe(0);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(0);
 
             await localResolver.destroy();
         });
@@ -134,26 +144,21 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             await localResolver.destroy();
         });
 
-        it('should disconnect another resolved runner when runner was mark for transfer', async () => {
+        it('should disconnect another Resolved Runner when Runner was mark for transfer', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             localResolver.run();
+            const runnerEnvironmentHosts
+                = [...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'];
 
             const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
 
-            const runnerEnvironmentHosts
-                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'] || []];
-            function getExecutableStubRunner() {
-                return runnerEnvironmentHosts
-                    .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === ExecutableStubRunner.name);
-            }
-
-            expect(getExecutableStubRunner()).toBeTruthy();
+            expect(runnerEnvironmentHosts.size).toEqual(2);
             await withOtherInstanceStubRunner.destroy();
-            expect(getExecutableStubRunner()).toBeFalsy();
+            expect(runnerEnvironmentHosts.size).toEqual(0);
 
             await localResolver.destroy();
         });

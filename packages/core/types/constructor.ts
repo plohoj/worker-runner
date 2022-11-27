@@ -1,3 +1,4 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ResolvedRunner } from '../runner/resolved-runner';
 import { TransferRunnerData } from '../transfer-data/transfer-runner-data';

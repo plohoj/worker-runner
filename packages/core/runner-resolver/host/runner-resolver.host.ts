@@ -6,7 +6,7 @@ import { IPlugin } from '../../plugins/plugins.type';
 import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
 import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { collectPromisesErrors } from '../../utils/collect-promises-errors';
+import { parallelPromises } from '../../utils/parallel.promises';
 import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
 
 export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> = {
@@ -40,7 +40,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
 
     public async destroy(): Promise<void> {
         try {
-            await collectPromisesErrors({
+            await parallelPromises({
                 values: this.connectedResolvers,
                 stopAtFirstError: false,
                 mapper: connectedResolver => connectedResolver.handleDestroy(),
