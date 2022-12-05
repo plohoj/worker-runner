@@ -21,6 +21,7 @@ import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { parallelPromises } from '../../utils/parallel.promises';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { rowPromisesErrors } from '../../utils/row-promises-errors';
+import { RunnerEnvironmentClient } from '../client/runner-environment.client';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
 import { RunnerEnvironmentClientCollection } from '../client/runner-environment.client.collection';
 import { IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from './runner-environment.host.actions';
@@ -69,7 +70,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
     private readonly token: RunnerToken;
     private readonly connectDataMap = new Map<ActionController, IRunnerEnvironmentHostActionControllerConnectData>();
     private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
-    private readonly environmentClientCollection: RunnerEnvironmentClientCollection;
+    private readonly environmentClientCollection = new RunnerEnvironmentClientCollection();
     private readonly errorSerialization: ErrorSerializationPluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
     private readonly onDestroyed: () => void;
@@ -82,17 +83,16 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
         const pluginsResolver = config.pluginsResolver;
-        this.environmentClientCollection = new RunnerEnvironmentClientCollection({
-            connectionStrategy: this.connectionStrategy.strategyClient,
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
-            pluginsResolver: pluginsResolver,
-        });
-        this.transferPluginsResolver = pluginsResolver.resolveTransferResolver();
         this.errorSerialization = pluginsResolver.errorSerialization;
         this.onDestroyed = config.onDestroyed;
-        this.transferPluginsResolver.registerRunnerEnvironmentClientPartFactory(
-            this.environmentClientCollection.runnerEnvironmentClientPartFactory
-        );
+        this.transferPluginsResolver = pluginsResolver.resolveTransferResolver({
+            runnerEnvironmentClientFactory: RunnerEnvironmentClient.buildFactory({
+                connectionStrategy: this.connectionStrategy.strategyClient,
+                environmentCollection: this.environmentClientCollection,
+                pluginsResolver: config.pluginsResolver,
+                runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            }),
+        });
     }
 
     public get runnerInstance(): InstanceType<R> {

@@ -79,9 +79,9 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             const runnerEnvironmentHost = runnerEnvironmentHosts
                 .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
 
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(1);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(1);
             await withOtherInstanceStubRunner.disconnect();
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['runnerEnvironmentClients'].size).toBe(0);
+            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(0);
 
             await localResolver.destroy();
         });

@@ -41,6 +41,7 @@ export class NativeErrorSerializationPlugin implements IErrorSerializationPlugin
         const serializedError: ISerializedError = {
             type: errorCode as SerializedErrorType,
             message: (error as Error).message,
+            name: (error as Error).name,
             stack: (error as Error).stack,
         };
 

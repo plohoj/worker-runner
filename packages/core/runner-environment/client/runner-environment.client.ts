@@ -4,6 +4,7 @@ import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connectio
 import { IRunnerMessageConfig, WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerDestroyError } from '../../errors/runner-errors';
 import { IWorkerRunnerErrorConfig } from '../../errors/worker-runner-error';
+import { ErrorSerializationPluginsResolver } from '../../plugins/error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
@@ -13,78 +14,110 @@ import { IRunnerControllerConstructor } from '../../runner/runner.controller';
 import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
-import { RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
+import { RunnerToken } from "../../types/runner-identifier";
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientDestroyAction, IRunnerEnvironmentClientDisconnectAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientInitiatedAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
 import { RunnerEnvironmentClientCollection } from './runner-environment.client.collection';
 
-interface IRunnerEnvironmentClientInitSyncConfig {
-    runnerControllerConstructor: IRunnerControllerConstructor,
-}
-
-export interface IRunnerEnvironmentClientPartFactoryConfig {
+export interface IRunnerEnvironmentClientFactoryConfig {
     token: RunnerToken,
     connectionChannel: BaseConnectionChannel;
 }
 
-export type RunnerEnvironmentClientPartFactory<R extends RunnerConstructor = RunnerConstructor>
-    = (config: IRunnerEnvironmentClientPartFactoryConfig) => Promise<RunnerEnvironmentClient<R>>;
+export type RunnerEnvironmentClientFactory
+    = (config: IRunnerEnvironmentClientFactoryConfig) => Promise<RunnerEnvironmentClient>;
 
 export interface IRunnerEnvironmentClientConfig {
     token: RunnerToken,
-    actionController: ActionController;
-    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
+    connectionChannel: BaseConnectionChannel;
+    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
     connectionStrategy: BaseConnectionStrategyClient,
     pluginsResolver: PluginsResolver;
     onDestroyed: () => void;
 }
 
+interface IRunnerEnvironmentClientInitSyncInnerConfig {
+    runnerControllerConstructor: IRunnerControllerConstructor;
+}
+
+export interface IRunnerEnvironmentClientInitSyncConfig {
+    token: RunnerToken,
+    connectionChannel: BaseConnectionChannel;
+    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    connectionStrategy: BaseConnectionStrategyClient,
+    pluginsResolver: PluginsResolver;
+    environmentCollection: RunnerEnvironmentClientCollection;
+    runnerControllerConstructor: IRunnerControllerConstructor;
+}
+
+export interface IRunnerEnvironmentClientInitAsyncConfig {
+    token: RunnerToken,
+    connectionChannel: BaseConnectionChannel;
+    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    connectionStrategy: BaseConnectionStrategyClient,
+    pluginsResolver: PluginsResolver;
+    environmentCollection: RunnerEnvironmentClientCollection;
+}
+
+export interface IRunnerEnvironmentClientFactoryBuilderConfig {
+    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    connectionStrategy: BaseConnectionStrategyClient;
+    pluginsResolver: PluginsResolver;
+    environmentCollection: RunnerEnvironmentClientCollection;
+}
+
 const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' as unknown as WorkerRunnerIdentifier;
 
-export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstructor> {
+export class RunnerEnvironmentClient {
     public readonly token: RunnerToken;
 
     private readonly actionController: ActionController;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
-    private readonly onDestroyed: () => void;    
-    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
-    private readonly pluginsResolver: PluginsResolver;
+    private readonly onDestroyed: () => void;
+    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    private readonly errorSerialization: ErrorSerializationPluginsResolver; 
     private readonly transferPluginsResolver: TransferPluginsResolver;
-    private readonly environmentCollection: RunnerEnvironmentClientCollection;
+    private readonly environmentCollection = new RunnerEnvironmentClientCollection();
 
-    private _resolvedRunner?: ResolvedRunner<InstanceType<R>> | undefined;
+    private _resolvedRunner?: ResolvedRunner<RunnerConstructor> | undefined;
     private _isMarkedForTransfer = false;
     private destroyInterrupter = new PromiseInterrupter();
 
-    constructor(config: Readonly<IRunnerEnvironmentClientConfig>) {
+    private constructor(config: IRunnerEnvironmentClientConfig) {
         this.token = config.token;
-        this.actionController = config.actionController;
+        this.actionController = new ActionController({
+            connectionChannel: config.connectionChannel,
+            disconnectErrorFactory: (error: ConnectionClosedError) => new ConnectionClosedError({
+                ...error,
+                ...this.getConnectionClosedConfig()
+            }),
+        });
         this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
         this.connectionStrategy = config.connectionStrategy;
-        this.pluginsResolver = config.pluginsResolver;
-        this.transferPluginsResolver = this.pluginsResolver.resolveTransferResolver();
+        this.errorSerialization = config.pluginsResolver.errorSerialization;
         this.onDestroyed = config.onDestroyed;
-        this.environmentCollection = new RunnerEnvironmentClientCollection({
-            connectionStrategy: this.connectionStrategy,
-            pluginsResolver: config.pluginsResolver,
-            runnerIdentifierConfigCollection: config.runnerIdentifierConfigCollection,
+        this.transferPluginsResolver = config.pluginsResolver.resolveTransferResolver({
+            runnerEnvironmentClientFactory: RunnerEnvironmentClient.buildFactory({
+                connectionStrategy: this.connectionStrategy,
+                environmentCollection: this.environmentCollection,
+                pluginsResolver: config.pluginsResolver,
+                runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            })
         });
-        this.transferPluginsResolver
-            .registerRunnerEnvironmentClientPartFactory(this.environmentCollection.runnerEnvironmentClientPartFactory);
 
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.actionController.addActionHandler(this.handleActionWithoutId);
     }
 
-    public get resolvedRunner(): ResolvedRunner<InstanceType<R>> {
+    public get resolvedRunner(): ResolvedRunner<RunnerConstructor> {
         if (!this._resolvedRunner) {
             throw new ConnectionClosedError(this.getConnectionClosedConfig());
         }
         return this._resolvedRunner;
     }
-    public set resolvedRunner(value: ResolvedRunner<InstanceType<R>>) {
+    private set resolvedRunner(value: ResolvedRunner<RunnerConstructor>) {
         this._resolvedRunner = value;
     }
 
@@ -93,6 +126,46 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     }
     private set isMarkedForTransfer(value: boolean) {
         this._isMarkedForTransfer = value;
+    }
+
+    public static initSync(config: IRunnerEnvironmentClientInitSyncConfig): RunnerEnvironmentClient {
+        const environmentClient: RunnerEnvironmentClient = new RunnerEnvironmentClient({
+            ...config,
+            onDestroyed: () => config.environmentCollection.remove(environmentClient),
+        });
+        environmentClient.initSync(config);
+        config.environmentCollection.add(environmentClient);
+        return environmentClient;
+    }
+
+    public static async initAsync(config: IRunnerEnvironmentClientInitAsyncConfig): Promise<RunnerEnvironmentClient> {
+        if (config.runnerIdentifierConfigCollection.hasControllerConstructor(config.token)) {
+            return this.initSync({
+                ...config,
+                runnerControllerConstructor: config.runnerIdentifierConfigCollection
+                    .getRunnerControllerConstructor(config.token)
+            });
+        } else {
+            const environmentClient: RunnerEnvironmentClient = new RunnerEnvironmentClient({
+                ...config,
+                onDestroyed: () => config.environmentCollection.remove(environmentClient),
+            })
+            await environmentClient.initAsync();
+            if (environmentClient.actionController.connectionChannel.isConnected) {
+                // It is a rare case that a Runner may receive a kill command during initialization.
+                // In this case the connection will be closed
+                // TODO Destroy process should wait for initialization to complete
+                config.environmentCollection.add(environmentClient);
+            }
+            return environmentClient;
+        }
+    }
+
+    public static buildFactory(builderConfig: IRunnerEnvironmentClientFactoryBuilderConfig): RunnerEnvironmentClientFactory {
+        return async (config: IRunnerEnvironmentClientFactoryConfig) => this.initAsync({
+            ...builderConfig,
+            ...config
+        })
     }
 
     /**
@@ -127,34 +200,6 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
             connectionChannel.addActionHandler(disconnectHandler);
             connectionChannel.run();
         });
-    }
-
-    public initSync(config: IRunnerEnvironmentClientInitSyncConfig): void {
-        this.resolvedRunner = new config.runnerControllerConstructor(this) as ResolvedRunner<InstanceType<R>>;
-        this.actionController.run();
-        // TODO Move into the Connection Strategy a check for the need to send an Initiated action
-        this.actionController.sendAction<IRunnerEnvironmentClientInitiatedAction>({
-            type: RunnerEnvironmentClientAction.INITIATED,
-        });
-    }
-
-    public async initAsync(): Promise<void> { 
-        if (this.runnerIdentifierConfigCollection.hasControllerConstructor(this.token)) {
-            this.initSync({
-                runnerControllerConstructor: this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(this.token)
-            });
-        } else {
-            this.actionController.run();
-            const ownMetadataAction = await this.resolveActionAndHandleError<
-                IRunnerEnvironmentClientRequestRunnerOwnDataAction,
-                IRunnerEnvironmentHostOwnMetadataAction
-            >({
-                type: RunnerEnvironmentClientAction.OWN_METADATA,
-            });
-            const runnerControllerConstructor = this.runnerIdentifierConfigCollection
-                .defineRunnerController(this.token, ownMetadataAction.methodsNames);
-            this.initSync({ runnerControllerConstructor });
-        }
     }
 
     public async execute(
@@ -238,6 +283,36 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         return this.actionController.connectionChannel;
     }
 
+    
+    private initSync(config: IRunnerEnvironmentClientInitSyncInnerConfig): void {
+        this.resolvedRunner = new config.runnerControllerConstructor(this);
+        this.actionController.run();
+        // TODO Move into the Connection Strategy a check for the need to send an Initiated action
+        this.actionController.sendAction<IRunnerEnvironmentClientInitiatedAction>({
+            type: RunnerEnvironmentClientAction.INITIATED,
+        });
+    }
+
+    private async initAsync(): Promise<void> { 
+        if (this.runnerIdentifierConfigCollection.hasControllerConstructor(this.token)) {
+            this.initSync({
+                runnerControllerConstructor: this.runnerIdentifierConfigCollection.getRunnerControllerConstructor(this.token)
+            });
+        } else {
+            this.actionController.run();
+            const ownMetadataAction = await this.resolveActionAndHandleError<
+                IRunnerEnvironmentClientRequestRunnerOwnDataAction,
+                IRunnerEnvironmentHostOwnMetadataAction
+            >({
+                type: RunnerEnvironmentClientAction.OWN_METADATA,
+            });
+            const runnerControllerConstructor = this.runnerIdentifierConfigCollection
+                .defineRunnerController(this.token, ownMetadataAction.methodsNames);
+            this.initSync({ runnerControllerConstructor });
+            // TODO throw error if destroy action was received during initialization
+        }
+    }
+
     private async handleDestroy(): Promise<void> {
         this.destroyInterrupter.interrupt();
         this.actionController.destroy();
@@ -272,7 +347,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.pluginsResolver.errorSerialization.deserializeError(
+            throw this.errorSerialization.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }
@@ -305,7 +380,7 @@ export class RunnerEnvironmentClient<R extends RunnerConstructor = RunnerConstru
         }
         await this.handleDestroy();
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.pluginsResolver.errorSerialization.deserializeError(
+            throw this.errorSerialization.deserializeError(
                 (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
             );
         }

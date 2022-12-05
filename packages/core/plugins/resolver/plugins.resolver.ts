@@ -1,3 +1,4 @@
+import { RunnerEnvironmentClientFactory } from '../../runner-environment/client/runner-environment.client';
 import { ErrorSerializationPluginsResolver } from '../error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { IErrorSerializationPlugin, isErrorSerializationPlugin } from '../error-serialization-plugin/base/error-serialization.plugin';
 import { CorePluginsPack } from '../pack/core.plugins-pack';
@@ -8,6 +9,10 @@ import { isTransferPlugin, ITransferPlugin } from '../transfer-plugin/base/trans
 
 export interface IPluginsResolverHostConfig {
     plugins: Array<IPlugin>;
+}
+
+export interface IPluginsResolveTransferResolverConfig {
+    runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory;
 }
 
 export class PluginsResolver {
@@ -23,10 +28,11 @@ export class PluginsResolver {
         });
     }
 
-    public resolveTransferResolver(): TransferPluginsResolver {
+    public resolveTransferResolver(config: IPluginsResolveTransferResolverConfig): TransferPluginsResolver {
         return new TransferPluginsResolver({
             plugins: this.transferPlugins,
             errorSerialization: this.errorSerialization,
+            runnerEnvironmentClientFactory: config.runnerEnvironmentClientFactory,
         });
     }
 

@@ -31,9 +31,9 @@ export { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } fr
 export { ITransferPlugin } from './plugins/transfer-plugin/base/transfer.plugin';
 export { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './plugins/transfer-plugin/base/transfer.plugin-controller';
 export { RunnerTransferPlugin } from './plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
-export { IRunnerEnvironmentClientConfig, RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from './runner-environment/client/runner-environment.client';
+export { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from './runner-environment/client/runner-environment.client';
 export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientExecuteAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
-export { IRunnerEnvironmentClientCollectionConfig, RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
+export { RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
 export { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from './runner-environment/host/runner-environment.host';
 export { IRunnerEnvironmentHostAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';
 export { IRunnerResolverClientBaseConfig, RunnerResolverClientBase } from './runner-resolver/client/runner-resolver.client';

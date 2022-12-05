@@ -2,7 +2,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../errors/error-message";
 import { RunnerNotFound } from "../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../types/constructor";
 import { JsonLike } from "../types/json-like";
-import { AvailableRunnersFromList, RunnerToken, RunnerByIdentifier, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
+import { AvailableRunnersFromList, RunnerToken, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
 import { IRunnerControllerConstructor, RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "./runner.controller";
 
 interface IRunnerIdentifierConfigCollectionOptions<M extends RunnerIdentifierConfigList> {
@@ -47,11 +47,11 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
 
-    public getRunnerConstructorSoft<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> | undefined {
-        return this.runnerByTokenDataRecord[token]?.runnerConstructor as RunnerByIdentifier<L, T> | undefined;
+    public getRunnerConstructorSoft(token: RunnerToken): RunnerConstructor | undefined {
+        return this.runnerByTokenDataRecord[token]?.runnerConstructor;
     }
 
-    public getRunnerConstructor<T extends RunnerToken = RunnerToken>(token: T): RunnerByIdentifier<L, T> {
+    public getRunnerConstructor(token: RunnerToken): RunnerConstructor {
         const runnerConstructor = this.getRunnerConstructorSoft(token);
         if (!runnerConstructor) {
             throw new RunnerNotFound({
@@ -61,11 +61,11 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
         return runnerConstructor;
     }
 
-    public hasToken<T extends RunnerToken = RunnerToken>(token: T): boolean {
+    public hasToken(token: RunnerToken): boolean {
         return token in this.runnerByTokenDataRecord;
     }
 
-    public hasControllerConstructor<T extends RunnerToken = RunnerToken>(token: T): boolean {
+    public hasControllerConstructor(token: RunnerToken): boolean {
         const runnerByTokenData = this.runnerByTokenDataRecord[token];
         if (!runnerByTokenData) {
             return false;

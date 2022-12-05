@@ -1,6 +1,6 @@
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { RunnerDataTransferError } from '../../../errors/runner-errors';
-import { RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
 import { ErrorSerializationPluginsResolver } from '../../error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { RUNNER_TRANSFER_TYPE } from '../runner-transfer-plugin/runner-transfer-plugin-data';
@@ -11,7 +11,8 @@ import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, 
 
 export interface ITransferPluginsResolverConfig {
     plugins: ITransferPlugin[];
-    errorSerialization: ErrorSerializationPluginsResolver; 
+    errorSerialization: ErrorSerializationPluginsResolver;
+    runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory;
 }
 
 export interface ITransferPluginsResolverReceiveDataConfig extends ITransferPluginControllerReceiveDataConfig {
@@ -25,6 +26,9 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
     constructor(config: ITransferPluginsResolverConfig) {
         this.errorSerialization = config.errorSerialization;
         this.registerPlugins(config.plugins);
+        const runnerTransferPluginController
+            = this.pluginControllers.get(RUNNER_TRANSFER_TYPE) as RunnerTransferPluginController;
+        runnerTransferPluginController.registerRunnerEnvironmentClientFactory(config.runnerEnvironmentClientFactory);
     }
 
     public transferData(
@@ -86,14 +90,6 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
             } = config;
             return pluginController.cancelReceiveData?.(transferConfig);
         }
-    }
-
-    public registerRunnerEnvironmentClientPartFactory(
-        runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory,
-    ): void {
-        const runnerTransferPluginController
-            = this.pluginControllers.get(RUNNER_TRANSFER_TYPE) as RunnerTransferPluginController;
-        runnerTransferPluginController.registerRunnerEnvironmentClientPartFactory(runnerEnvironmentClientPartFactory);
     }
 
     protected registerPlugins(plugins: ITransferPlugin[]): void {

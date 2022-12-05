@@ -9,10 +9,10 @@ export const RUNNER_ENVIRONMENT_CLIENT = '__workerRunner_runnerEnvironmentClient
 
 export class RunnerController {
 
-    private [RUNNER_ENVIRONMENT_CLIENT]: RunnerEnvironmentClient<RunnerConstructor>;
+    private [RUNNER_ENVIRONMENT_CLIENT]: RunnerEnvironmentClient;
 
     constructor(
-        controller: RunnerEnvironmentClient<RunnerConstructor>,
+        controller: RunnerEnvironmentClient,
     ) {
         this[RUNNER_ENVIRONMENT_CLIENT] = controller;
     }

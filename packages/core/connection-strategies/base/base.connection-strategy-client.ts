@@ -1,7 +1,6 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
-import { RunnerConstructor } from '../../types/constructor';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 
 /**
@@ -37,7 +36,7 @@ export abstract class BaseConnectionStrategyClient {
      */
     public prepareRunnerForSend(
         currentChannel: BaseConnectionChannel,
-        environment: RunnerEnvironmentClient<RunnerConstructor>,
+        environment: RunnerEnvironmentClient,
     ): IPreparedForSendRunnerData | Promise<IPreparedForSendRunnerData> {
         if (environment.isMarkedForTransfer) {
             return this.prepareRunnerForSendByConnectionChannel(currentChannel, environment.transferControl());

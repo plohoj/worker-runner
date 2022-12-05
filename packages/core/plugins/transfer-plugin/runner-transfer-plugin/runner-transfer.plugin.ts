@@ -1,15 +1,10 @@
 import { BaseConnectionStrategyClient } from '../../../connection-strategies/base/base.connection-strategy-client';
-import { RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
 import { ITransferPlugin } from '../base/transfer.plugin';
 import { RUNNER_TRANSFER_TYPE } from './runner-transfer-plugin-data';
 import { RunnerTransferPluginController } from './runner-transfer.plugin-controller';
 
 export interface IRunnerTransferPluginConfig {
     connectionStrategy: BaseConnectionStrategyClient;
-}
-
-export interface IRunnerTransferPluginResolveControllerConfig {
-    runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory;
 }
 
 export class RunnerTransferPlugin implements ITransferPlugin {

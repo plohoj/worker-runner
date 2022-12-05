@@ -1,5 +1,5 @@
 import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from '../../../connection-strategies/base/base.connection-strategy-client';
-import { RunnerEnvironmentClient, RunnerEnvironmentClientPartFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
 import { RunnerToken } from '../../../types/runner-identifier';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
@@ -15,16 +15,16 @@ export class RunnerTransferPluginController implements ITransferPluginController
 
     private readonly connectionStrategy: BaseConnectionStrategyClient;
     /** Assigned later outside of the constructor, to solve a circular dependency problem */
-    private runnerEnvironmentClientPartFactory!: RunnerEnvironmentClientPartFactory;
+    private runnerEnvironmentClientFactory!: RunnerEnvironmentClientFactory;
 
     constructor(config: IRunnerTransferPlugin) {
         this.connectionStrategy = config.connectionStrategy;
     }
 
-    public registerRunnerEnvironmentClientPartFactory(
-        runnerEnvironmentClientPartFactory: RunnerEnvironmentClientPartFactory
+    public registerRunnerEnvironmentClientFactory(
+        runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory
     ): void {
-        this.runnerEnvironmentClientPartFactory = runnerEnvironmentClientPartFactory
+        this.runnerEnvironmentClientFactory = runnerEnvironmentClientFactory
     }
 
     public transferData(
@@ -67,7 +67,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<ITransferPluginReceivedData> {
         const transferData = config.data as unknown as IRunnerTransferPluginData;
-        const runnerEnvironment = await this.runnerEnvironmentClientPartFactory({
+        const runnerEnvironment = await this.runnerEnvironmentClientFactory({
             token: transferData.token,
             connectionChannel: this.connectionStrategy.resolveConnectionForRunner(
                 config.actionController.connectionChannel,
