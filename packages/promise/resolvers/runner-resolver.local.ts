@@ -30,7 +30,7 @@ export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> exte
             connection: new PortalConnectionHost({
                 connectionChannel: localChannels[1]
             }),
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: config?.plugins,
         });
     }

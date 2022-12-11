@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ErrorSerializationPluginsResolver, ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig, ITransferPluginPreparedData, ITransferPluginReceivedData, ITransferPluginsResolverReceiveDataConfig, normalizeError, PLUGIN_CANNOT_PROCESS_DATA, ProxyConnectionChannel, TransferPluginReceivedData, TransferPluginSendData, TransferPluginsResolver, WorkerRunnerIdentifier, WorkerRunnerUnexpectedError } from '@worker-runner/core';
+import { ConnectionClosedError, ErrorSerializationPluginsResolver, ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig, ITransferPluginPreparedData, ITransferPluginReceivedData, ITransferPluginsResolverReceiveDataConfig, normalizeError, PLUGIN_CANNOT_PROCESS_DATA, ProxyConnectionChannel, TransferPluginReceivedData, TransferPluginSendData, TransferPluginsResolver, WorkerRunnerIdentifier, WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { catchError, concatMap, defer, EMPTY, finalize, from, isObservable, map, merge, mergeMap, Observable, of, shareReplay, Subject, takeUntil, takeWhile, tap } from 'rxjs';
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from '../../errors/runner-errors';
 import { observeAction } from '../../utils/observe-action';
@@ -13,12 +13,9 @@ export class RxTransferPluginController implements ITransferPluginController {
     private transferPluginsResolver!: TransferPluginsResolver;
     private errorSerialization!: ErrorSerializationPluginsResolver;
 
-    public registerTransferPluginsResolver(transferPluginsResolver: TransferPluginsResolver): void {
-        this.transferPluginsResolver = transferPluginsResolver;
-    }
-    
-    public registerErrorSerialization(errorSerialization: ErrorSerializationPluginsResolver): void {
-        this.errorSerialization = errorSerialization;
+    public registerPluginConfig(config: ITransferPluginControllerConfig): void {
+        this.transferPluginsResolver = config.transferPluginsResolver;
+        this.errorSerialization = config.errorSerialization;
     }
 
     public transferData(
@@ -55,7 +52,7 @@ export class RxTransferPluginController implements ITransferPluginController {
                         if (wasPreviouslySubscribed) {
                             throw new RxSubscriptionNotFoundError({
                                 message: 'This Rx stream has already been subscribed before',
-                            })
+                            });
                         }
                         wasPreviouslySubscribed = true;
 

@@ -4,7 +4,7 @@ import { parallelPromises } from '../../../utils/parallel.promises';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginCancelPreparedDataFunction, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { TransferPluginsResolver } from '../base/transfer-plugins.resolver';
-import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
+import { ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
 import { CollectionTransferData, ICollectionTransferPluginFieldData, ICollectionTransferPluginReceivedData, ICollectionTransferPluginSendData } from './collection-transfer-plugin-data';
 
 function runnerDataTransferErrorFactory(originalErrors: unknown[]): RunnerDataTransferError {
@@ -20,8 +20,8 @@ export abstract class BaseCollectionTransferPluginController<
     
     protected abstract readonly type: TransferPluginDataType;
 
-    public registerTransferPluginsResolver(transferPluginsResolver: TransferPluginsResolver): void {
-        this.transferPluginsResolver = transferPluginsResolver;
+    public registerPluginConfig(config: ITransferPluginControllerConfig): void {
+        this.transferPluginsResolver = config.transferPluginsResolver;
     }
 
     public transferData(

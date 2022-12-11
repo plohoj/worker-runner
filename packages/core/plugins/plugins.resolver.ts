@@ -1,11 +1,12 @@
-import { RunnerEnvironmentClientFactory } from '../../runner-environment/client/runner-environment.client';
-import { ErrorSerializationPluginsResolver } from '../error-serialization-plugin/base/error-serialization-plugins.resolver';
-import { IErrorSerializationPlugin, isErrorSerializationPlugin } from '../error-serialization-plugin/base/error-serialization.plugin';
-import { CorePluginsPack } from '../pack/core.plugins-pack';
-import { IPluginsPack, isPluginsPack } from '../pack/plugins-pack';
-import { IPlugin } from '../plugins.type';
-import { TransferPluginsResolver } from '../transfer-plugin/base/transfer-plugins.resolver';
-import { isTransferPlugin, ITransferPlugin } from '../transfer-plugin/base/transfer.plugin';
+import { RunnerEnvironmentClientFactory } from '../runner-environment/client/runner-environment.client';
+import { IRunnerDescription } from '../runner/runner-description';
+import { ErrorSerializationPluginsResolver } from './error-serialization-plugin/base/error-serialization-plugins.resolver';
+import { IErrorSerializationPlugin, isErrorSerializationPlugin } from './error-serialization-plugin/base/error-serialization.plugin';
+import { CorePluginsPack } from './pack/core.plugins-pack';
+import { IPluginsPack, isPluginsPack } from './pack/plugins-pack';
+import { IPlugin } from './plugins.type';
+import { TransferPluginsResolver } from './transfer-plugin/base/transfer-plugins.resolver';
+import { isTransferPlugin, ITransferPlugin } from './transfer-plugin/base/transfer.plugin';
 
 export interface IPluginsResolverHostConfig {
     plugins: Array<IPlugin>;
@@ -13,6 +14,7 @@ export interface IPluginsResolverHostConfig {
 
 export interface IPluginsResolveTransferResolverConfig {
     runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory;
+    runnerDescription: IRunnerDescription;
 }
 
 export class PluginsResolver {
@@ -30,9 +32,9 @@ export class PluginsResolver {
 
     public resolveTransferResolver(config: IPluginsResolveTransferResolverConfig): TransferPluginsResolver {
         return new TransferPluginsResolver({
+            ...config,
             plugins: this.transferPlugins,
             errorSerialization: this.errorSerialization,
-            runnerEnvironmentClientFactory: config.runnerEnvironmentClientFactory,
         });
     }
 

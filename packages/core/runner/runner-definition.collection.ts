@@ -5,7 +5,7 @@ import { JsonLike } from "../types/json-like";
 import { AvailableRunnersFromList, RunnerToken, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
 import { IRunnerControllerConstructor, RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "./runner.controller";
 
-interface IRunnerIdentifierConfigCollectionOptions<M extends RunnerIdentifierConfigList> {
+interface IRunnerDefinitionCollectionOptions<M extends RunnerIdentifierConfigList> {
     runners: M;
 }
 
@@ -18,12 +18,17 @@ interface IRunnerCollectionDataByTokenRecord {
     [token: string]: undefined | IRunnerCollectionData;
 }
 
-export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
+export class RunnerDefinitionCollection<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList> {
     public readonly runnerByTokenDataRecord: IRunnerCollectionDataByTokenRecord = {};
     public readonly runnerTokenMap = new Map<RunnerConstructor, RunnerToken>();
 
-    constructor(config: IRunnerIdentifierConfigCollectionOptions<L>) {
+    constructor(config: IRunnerDefinitionCollectionOptions<L>) {
         this.applyRunnerIdentifierConfigList(config.runners);
+    }
+    
+    /** WARNING: generates different tokens for different areas during minified build */
+    public static generateTokenForRunnerConstructor(runnerConstructor: RunnerConstructor): string {
+        return `${runnerConstructor.name}Token`;
     }
 
     public getRunnerTokenSoft<R extends RunnerConstructor>(runner: R): RunnerToken | undefined {
@@ -117,11 +122,6 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
         return methodsNames;
     }
 
-    /** WARNING: generates different tokens for different areas during minified build */
-    public generateTokenNameByRunnerConstructor(runnerConstructor: RunnerConstructor): string {
-        return runnerConstructor.name;
-    }
-
     private applyRunnerIdentifierConfigList(runnerIdentifierConfigList: L): void {
         for (const identifierConfig of runnerIdentifierConfigList) {
             let token: RunnerToken;
@@ -130,7 +130,7 @@ export class RunnerIdentifierConfigCollection<L extends RunnerIdentifierConfigLi
                 token = identifierConfig.token;
                 runnerConstructor = identifierConfig.runner as AvailableRunnersFromList<L> | undefined;
             } else {
-                token = this.generateTokenNameByRunnerConstructor(identifierConfig);
+                token = RunnerDefinitionCollection.generateTokenForRunnerConstructor(identifierConfig);
                 runnerConstructor = identifierConfig as AvailableRunnersFromList<L>;
             }
             if (runnerConstructor) {

@@ -29,7 +29,7 @@ export { IPlugin } from './plugins/plugins.type';
 export { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from './plugins/transfer-plugin/base/transfer-plugin-data';
 export { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from './plugins/transfer-plugin/base/transfer-plugins.resolver';
 export { ITransferPlugin } from './plugins/transfer-plugin/base/transfer.plugin';
-export { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './plugins/transfer-plugin/base/transfer.plugin-controller';
+export { ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './plugins/transfer-plugin/base/transfer.plugin-controller';
 export { RunnerTransferPlugin } from './plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 export { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from './runner-environment/client/runner-environment.client';
 export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientExecuteAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
@@ -42,6 +42,7 @@ export { IRunnerResolverHostConfigBase, RunnerResolverHostBase } from './runner-
 export { IRunnerResolverHostAction, RunnerResolverHostAction } from './runner-resolver/host/runner-resolver.host.actions';
 export { runnerResolverLocalWrapRunnerFunction, type RunnerResolverLocalBase } from './runner-resolver/local/runner-resolver.client';
 export { ResolvedRunner, ResolvedRunnerArguments, ResolvedRunnerMethod } from './runner/resolved-runner';
+export { RunnerDefinitionCollection } from './runner/runner-definition.collection';
 export { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from './runner/runner.controller';
 export { TransferRunnerData } from './transfer-data/transfer-runner-data';
 export { IAction } from './types/action';

@@ -43,7 +43,6 @@ export const rxResolvers = {
 }
 
 // #region Resolvers without LocalResolver
-
 const clientRunnerList = [
     ...runners.filter(runner => 
         (runner as IRunnerIdentifierConfig)?.token !== EXTENDED_STUB_RUNNER_TOKEN
@@ -55,9 +54,8 @@ const clientRunnerList = [
 
 export const resolverClientList = {
     Client: new RunnerResolverClient({ runners: clientRunnerList, connection }),
-    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: rxConnection }),
+    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: rxConnection }) as RunnerResolverClient<typeof clientRunnerList>,
 };
-
 // #endregion
 
 export const localResolversConstructors = {

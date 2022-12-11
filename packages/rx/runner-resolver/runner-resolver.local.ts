@@ -32,7 +32,7 @@ export class RxRunnerResolverLocal<L extends RunnerIdentifierConfigList = []> ex
             connection: new PortalConnectionHost({
                 connectionChannel: localChannels[1]
             }),
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: config?.plugins,
         });
     }

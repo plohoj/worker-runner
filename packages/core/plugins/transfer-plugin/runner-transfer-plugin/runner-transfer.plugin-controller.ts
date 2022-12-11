@@ -1,30 +1,40 @@
 import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from '../../../connection-strategies/base/base.connection-strategy-client';
+import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
+import { ConnectionClosedError, RunnerDestroyError } from '../../../errors/runner-errors';
 import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerEnvironmentClientCollection } from '../../../runner-environment/client/runner-environment.client.collection';
+import { IRunnerDescription } from '../../../runner/runner-description';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
 import { RunnerToken } from '../../../types/runner-identifier';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
-import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
+import { ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
 import { IRunnerTransferPluginData, RUNNER_TRANSFER_TYPE } from './runner-transfer-plugin-data';
 
-export interface IRunnerTransferPlugin {
+export interface IRunnerTransferPluginControllerConfig {
     connectionStrategy: BaseConnectionStrategyClient;
 }
 
-export class RunnerTransferPluginController implements ITransferPluginController {
+export interface IRunnerTransferPluginControllerAdditionalConfig {
+    runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory;
+}
 
+export class RunnerTransferPluginController implements ITransferPluginController {
+    private readonly environmentCollection = new RunnerEnvironmentClientCollection();
     private readonly connectionStrategy: BaseConnectionStrategyClient;
-    /** Assigned later outside of the constructor, to solve a circular dependency problem */
+    private runnerDescription!: IRunnerDescription;
     private runnerEnvironmentClientFactory!: RunnerEnvironmentClientFactory;
 
-    constructor(config: IRunnerTransferPlugin) {
+    constructor(config: IRunnerTransferPluginControllerConfig) {
         this.connectionStrategy = config.connectionStrategy;
     }
 
-    public registerRunnerEnvironmentClientFactory(
-        runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory
-    ): void {
-        this.runnerEnvironmentClientFactory = runnerEnvironmentClientFactory
+    public registerPluginConfig(config: ITransferPluginControllerConfig): void {
+        this.runnerDescription = config.runnerDescription;
+    }
+
+    public registerRunnerPluginConfig(config: IRunnerTransferPluginControllerAdditionalConfig): void {
+        this.runnerEnvironmentClientFactory = config.runnerEnvironmentClientFactory;
     }
 
     public transferData(
@@ -39,14 +49,14 @@ export class RunnerTransferPluginController implements ITransferPluginController
         if (preparedStrategyData$ instanceof Promise) {
             return preparedStrategyData$.then(preparedStrategyData => 
                 this.strategyDataToTransferData(
-                    runnerEnvironmentClient.token,
+                    runnerEnvironmentClient.runnerDescription.token,
                     preparedStrategyData,
                     this.connectionStrategy,
                 )
             );
         }
         return this.strategyDataToTransferData(
-            runnerEnvironmentClient.token,
+            runnerEnvironmentClient.runnerDescription.token,
             preparedStrategyData$,
             this.connectionStrategy,
         );
@@ -67,16 +77,35 @@ export class RunnerTransferPluginController implements ITransferPluginController
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<ITransferPluginReceivedData> {
         const transferData = config.data as unknown as IRunnerTransferPluginData;
-        const runnerEnvironment = await this.runnerEnvironmentClientFactory({
+        const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
+            config.actionController.connectionChannel,
+            transferData as unknown as DataForSendRunner,
+        )
+        const environmentClient: RunnerEnvironmentClient = await this.runnerEnvironmentClientFactory({
             token: transferData.token,
-            connectionChannel: this.connectionStrategy.resolveConnectionForRunner(
-                config.actionController.connectionChannel,
-                transferData as unknown as DataForSendRunner,
-            ),
+            connectionChannel,
+            onDestroyed: () => {
+                try {
+                    this.environmentCollection.remove(environmentClient)
+                } catch {
+                    // Between successful initialization and waiting for the promise queue, destruction may be called.
+                    // Therefore, a ReferenceError is thrown.
+                }
+            },
         });
+        // While waiting for the turn of promises Runner could be destroyed.
+        // Before adding a runner to the collection,
+        // we check the fact that the runner was not destroyed.
+        // If the check fails, a connection error will be thrown.
+        if (!connectionChannel.isConnected) {
+            throw new ConnectionClosedError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(environmentClient.runnerDescription),
+            });
+        }
+        this.environmentCollection.add(environmentClient);
         const receivedData: ITransferPluginReceivedData = {
-            data: runnerEnvironment.resolvedRunner as unknown as TransferPluginReceivedData,
-            cancel: () => runnerEnvironment.disconnect(),
+            data: environmentClient.resolvedRunner as unknown as TransferPluginReceivedData,
+            cancel: () => environmentClient.disconnect(),
         }
         return receivedData;
     }
@@ -91,6 +120,13 @@ export class RunnerTransferPluginController implements ITransferPluginController
         );
         await RunnerEnvironmentClient.disconnectConnection(connectionChannel);
         connectionChannel.destroy();
+    }
+
+    public destroy(): Promise<void> {
+        return this.environmentCollection.disconnect(originalErrors => new RunnerDestroyError({ 
+            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
+            originalErrors,
+        }));
     }
 
     private strategyDataToTransferData(

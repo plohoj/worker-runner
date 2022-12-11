@@ -1,4 +1,4 @@
-import { ConnectionClosedError, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, RunnerDefinitionCollection, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { localResolversConstructors, allResolvers } from '../client/resolver-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
@@ -30,7 +30,7 @@ each(allResolvers, (mode, resolver) =>
 
             await expectAsync(destroyPromise$).toBeRejectedWith(errorContaining(RunnerDestroyError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR({
-                    token: ErrorStubRunner.name,
+                    token: RunnerDefinitionCollection.generateTokenForRunnerConstructor(ErrorStubRunner),
                     runnerName: ErrorStubRunner.name,
                 }),
                 stack: jasmine.stringMatching(/.+/),
@@ -79,8 +79,8 @@ each(allResolvers, (mode, resolver) =>
 );
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
-    describe(`${mode} destroy runner`, () => {
-        it('with extended method', async () => {
+    describe(`${mode} destroy runner:`, () => {
+        it('should call the overridden destroy method during destroying of the Runner ', async () => {
             class DestroyableRunner {
                 public destroy(): void {
                     // stub
@@ -92,74 +92,48 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
             const destroyableRunner = await localResolver.resolve(DestroyableRunner);
 
             await destroyableRunner.destroy();
+
             expect(destroySpy).toHaveBeenCalled();
 
+            // destroy
             await localResolver.destroy();
         });
-
-        it('with resolved another runner', async () => {
-            const localResolver = new IterateRunnerResolverLocal({
-                runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
-            });
-            localResolver.run();
-
-            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
-            const withOtherInstanceStubRunner = await localResolver
-                .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
-
-            const runnerEnvironmentHosts
-                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'] || []];
-            const runnerEnvironmentHost = runnerEnvironmentHosts
-                .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
-
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(1);
-            await withOtherInstanceStubRunner.destroy();
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(0);
-
-            await localResolver.destroy();
-        });
-
         
-        it('should not disconnect another resolved runners', async () => {
+        it('should not destroy a previously obtained additional Runner during destroying the main Runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             localResolver.run();
+            const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
 
             const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner);
 
-            const runnerEnvironmentHosts
-                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'] || []];
-            function getExecutableStubRunner() {
-                return runnerEnvironmentHosts
-                    .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === ExecutableStubRunner.name);
-            }
-
-            expect(getExecutableStubRunner()).toBeTruthy();
+            expect(destroySpy).not.toHaveBeenCalled();
             await withOtherInstanceStubRunner.destroy();
-            expect(getExecutableStubRunner()).toBeTruthy();
+            expect(destroySpy).not.toHaveBeenCalled();
 
+            // destroy
             await localResolver.destroy();
         });
 
-        it('should disconnect another Resolved Runner when Runner was mark for transfer', async () => {
+        it('should destroy a previously obtained additional Resolved Runner when additional Runner was mark for transfer during destroying the main Runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             localResolver.run();
-            const runnerEnvironmentHosts
-                = [...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts'];
+            const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
 
             const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
 
-            expect(runnerEnvironmentHosts.size).toEqual(2);
+            expect(destroySpy).not.toHaveBeenCalled();
             await withOtherInstanceStubRunner.destroy();
-            expect(runnerEnvironmentHosts.size).toEqual(0);
+            expect(destroySpy).toHaveBeenCalledOnceWith();
 
+            // destroy
             await localResolver.destroy();
         });
     }),

@@ -6,11 +6,11 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { normalizeError } from '../../errors/normalize-error';
 import { RunnerInitError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
+import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { IPlugin } from '../../plugins/plugins.type';
-import { PluginsResolver } from '../../plugins/resolver/plugins.resolver';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
-import { RunnerIdentifierConfigCollection } from "../../runner/runner-identifier-config.collection";
+import { RunnerDefinitionCollection } from "../../runner/runner-definition.collection";
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -22,7 +22,7 @@ import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRu
 export interface IConnectedRunnerResolverHostConfig {
     connectionChannel: BaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyHost,
-    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<RunnerIdentifierConfigList>;
+    runnerDefinitionCollection: RunnerDefinitionCollection<RunnerIdentifierConfigList>;
     plugins?: IPlugin[];
     onDestroy: () => void;
 }
@@ -32,13 +32,13 @@ export class ConnectedRunnerResolverHost {
     public readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<RunnerConstructor>>();
 
     private readonly actionController: ActionController;
-    private readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection;
+    private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly connectionStrategy: BaseConnectionStrategyHost;
     private readonly pluginsResolver: PluginsResolver;
     private onDestroy: () => void;
 
     constructor(config: IConnectedRunnerResolverHostConfig) {
-        this.runnerIdentifierConfigCollection = config.runnerIdentifierConfigCollection;
+        this.runnerDefinitionCollection = config.runnerDefinitionCollection;
         this.connectionStrategy = config.connectionStrategy;
         this.actionController = new ActionController({connectionChannel: config.connectionChannel});
         const runnerTransferPlugin = new RunnerTransferPlugin({
@@ -84,7 +84,7 @@ export class ConnectedRunnerResolverHost {
         connectionChannel: BaseConnectionChannel,
     ): void {
         const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
-            token: this.runnerIdentifierConfigCollection.getRunnerTokenByInstance(runnerInstance),
+            token: this.runnerDefinitionCollection.getRunnerTokenByInstance(runnerInstance),
         });
         runnerEnvironmentHost.initSync({ runnerInstance, connectionChannel });
 
@@ -95,7 +95,7 @@ export class ConnectedRunnerResolverHost {
         config: Pick<IRunnerEnvironmentHostConfig, 'token'>
     ): RunnerEnvironmentHost<RunnerConstructor> {
         const runnerEnvironmentHost: RunnerEnvironmentHost = new RunnerEnvironmentHost({
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            runnerDefinitionCollection: this.runnerDefinitionCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
             onDestroyed: () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost),
@@ -162,7 +162,7 @@ export class ConnectedRunnerResolverHost {
                     ? {
                         type: RunnerResolverHostAction.SOFT_RUNNER_INITED,
                         id: action.id,
-                        methodsNames: this.runnerIdentifierConfigCollection.getRunnerMethodsNames(action.token),
+                        methodsNames: this.runnerDefinitionCollection.getRunnerMethodsNames(action.token),
                     }
                     : {
                         type: RunnerResolverHostAction.RUNNER_INITED,
@@ -190,7 +190,7 @@ export class ConnectedRunnerResolverHost {
             throw normalizeError(error, RunnerInitError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR({
                     token: action.token,
-                    runnerName: this.runnerIdentifierConfigCollection
+                    runnerName: this.runnerDefinitionCollection
                         .getRunnerConstructorSoft(action.token)?.name,
                 }),
             });

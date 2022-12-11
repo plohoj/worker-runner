@@ -64,25 +64,41 @@ each(allResolvers, (mode, resolver) =>
 
 each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     describe(`${mode} disconnect runner:`, () => {
-        it('with resolved another runner', async () => {
+        it('should not destroy a previously obtained additional Runner during disconnecting the main Runner', async () => {
             const localResolver = new IterateRunnerResolverLocal({
                 runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
             });
             localResolver.run();
+            const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
+
+            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
+            const withOtherInstanceStubRunner = await localResolver
+                .resolve(WithOtherInstanceStubRunner, executableStubRunner);
+
+            expect(destroySpy).not.toHaveBeenCalled();
+            await withOtherInstanceStubRunner.disconnect();
+            expect(destroySpy).not.toHaveBeenCalled();
+
+            // destroy
+            await localResolver.destroy();
+        });
+
+        it('should destroy a previously obtained additional Resolved Runner when additional Runner was mark for transfer during disconnecting the main Runner', async () => {
+            const localResolver = new IterateRunnerResolverLocal({
+                runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
+            });
+            localResolver.run();
+            const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
 
             const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await localResolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
 
-            const runnerEnvironmentHosts
-                = [...[...localResolver['host']['connectedResolvers']][0]['runnerEnvironmentHosts']];
-            const runnerEnvironmentHost = runnerEnvironmentHosts
-                .find(runnerEnvironmentHost => runnerEnvironmentHost['token'] === WithOtherInstanceStubRunner.name);
-
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(1);
+            expect(destroySpy).not.toHaveBeenCalled();
             await withOtherInstanceStubRunner.disconnect();
-            expect(runnerEnvironmentHost?.['environmentClientCollection']['environments'].size).toBe(0);
+            expect(destroySpy).toHaveBeenCalledOnceWith();
 
+            // destroy
             await localResolver.destroy();
         });
     }),

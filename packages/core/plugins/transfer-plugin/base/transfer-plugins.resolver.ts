@@ -1,18 +1,19 @@
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
-import { RunnerDataTransferError } from '../../../errors/runner-errors';
-import { RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerDataTransferError, RunnerDestroyError } from '../../../errors/runner-errors';
+import { IRunnerDescription } from '../../../runner/runner-description';
+import { parallelPromises } from '../../../utils/parallel.promises';
 import { ErrorSerializationPluginsResolver } from '../../error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { RUNNER_TRANSFER_TYPE } from '../runner-transfer-plugin/runner-transfer-plugin-data';
-import { RunnerTransferPluginController } from '../runner-transfer-plugin/runner-transfer.plugin-controller';
+import { IRunnerTransferPluginControllerAdditionalConfig, RunnerTransferPluginController } from '../runner-transfer-plugin/runner-transfer.plugin-controller';
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginDataType } from './transfer-plugin-data';
 import { ITransferPlugin } from './transfer.plugin';
 import { ITransferPluginController, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './transfer.plugin-controller';
 
-export interface ITransferPluginsResolverConfig {
+export interface ITransferPluginsResolverConfig extends IRunnerTransferPluginControllerAdditionalConfig {
     plugins: ITransferPlugin[];
     errorSerialization: ErrorSerializationPluginsResolver;
-    runnerEnvironmentClientFactory: RunnerEnvironmentClientFactory;
+    runnerDescription: IRunnerDescription;
 }
 
 export interface ITransferPluginsResolverReceiveDataConfig extends ITransferPluginControllerReceiveDataConfig {
@@ -21,14 +22,16 @@ export interface ITransferPluginsResolverReceiveDataConfig extends ITransferPlug
 
 export class TransferPluginsResolver implements Omit<ITransferPluginController, 'type'> {
     private readonly pluginControllers = new Map<TransferPluginDataType, ITransferPluginController>();
-    private readonly errorSerialization: ErrorSerializationPluginsResolver; 
+    private readonly errorSerialization: ErrorSerializationPluginsResolver;
+    private readonly runnerDescription: IRunnerDescription;
 
     constructor(config: ITransferPluginsResolverConfig) {
         this.errorSerialization = config.errorSerialization;
+        this.runnerDescription = config.runnerDescription;
         this.registerPlugins(config.plugins);
         const runnerTransferPluginController
             = this.pluginControllers.get(RUNNER_TRANSFER_TYPE) as RunnerTransferPluginController;
-        runnerTransferPluginController.registerRunnerEnvironmentClientFactory(config.runnerEnvironmentClientFactory);
+        runnerTransferPluginController.registerRunnerPluginConfig(config);
     }
 
     public transferData(
@@ -92,12 +95,27 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
         }
     }
 
+    public destroy(): Promise<void> {
+        return parallelPromises({
+            values: this.pluginControllers,
+            mapper: ([, plugin]) => plugin.destroy?.(),
+            stopAtFirstError: false,
+            errorFactory: originalErrors => new RunnerDestroyError({
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
+                originalErrors,
+            }),
+        }) as unknown as Promise<void>;
+    }
+
     protected registerPlugins(plugins: ITransferPlugin[]): void {
         for (const plugin of plugins) {
             const pluginController = plugin.resolveTransferController();
             this.pluginControllers.set(plugin.type, pluginController);
-            pluginController.registerTransferPluginsResolver?.(this);
-            pluginController.registerErrorSerialization?.(this.errorSerialization);
+            pluginController.registerPluginConfig?.({
+                errorSerialization: this.errorSerialization,
+                runnerDescription: this.runnerDescription,
+                transferPluginsResolver: this,
+            });
         }
     }
 }

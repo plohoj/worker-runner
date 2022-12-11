@@ -3,7 +3,7 @@ import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connec
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins.type';
-import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
+import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { parallelPromises } from '../../utils/parallel.promises';
@@ -15,21 +15,21 @@ export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> 
 } & ({
     runners: L
 } | {
-    runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>
+    runnerDefinitionCollection: RunnerDefinitionCollection<L>
 });
 
 export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigList> {
     
-    protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
+    protected readonly runnerDefinitionCollection: RunnerDefinitionCollection<L>;
 
     private readonly connection: BaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
     private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverHostConfigBase<L>) {
-        this.runnerIdentifierConfigCollection = 'runners' in config
-            ? new RunnerIdentifierConfigCollection({ runners: config.runners })
-            : config.runnerIdentifierConfigCollection;
+        this.runnerDefinitionCollection = 'runners' in config
+            ? new RunnerDefinitionCollection({ runners: config.runners })
+            : config.runnerDefinitionCollection;
         this.connection = config.connection;
         this.plugins = config.plugins;
     }
@@ -68,7 +68,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
         const connectedResolver: ConnectedRunnerResolverHost = new ConnectedRunnerResolverHost({
             connectionChannel: newConnectionData.connectionChannel,
             connectionStrategy: newConnectionData.strategy,
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: this.plugins,
             onDestroy: () => this.connectedResolvers.delete(connectedResolver),
         });

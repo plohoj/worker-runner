@@ -2,7 +2,7 @@ import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../co
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins.type';
-import { RunnerIdentifierConfigCollection } from '../../runner/runner-identifier-config.collection';
+import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerController } from '../../runner/runner.controller';
 import { IRunnerParameter } from '../../types/constructor';
 import { AvailableRunnerIdentifier, RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -16,14 +16,14 @@ export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList
 
 export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
 
-    protected readonly runnerIdentifierConfigCollection: RunnerIdentifierConfigCollection<L>;
+    protected readonly runnerDefinitionCollection: RunnerDefinitionCollection<L>;
     protected connectedResolver?: ConnectedRunnerResolverClient;
 
     private readonly connection: BaseConnectionClient;
     private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {
-        this.runnerIdentifierConfigCollection = new RunnerIdentifierConfigCollection({
+        this.runnerDefinitionCollection = new RunnerDefinitionCollection({
             runners: config.runners || [],
         });
         this.connection = config.connection;
@@ -72,7 +72,7 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
         this.connectedResolver = new ConnectedRunnerResolverClient({
             connectionChannel: establishedConnectionData.connectionChannel,
             connectionStrategy: establishedConnectionData.strategy,
-            runnerIdentifierConfigCollection: this.runnerIdentifierConfigCollection,
+            runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: this.plugins,
         });
         this.connectedResolver.run();

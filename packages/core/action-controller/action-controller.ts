@@ -49,7 +49,7 @@ export class ActionController implements IActionTarget, IDestroyTarget {
         transfer?: Transferable[],
     ): Promise<O & IActionWithId> {
         if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory(new ConnectionClosedError());
+            throw this.disconnectErrorFactory();
         }
         const actionId = this.generateActionIdentifier();
         const actionWidthId: IActionWithId = {
@@ -75,7 +75,7 @@ export class ActionController implements IActionTarget, IDestroyTarget {
 
     public sendAction = <T extends IAction>(action: T, transfer?: Transferable[]): void => {
         if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory(new ConnectionClosedError());
+            throw this.disconnectErrorFactory();
         }
         this.connectionChannel.sendAction(action, transfer);
     }
@@ -108,7 +108,7 @@ export class ActionController implements IActionTarget, IDestroyTarget {
 
     /** Interrupt resolving all actions and throw an error */
     public rejectResolingAllActions(
-        error: WorkerRunnerError = this.disconnectErrorFactory(new ConnectionClosedError())
+        error: WorkerRunnerError = this.disconnectErrorFactory()
     ): void {
         for (const reject of this.resolveActionRejectSet) {
             reject(error);
@@ -140,8 +140,8 @@ export class ActionController implements IActionTarget, IDestroyTarget {
         }
     }
 
-    private readonly defaultDisconnectErrorFactory = (error: ConnectionClosedError): ConnectionClosedError => {
-        return error;
+    private readonly defaultDisconnectErrorFactory = (): ConnectionClosedError => {
+        return new ConnectionClosedError();
     }
 
     private readonly actionHandler = (action: IActionWithId) => {
