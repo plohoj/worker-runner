@@ -1,4 +1,4 @@
-import { MessageChannelConnectionStrategyHost, WorkerConnectionHost } from '@worker-runner/core';
+import { MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, WorkerConnectionHost } from '@worker-runner/core';
 import { RxRunnerResolverHost } from '@worker-runner/rx';
 import { runners } from '../common/runner-list';
 
@@ -8,6 +8,7 @@ new RxRunnerResolverHost({
         target: self,
         strategies: [
             new MessageChannelConnectionStrategyHost(),
+            new RepeatConnectionStrategyHost(),
         ]
     }),
 }).run();

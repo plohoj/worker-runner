@@ -148,7 +148,7 @@ each(rxResolvers, (mode, resolver) => describe(mode, () => {
     });
 }));
 
-each({'Rx Local': rxResolvers['Rx Local']}, (mode, resolver) => describe(mode, () => {
+each({'Rx#Repeat#Local': rxResolvers['Rx#Repeat#Local']}, (mode, resolver) => describe(mode, () => {
     beforeAll(() => {
         resolver.run();
     });

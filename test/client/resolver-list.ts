@@ -4,42 +4,47 @@ import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } f
 import { runners } from "../common/runner-list";
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from "../common/stubs/extended-stub.runner";
 
-const clientWorker = new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'});
-const clientRxWorker = new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'});
-
-const connection = new WorkerConnectionClient({
-    target: clientWorker,
-    strategies: [
-        new MessageChannelConnectionStrategyClient(),
-        new RepeatConnectionStrategyClient(),
-    ]
-});
-
-const rxConnection = new WorkerConnectionClient({
-    target: clientRxWorker,
-    strategies: [
-        new MessageChannelConnectionStrategyClient(),
-        new RepeatConnectionStrategyClient(),
-    ]
-});
+const connections = {
+    messageChannel: new WorkerConnectionClient({
+        target: new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'}),
+        strategies: [new MessageChannelConnectionStrategyClient()],
+    }),
+    rxMessageChannel: new WorkerConnectionClient({
+        target: new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'}),
+        strategies: [new MessageChannelConnectionStrategyClient()],
+    }),
+    repeat: new WorkerConnectionClient({
+        target: new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'}),
+        strategies: [new RepeatConnectionStrategyClient()],
+    }),
+    rxRepeat: new WorkerConnectionClient({
+        target: new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'}),
+        strategies: [new RepeatConnectionStrategyClient()],
+    }),
+};
 
 const resolvers = {
-    Client: new RunnerResolverClient({ runners, connection }),
-    Local: new RunnerResolverLocal({ runners }),
-    'Rx Client': new RxRunnerResolverClient({ runners, connection: rxConnection }),
-    'Rx Local': new RxRunnerResolverLocal({ runners }),
+    'MessageChannel#Client': new RunnerResolverClient({ runners, connection: connections.messageChannel }),
+    'Repeat#Client': new RunnerResolverClient({ runners, connection: connections.repeat }),
+    'Repeat#Local': new RunnerResolverLocal({ runners }), // TODO Choosing a strategy for RunnerResolverLocal
+    'Rx#MessageChannel#Client': new RxRunnerResolverClient({ runners, connection: connections.rxMessageChannel }),
+    'Rx#Repeat#Client': new RxRunnerResolverClient({ runners, connection: connections.rxRepeat }),
+    'Rx#Repeat#Local': new RxRunnerResolverLocal({ runners }),
 };
 
 export const allResolvers = {
-    Client: resolvers.Client,
-    Local: resolvers.Local,
-    'Rx Client': resolvers['Rx Client'] as RunnerResolverClient<typeof runners>,
-    'Rx Local': resolvers["Rx Local"] as unknown as RunnerResolverLocal<typeof runners>,
+    'MessageChannel#Client': resolvers['MessageChannel#Client'],
+    'Repeat#Client': resolvers['Repeat#Client'],
+    'Repeat#Local': resolvers['Repeat#Local'],
+    'Rx#MessageChannel#Client': resolvers['Rx#MessageChannel#Client'] as RunnerResolverClient<typeof runners>,
+    'Rx#Repeat#Client': resolvers['Rx#Repeat#Client'] as RunnerResolverClient<typeof runners>,
+    'Rx#Repeat#Local': resolvers["Rx#Repeat#Local"] as unknown as RunnerResolverLocal<typeof runners>,
 };
 
 export const rxResolvers = {
-    'Rx Client': resolvers['Rx Client'],
-    'Rx Local': resolvers["Rx Local"],
+    'Rx#MessageChannel#Client': resolvers['Rx#MessageChannel#Client'],
+    'Rx#Repeat#Client': resolvers['Rx#Repeat#Client'],
+    'Rx#Repeat#Local': resolvers["Rx#Repeat#Local"],
 }
 
 // #region Resolvers without LocalResolver
@@ -53,22 +58,28 @@ const clientRunnerList = [
 ];
 
 export const resolverClientList = {
-    Client: new RunnerResolverClient({ runners: clientRunnerList, connection }),
-    'Rx Client': new RxRunnerResolverClient({ runners: clientRunnerList, connection: rxConnection }) as RunnerResolverClient<typeof clientRunnerList>,
+    'MessageChannel#Client': new RunnerResolverClient({ runners: clientRunnerList, connection: connections.messageChannel }),
+    'Repeat#Client': new RunnerResolverClient({ runners: clientRunnerList, connection: connections.repeat }),
+    'Rx#MessageChannel#Client': new RxRunnerResolverClient({
+        runners: clientRunnerList, connection: connections.rxMessageChannel
+    }) as RunnerResolverClient<typeof clientRunnerList>,
+    'Rx#Repeat#Client': new RxRunnerResolverClient({
+        runners: clientRunnerList, connection: connections.rxRepeat
+    }) as RunnerResolverClient<typeof clientRunnerList>,
 };
 // #endregion
 
 export const localResolversConstructors = {
-    Local: RunnerResolverLocal,
-    'Rx Local': RxRunnerResolverLocal as unknown as typeof RunnerResolverLocal,
+    'Repeat#Local': RunnerResolverLocal,
+    'Rx#Repeat#Local': RxRunnerResolverLocal as unknown as typeof RunnerResolverLocal,
 };
 
 export const apartHostClientResolvers = {
-    Apart: {
+    'Apart': {
         client: RunnerResolverClient,
         host: RunnerResolverHost,
     },
-    'Rx Apart': {
+    'Rx#Apart': {
         client: RxRunnerResolverClient as typeof RunnerResolverClient,
         host: RxRunnerResolverHost,
     },
