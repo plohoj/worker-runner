@@ -1,4 +1,4 @@
-import { AvailableRunnersFromList, IPlugin, LocalPortalConnectionChannel, PortalConnectionClient, PortalConnectionHost, RunnerConstructor, RunnerIdentifierConfigList, RunnerResolverHostBase, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
+import { AvailableRunnersFromList, BaseConnectionStrategyHost, IPlugin, LocalPortalConnectionChannel, MessageChannelConnectionStrategyHost, PortalConnectionClient, PortalConnectionHost, RunnerConstructor, RunnerIdentifierConfigList, RunnerResolverHostBase, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
 import { RxResolvedRunner } from '../runner/resolved-runner';
 import { RxRunnerResolverClient } from './runner-resolver.client';
 import { RxRunnerResolverHost } from './runner-resolver.host';
@@ -6,6 +6,7 @@ import { RxRunnerResolverHost } from './runner-resolver.host';
 interface IRxRunnerResolverLocalConfig<L extends RunnerIdentifierConfigList> {
     runners?: L
     plugins?: IPlugin[],
+    connectionStrategy?: BaseConnectionStrategyHost;
 }
 
 export class RxRunnerResolverLocal<L extends RunnerIdentifierConfigList = []> extends RxRunnerResolverClient<L> {
@@ -22,15 +23,18 @@ export class RxRunnerResolverLocal<L extends RunnerIdentifierConfigList = []> ex
 
     constructor(config?: IRxRunnerResolverLocalConfig<L>) {
         const localChannels = LocalPortalConnectionChannel.build();
+        const connectionStrategy = config?.connectionStrategy || new MessageChannelConnectionStrategyHost()
         super({
             connection: new PortalConnectionClient({
                 connectionChannel: localChannels[0],
+                connectionStrategy: connectionStrategy.strategyClient,
             }),
             ...config,
         });
         this.host = new RxRunnerResolverHost({
             connection: new PortalConnectionHost({
-                connectionChannel: localChannels[1]
+                connectionChannel: localChannels[1],
+                connectionStrategy: connectionStrategy,
             }),
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: config?.plugins,

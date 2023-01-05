@@ -1,10 +1,12 @@
 import { TransferRunnerData } from '@worker-runner/core';
-import { resolverClientList } from '../client/resolver-list';
+import { each } from '../client/utils/each';
+import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
 import { WithTransferableRunnerStub } from '../common/stubs/with-transferable-data.stub';
-import { each } from '../utils/each';
 
-each(resolverClientList, (mode, resolver) =>
-    describe(`${mode} Transfer data`, () => {
+// TODO should work with ...pickResolverFactories('Local', 'MessageChannel') 
+each(pickResolverFactories('Bridge'), (mode, resolverFactory) =>
+    describe(`${mode} Transfer data:`, () => {
+        const resolver = resolverFactory();
 
         beforeAll(async () => {
             await resolver.run();

@@ -7,7 +7,10 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
 
 // Type check:
 () => {
-    const connectionStub = new PortalConnectionClient({connectionChannel: undefined as never})
+    const connectionStub = new PortalConnectionClient({
+        connectionChannel: undefined as never,
+        connectionStrategy: undefined as never,
+    })
     class Runner1 { declare method1: () => void; declare method12: () => void }
     class Runner2 { declare method2: () => void; declare method12: () => void }
     class Runner3 { declare method3: () => void; }

@@ -8,16 +8,16 @@ import { IRepeatConnectionNewHostRunnerSendData, RepeatConnectionClientRunnerSen
 import { RepeatConnectionStrategyClient } from './repeat.connection-strategy-client';
 
 export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
-    public readonly strategyClient = new RepeatConnectionStrategyClient();
+    public readonly strategyClient: RepeatConnectionStrategyClient;
     public readonly type = ConnectionStrategyEnum.Repeat;
     protected readonly identifierGenerator = new IdentifierGenerator();
 
     constructor() {
         super();
-        this.strategyClient.run({
+        this.strategyClient = new RepeatConnectionStrategyClient({
             identifierGenerator: this.identifierGenerator,
-            prepareRunnerProxyKey: RepeatConnectionClientRunnerSendDataFields.HostId,
         });
+        this.strategyClient.registerProxyKey(RepeatConnectionClientRunnerSendDataFields.HostId);
     }
 
     public prepareRunnerForSend(

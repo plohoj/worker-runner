@@ -1,27 +1,15 @@
-import { IRunnerResolverClientBaseConfig, MessageEventConnectionClient, MessageEventConnectionHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList } from "@worker-runner/core";
-import { RunnerResolverClient, RunnerResolverHost } from "@worker-runner/promise";
-
-interface IApartConfiguredRunnerResolvers<
-    CL extends RunnerIdentifierConfigList,
-    HL extends RunnerIdentifierConfigList,
-> {
-    client: RunnerResolverClient<CL>;
-    host: RunnerResolverHost<HL>;
-    run(): Promise<void>;
-    destroy(): Promise<void>;
-}
+import { Constructor, IRunnerResolverClientBaseConfig, IRunnerResolverHostConfigBase, MessageEventConnectionClient, MessageEventConnectionHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, RunnerResolverClientBase, RunnerResolverHostBase } from "@worker-runner/core";
+import { IApartResolverFactoryConfig, IApartRunnerResolversManager } from '../types/apart-resolver-factory';
 
 export function createApartClientHostResolvers<
     CL extends RunnerIdentifierConfigList,
     HL extends RunnerIdentifierConfigList,
->(config: {
-    clientConfig?: Omit<IRunnerResolverClientBaseConfig<CL>, 'connection'>,
-    hostConfig: {
-        runners: HL
-    },
-    runnerResolverClientConstructor: typeof RunnerResolverClient,
-    runnerResolverHostConstructor: typeof RunnerResolverHost,
-}): IApartConfiguredRunnerResolvers<CL, HL> {
+    C extends RunnerResolverClientBase<CL> = RunnerResolverClientBase<CL>,
+    H extends RunnerResolverHostBase<HL> = RunnerResolverHostBase<HL>,
+>(config: IApartResolverFactoryConfig<CL, HL> & {
+    runnerResolverClientConstructor: Constructor<C, [IRunnerResolverClientBaseConfig<CL>]>,
+    runnerResolverHostConstructor: Constructor<H, [IRunnerResolverHostConfigBase<HL>]>,
+}): IApartRunnerResolversManager<C, H> {
     const messageChannel = new MessageChannel();
     const runnerResolverClient = new config.runnerResolverClientConstructor({
         ...config.clientConfig,
@@ -38,7 +26,7 @@ export function createApartClientHostResolvers<
         }),
     });
 
-    const result: IApartConfiguredRunnerResolvers<CL, HL> = {
+    const result: IApartRunnerResolversManager<C, H> = {
         client: runnerResolverClient,
         host: runnerResolverHost,
         async run(): Promise<void> {

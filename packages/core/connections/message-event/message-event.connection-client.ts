@@ -41,8 +41,7 @@ export class MessageEventConnectionClient extends BaseConnectionClient {
         } finally {
             this.stopCallback = undefined;
         }
-        strategy.run?.();
-        return {connectionChannel, strategy};
+        return {connectionChannel, connectionStrategy: strategy};
     }
 
     public override stop(): void {

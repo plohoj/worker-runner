@@ -6,6 +6,8 @@ import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyR
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data.interface';
 
+// TODO should use MessageChannel for send new Runner arguments for resolve
+// (Local resolver should serialize data for constructor)
 export class MessageChannelConnectionStrategyClient extends BaseConnectionStrategyClient {
     public readonly type: ConnectionStrategyEnum = ConnectionStrategyEnum.MessageChannel;
 

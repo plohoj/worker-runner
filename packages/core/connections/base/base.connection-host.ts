@@ -3,7 +3,7 @@ import { BaseConnectionStrategyHost } from '../../connection-strategies/base/bas
 
 export interface IEstablishedConnectionHostData {
     connectionChannel: BaseConnectionChannel;
-    strategy: BaseConnectionStrategyHost;
+    connectionStrategy: BaseConnectionStrategyHost;
 }
 
 export type ConnectionHostHandler = (newConnection: IEstablishedConnectionHostData) => void; 

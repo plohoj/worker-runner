@@ -1,13 +1,14 @@
 import { ConnectionClosedError, RunnerDefinitionCollection, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { localResolversConstructors, allResolvers } from '../client/resolver-list';
+import { each } from '../client/utils/each';
+import { errorContaining } from '../client/utils/error-containing';
+import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
-import { each } from '../utils/each';
-import { errorContaining } from '../utils/error-containing';
 
-each(allResolvers, (mode, resolver) =>
+each(pickResolverFactories(), (mode, resolverFactory) =>
     describe(`${mode} destroy runner:`, () => {
+        const resolver = resolverFactory();
 
         beforeAll(async () => {
             await resolver.run();
@@ -78,8 +79,18 @@ each(allResolvers, (mode, resolver) =>
     }),
 );
 
-each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
+each(pickResolverFactories('Local'), (mode, resolverFactory) =>
     describe(`${mode} destroy runner:`, () => {
+        const resolver = resolverFactory();
+
+        beforeAll(() => {
+            resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
         it('should call the overridden destroy method during destroying of the Runner ', async () => {
             class DestroyableRunner {
                 public destroy(): void {
@@ -87,54 +98,35 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
                 }
             }
             const destroySpy = spyOn(DestroyableRunner.prototype, 'destroy');
-            const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyableRunner] });
-            localResolver.run();
-            const destroyableRunner = await localResolver.resolve(DestroyableRunner);
+            const destroyableRunner = await resolver.resolve(DestroyableRunner);
 
             await destroyableRunner.destroy();
 
             expect(destroySpy).toHaveBeenCalled();
-
-            // destroy
-            await localResolver.destroy();
         });
         
         it('should not destroy a previously obtained additional Runner during destroying the main Runner', async () => {
-            const localResolver = new IterateRunnerResolverLocal({
-                runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
-            });
-            localResolver.run();
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
 
-            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
-            const withOtherInstanceStubRunner = await localResolver
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner);
 
             expect(destroySpy).not.toHaveBeenCalled();
             await withOtherInstanceStubRunner.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
-
-            // destroy
-            await localResolver.destroy();
         });
 
         it('should destroy a previously obtained additional Resolved Runner when additional Runner was mark for transfer during destroying the main Runner', async () => {
-            const localResolver = new IterateRunnerResolverLocal({
-                runners: [ExecutableStubRunner, WithOtherInstanceStubRunner],
-            });
-            localResolver.run();
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
 
-            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
-            const withOtherInstanceStubRunner = await localResolver
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner.markForTransfer());
 
             expect(destroySpy).not.toHaveBeenCalled();
             await withOtherInstanceStubRunner.destroy();
             expect(destroySpy).toHaveBeenCalledOnceWith();
-
-            // destroy
-            await localResolver.destroy();
         });
     }),
 );

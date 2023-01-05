@@ -19,7 +19,7 @@ export class RunnerEnvironmentClientCollection {
             await parallelPromises({
                 values: this.environments,
                 stopAtFirstError: false,
-                mapper: runnerEnvironment => runnerEnvironment.disconnect(),
+                mapper: runnerEnvironment => runnerEnvironment.destroyInProcess$ || runnerEnvironment.disconnect(),
                 errorFactory,
             });
         } finally {
@@ -32,7 +32,7 @@ export class RunnerEnvironmentClientCollection {
             await parallelPromises({
                 values: this.environments,
                 stopAtFirstError: false,
-                mapper: environmentClient => environmentClient.destroy(),
+                mapper: runnerEnvironment => runnerEnvironment.destroyInProcess$ || runnerEnvironment.destroy(),
                 errorFactory,
             });
         } finally {

@@ -1,25 +1,22 @@
 import { RunnerResolverHost } from "@worker-runner/promise";
-import { apartHostClientResolvers } from "../client/resolver-list";
-import { createApartClientHostResolvers } from "../utils/apart-client-host-resolvers";
-import { each } from "../utils/each";
+import { each } from "../client/utils/each";
+import { pickApartResolverFactories } from '../client/utils/pick-apart-resolver-factories';
 
-each(apartHostClientResolvers, (mode, resolvers) => 
+each(pickApartResolverFactories(), (mode, resolverFactory) => 
     describe(mode, () => {
-        it('delayed connection', async () => {
-            const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
+        it('delayed connection:', async () => {
+            const apartResolversManager = resolverFactory({
                 hostConfig: { runners: [] },
-                runnerResolverClientConstructor: resolvers.client,
-                runnerResolverHostConstructor: resolvers.host,
             });
             // eslint-disable-next-line @typescript-eslint/unbound-method
-            const originalRunMethod = resolvers.host.prototype.run;
-            spyOn(resolvers.host.prototype, 'run').and.callFake(function(this: typeof RunnerResolverHost) {
-                setTimeout(originalRunMethod.bind(this), 100);
+            const originalRunMethod = apartResolversManager.host.run;
+            spyOn(apartResolversManager.host, 'run').and.callFake(function(this: typeof RunnerResolverHost) {
+                setTimeout(originalRunMethod.bind(this), 9);
             });
 
-            await expectAsync(apartConfiguredRunnerResolvers.run()).toBeResolved();
+            await expectAsync(apartResolversManager.run()).toBeResolved();
 
-            await apartConfiguredRunnerResolvers.destroy();
+            await apartResolversManager.destroy();
         });
     }),
 );

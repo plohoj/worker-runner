@@ -1,18 +1,19 @@
 import { ConnectionClosedError, ResolvedRunner, RunnerDataTransferError, RunnerExecuteError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
-import { allResolvers, apartHostClientResolvers, localResolversConstructors, resolverClientList } from '../client/resolver-list';
+import { each } from '../client/utils/each';
+import { errorContaining } from '../client/utils/error-containing';
+import { pickApartResolverFactories } from '../client/utils/pick-apart-resolver-factories';
+import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
 import { runners } from '../common/runner-list';
 import { ErrorStubRunner } from '../common/stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from '../common/stubs/executable-stub.runner';
 import { EXTENDED_STUB_RUNNER_TOKEN } from '../common/stubs/extended-stub.runner';
 import { WithLocalResolverStub } from '../common/stubs/with-local-resolver-stub.runner';
 import { WithOtherInstanceStubRunner } from '../common/stubs/with-other-instance-stub.runner';
-import { createApartClientHostResolvers } from '../utils/apart-client-host-resolvers';
-import { each } from '../utils/each';
-import { errorContaining } from '../utils/error-containing';
 
-each(allResolvers, (mode, resolver) =>
+each(pickResolverFactories(), (mode, resolverFactory) =>
     describe(`${mode} execute:`, () => {
+        const resolver = resolverFactory();
 
         beforeAll(async () => {
             await resolver.run();
@@ -166,8 +167,10 @@ each(allResolvers, (mode, resolver) =>
     }),
 );
 
-each(resolverClientList, (mode, resolver) =>
-    describe(`${mode} constructor:`, () => {
+each({...pickResolverFactories('Bridge'), ...pickResolverFactories('Local', 'MessageChannel')}, (mode, resolverFactory) =>
+    describe(`${mode} execute:`, () => {
+        const resolver = resolverFactory();
+
         beforeAll(async () => {
             await resolver.run();
         });
@@ -195,13 +198,21 @@ each(resolverClientList, (mode, resolver) =>
     }),
 );
 
-each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
-    describe(`${mode} constructor:`, () => {
+each(pickResolverFactories('Local', 'Repeat'), (mode, resolverFactory) =>
+    describe(`${mode} execute:`, () => {
+        const resolver = resolverFactory();
+
+        beforeAll(() => {
+            resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
         it('should throw an error when the Resolved Runner that was passed as an argument was destroyed during method execution', async () => {
-            const localResolver = new IterateRunnerResolverLocal();
-            localResolver.run();
-            const executableStubRunner = await localResolver.resolve(ExecutableStubRunner);
-            const withOtherInstanceStubRunner = await localResolver.resolve(WithOtherInstanceStubRunner);
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+            const withOtherInstanceStubRunner = await resolver.resolve(WithOtherInstanceStubRunner);
 
             const executeResponse$ = withOtherInstanceStubRunner.pullInstanceStage(executableStubRunner);
             await executableStubRunner.destroy();
@@ -225,10 +236,10 @@ each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
     }),
 );
 
-each(apartHostClientResolvers, (mode, resolvers) => 
-    describe(`${mode} execute`, () => {
+each(pickApartResolverFactories(), (mode, resolverFactory) => 
+    describe(`${mode} execute:`, () => {
         it('with soft runner argument', async () => {
-            const apartConfiguredRunnerResolvers = createApartClientHostResolvers({
+            const apartResolversManager = resolverFactory({
                 clientConfig: {
                     runners: [WithLocalResolverStub],
                 },
@@ -241,18 +252,17 @@ each(apartHostClientResolvers, (mode, resolvers) =>
                         WithLocalResolverStub,
                     ],
                 },
-                runnerResolverClientConstructor: resolvers.client,
-                runnerResolverHostConstructor: resolvers.host,
             });
-            await apartConfiguredRunnerResolvers.run();
-            const withLocalResolverStub = await apartConfiguredRunnerResolvers.client.resolve(WithLocalResolverStub);
+            await apartResolversManager.run();
+            const withLocalResolverStub = await apartResolversManager.client.resolve(WithLocalResolverStub);
             await withLocalResolverStub.run('');
 
             await expectAsync(
                 withLocalResolverStub.resolveExecutableRunnerWithMarkForTransfer()
             ).toBeResolved();
 
-            await apartConfiguredRunnerResolvers.destroy();
+            // destroy
+            await apartResolversManager.destroy();
         });
     }),
 );

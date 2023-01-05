@@ -60,8 +60,6 @@ export abstract class BaseConnectionStrategyClient {
         return RunnerEnvironmentClient.disconnectConnection(resolvedConnection);
     }
 
-    public run?(): void;
-
     protected prepareRunnerForSendByConnectionChannel(
         currentChannel: BaseConnectionChannel,
         resolvedChannel: BaseConnectionChannel,

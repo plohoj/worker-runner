@@ -3,7 +3,7 @@ import { BaseConnectionStrategyClient } from '../../connection-strategies/base/b
 
 export interface IEstablishedConnectionClientData {
     connectionChannel: BaseConnectionChannel;
-    strategy: BaseConnectionStrategyClient;
+    connectionStrategy: BaseConnectionStrategyClient;
 }
 
 export abstract class BaseConnectionClient {

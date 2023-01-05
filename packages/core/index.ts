@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+export { BaseConnectionStrategyHost } from './connection-strategies/base/base.connection-strategy-host';
 export { ActionController } from './action-controller/action-controller';
 export { LocalPortalConnectionChannel } from './connection-channels/local-portal.connection-channel';
 export { ProxyConnectionChannel } from './connection-channels/proxy.connection-channel';

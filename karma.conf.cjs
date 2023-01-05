@@ -18,7 +18,12 @@ const karmaConfig = {
     './test/main.ts': ['webpack'],
   },
   webpack: webpackConfig,
-  reporters: isCoverage ? ['coverage-istanbul']: ['progress'],
+  reporters: [
+    ...isCoverage ? ['coverage-istanbul'] : [],
+    'progress',
+    'kjhtml',
+    'jasmine-seed'
+  ],
   coverageIstanbulReporter: {
     reports: ['html'],
   },

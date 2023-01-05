@@ -35,7 +35,7 @@ export class MessageEventConnectionHost extends BaseConnectionHost {
                 connectionChannel: new MessageEventConnectionChannel({
                     target: this.target,
                 }),
-                strategy,
+                connectionStrategy: strategy,
             }),
             error => {
                 throw error;

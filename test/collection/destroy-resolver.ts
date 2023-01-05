@@ -1,54 +1,85 @@
 import { ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
-import { localResolversConstructors, allResolvers } from '../client/resolver-list';
+import { each } from '../client/utils/each';
+import { errorContaining } from '../client/utils/error-containing';
+import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
 import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
-import { each } from '../utils/each';
-import { errorContaining } from '../utils/error-containing';
 
-each(allResolvers, (mode, resolver) =>
-    describe(`${mode} destroy resolver`, () => {
-        it('for restart', async () => {
+each(pickResolverFactories(), (mode, resolverFactory) =>
+    describe(`${mode} destroy resolver:`, () => {
+        const resolver = resolverFactory();
+
+        beforeAll(async () => {
             await resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
+        it('should resolve Runner after restarting Resolver', async () => {
             await resolver.destroy();
             await resolver.run();
 
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             await expectAsync(executableStubRunner.amount(17, 68)).toBeResolvedTo(85);
-            await resolver.destroy();
         });
 
-        it('when it was already destroyed', async () => {
+        it('should throw an error when destroying an already destroyed Resolver', async () => {
+            await resolver.destroy();
+
             await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionClosedError, {
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
+
+            // restoring
+            await resolver.run();
         });
 
-        it('and resolve Runner', async () => {
+        it('should throw an error on resolving Runner after destroying Resolver', async () => {
+            await resolver.destroy();
+
             await expectAsync(resolver.resolve(ExecutableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
                     name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
+
+            // restoring
+            await resolver.run();
         });
     }),
 );
 
-each(localResolversConstructors, (mode, IterateRunnerResolverLocal) =>
-    describe(`${mode} destroy resolver`, () => {
-        it('simple', async () => {
+each(pickResolverFactories('Local'), (mode, factoryResolver) =>
+    describe(`${mode} destroy resolver:`, () => {
+        const resolver = factoryResolver();
+
+        beforeAll(() => {
+            resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
+        it('should destroy the Runner while destroying the Resolver', async () => {
             class DestroyStub {
                 public destroy(): void {
                     // Stub
                 }
             }
             const destroySpy = spyOn(DestroyStub.prototype, 'destroy');
-            const localResolver = new IterateRunnerResolverLocal({ runners: [DestroyStub] });
-            localResolver.run();
-            await localResolver.resolve(DestroyStub);
-            await localResolver.destroy();
+
+            await resolver.resolve(DestroyStub);
+            await resolver.destroy();
+
             expect(destroySpy).toHaveBeenCalled();
+
+            // restoring
+            resolver.run();
         });
     }),
 );

@@ -67,7 +67,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     private readonly newConnectionHandler = (newConnectionData: IEstablishedConnectionHostData) => {
         const connectedResolver: ConnectedRunnerResolverHost = new ConnectedRunnerResolverHost({
             connectionChannel: newConnectionData.connectionChannel,
-            connectionStrategy: newConnectionData.strategy,
+            connectionStrategy: newConnectionData.connectionStrategy,
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: this.plugins,
             onDestroy: () => this.connectedResolvers.delete(connectedResolver),

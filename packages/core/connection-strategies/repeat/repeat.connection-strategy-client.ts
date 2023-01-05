@@ -6,25 +6,26 @@ import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyR
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { IRepeatConnectionClientRunnerProxySendData, IRepeatConnectionNewClientRunnerSendData, IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data.interface';
 
-export interface IRepeatConnectionStrategyClientRunConfig {
+export interface IRepeatConnectionStrategyClientConfig {
     identifierGenerator?: IdentifierGenerator;
-    prepareRunnerProxyKey?:
-        | RepeatConnectionClientRunnerSendDataFields.ClientId
-        | RepeatConnectionClientRunnerSendDataFields.HostId;
 }
 
 export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient {
 
     public readonly type: ConnectionStrategyEnum = ConnectionStrategyEnum.Repeat;
-    private identifierGenerator!: IdentifierGenerator;
-    private prepareRunnerProxyKey: 
+    private readonly identifierGenerator!: IdentifierGenerator;
+    private prepareRunnerProxyKey!: 
         | RepeatConnectionClientRunnerSendDataFields.ClientId
-        | RepeatConnectionClientRunnerSendDataFields.HostId
-        = RepeatConnectionClientRunnerSendDataFields.ClientId;
-    private newRunnerProxySendDataKey:
+        | RepeatConnectionClientRunnerSendDataFields.HostId;
+    private newRunnerProxySendDataKey!:
         | RepeatConnectionClientRunnerSendDataFields.NewClientId
-        | RepeatConnectionClientRunnerSendDataFields.NewHostId
-        = RepeatConnectionClientRunnerSendDataFields.NewClientId;
+        | RepeatConnectionClientRunnerSendDataFields.NewHostId;
+
+    constructor(config?: IRepeatConnectionStrategyClientConfig) {
+        super();
+        this.identifierGenerator = config?.identifierGenerator || new IdentifierGenerator();
+        this.registerProxyKey(RepeatConnectionClientRunnerSendDataFields.ClientId);
+    }
 
     public resolveConnectionForRunner(
         currentChannel: BaseConnectionChannel,
@@ -53,15 +54,15 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
         return connectionChannel;
     }
 
-    public override run(config: IRepeatConnectionStrategyClientRunConfig = {}) {
-        this.identifierGenerator = config.identifierGenerator || new IdentifierGenerator();
-        if (config.prepareRunnerProxyKey) {
-            this.prepareRunnerProxyKey = config.prepareRunnerProxyKey;
-            this.newRunnerProxySendDataKey
-                = this.prepareRunnerProxyKey === RepeatConnectionClientRunnerSendDataFields.ClientId
+    public registerProxyKey(prepareRunnerProxyKey:
+        | RepeatConnectionClientRunnerSendDataFields.ClientId
+        | RepeatConnectionClientRunnerSendDataFields.HostId = RepeatConnectionClientRunnerSendDataFields.ClientId
+    ) {
+        this.prepareRunnerProxyKey = prepareRunnerProxyKey;
+        this.newRunnerProxySendDataKey
+            = this.prepareRunnerProxyKey === RepeatConnectionClientRunnerSendDataFields.ClientId
                 ? RepeatConnectionClientRunnerSendDataFields.NewClientId
                 : RepeatConnectionClientRunnerSendDataFields.NewHostId;
-        }
     }
 
     protected prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData {

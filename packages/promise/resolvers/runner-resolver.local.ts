@@ -1,10 +1,11 @@
-import { AvailableRunnersFromList, IPlugin, LocalPortalConnectionChannel, PortalConnectionClient, PortalConnectionHost, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
+import { AvailableRunnersFromList, BaseConnectionStrategyHost, IPlugin, LocalPortalConnectionChannel, MessageChannelConnectionStrategyHost, PortalConnectionClient, PortalConnectionHost, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
 import { RunnerResolverClient } from './runner-resolver.client';
 import { RunnerResolverHost } from './runner-resolver.host';
 
 interface IRunnerResolverLocalConfig<L extends RunnerIdentifierConfigList> {
-    runners?: L
-    plugins?: IPlugin[],
+    runners?: L;
+    plugins?: IPlugin[];
+    connectionStrategy?: BaseConnectionStrategyHost;
 }
 
 export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClient<L> {
@@ -20,15 +21,18 @@ export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> exte
 
     constructor(config?: IRunnerResolverLocalConfig<L>) {
         const localChannels = LocalPortalConnectionChannel.build();
+        const connectionStrategy = config?.connectionStrategy || new MessageChannelConnectionStrategyHost()
         super({
             connection: new PortalConnectionClient({
                 connectionChannel: localChannels[0],
+                connectionStrategy: connectionStrategy.strategyClient,
             }),
             ...config,
         });
         this.host = new RunnerResolverHost({
             connection: new PortalConnectionHost({
-                connectionChannel: localChannels[1]
+                connectionChannel: localChannels[1],
+                connectionStrategy: connectionStrategy,
             }),
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: config?.plugins,

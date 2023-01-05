@@ -1,27 +1,27 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { RepeatConnectionStrategyClient } from '../../connection-strategies/repeat/repeat.connection-strategy-client';
+import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { BaseConnectionClient, IEstablishedConnectionClientData } from '../base/base.connection-client';
 
 export interface PortalConnectionClientConfig {
     connectionChannel: BaseConnectionChannel;
+    connectionStrategy: BaseConnectionStrategyClient;
 }
 
 export class PortalConnectionClient extends BaseConnectionClient {
 
-    private connectionChannel: BaseConnectionChannel;
+    private readonly connectionChannel: BaseConnectionChannel;
+    private readonly connectionStrategy: BaseConnectionStrategyClient;
 
     constructor(config: PortalConnectionClientConfig) {
         super();
         this.connectionChannel = config.connectionChannel;
+        this.connectionStrategy = config.connectionStrategy;
     }
 
     public override connect(): IEstablishedConnectionClientData {
-        const repeatStrategy = new RepeatConnectionStrategyClient();
-        repeatStrategy.run();
         return {
             connectionChannel: this.connectionChannel,
-            // TODO MessagePortConnectionStrategy for LocalRunnerResolver
-            strategy: repeatStrategy,
+            connectionStrategy: this.connectionStrategy,
         }
     }
 }

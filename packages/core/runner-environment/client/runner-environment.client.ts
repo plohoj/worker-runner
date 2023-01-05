@@ -47,6 +47,12 @@ const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' as unknown as WorkerRunnerIdentifie
 export class RunnerEnvironmentClient {
     public readonly runnerDescription: IRunnerDescription;
 
+    /**
+     * * If the value is set, then the destruction process has already been started earlier.
+     * * Throws an event when the destruction process is completed
+     */
+    public destroyInProcess$?: Promise<void>;
+
     private readonly actionController: ActionController;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
     private readonly onDestroyed: () => void;
@@ -268,10 +274,20 @@ export class RunnerEnvironmentClient {
     }
 
     private async handleDestroy(): Promise<void> {
-        this.destroyInterrupter.interrupt();
-        await this.transferPluginsResolver.destroy();
-        this.actionController.destroy();
-        this.onDestroyed();
+        if (!this.destroyInProcess$) {
+            // During the destruction of the Resolver,
+            // the Host sends a command to destroy the Runner Environment Client.
+            // The Runner Environment Client may take so long to destroy
+            // that the Resolver Client may additionally call disconnect.
+            // Storing the destroy flow to avoid throwing an error during the ActionController is destroyed
+            this.destroyInProcess$ = (async () => {
+                this.destroyInterrupter.interrupt();
+                await this.transferPluginsResolver.destroy();
+                this.actionController.destroy();
+                this.onDestroyed();
+            })();
+        }
+        return this.destroyInProcess$;
     }
 
     private handleActionWithoutId = async (

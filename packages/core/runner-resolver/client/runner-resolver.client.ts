@@ -14,7 +14,7 @@ export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList
     plugins?: IPlugin[];
 };
 
-export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
+export abstract class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
 
     protected readonly runnerDefinitionCollection: RunnerDefinitionCollection<L>;
     protected connectedResolver?: ConnectedRunnerResolverClient;
@@ -71,7 +71,7 @@ export class RunnerResolverClientBase<L extends RunnerIdentifierConfigList>  {
     private buildAndRunConnectedResolver(establishedConnectionData: IEstablishedConnectionClientData): void {
         this.connectedResolver = new ConnectedRunnerResolverClient({
             connectionChannel: establishedConnectionData.connectionChannel,
-            connectionStrategy: establishedConnectionData.strategy,
+            connectionStrategy: establishedConnectionData.connectionStrategy,
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: this.plugins,
         });
