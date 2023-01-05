@@ -2,7 +2,7 @@ name: Build CI
 
 on: push
 
-jobs:    
+jobs:
   eslint:
 
     name: ESlint
@@ -10,16 +10,16 @@ jobs:
 
     steps:
     - name: Checkout to commit
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up node
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
     - name: Install npm dependencies
       run: npm ci
     - name: Run ESLint
       run: npm run lint
       env:
         CI: true
-  
+
   build:
 
     name: Build
@@ -27,9 +27,9 @@ jobs:
 
     steps:
     - name: Checkout to commit
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up node
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
     - name: Install npm dependencies
       run: npm ci
     - name: Run Build

@@ -1,0 +1,49 @@
+name: Update version
+
+on:
+  workflow_call:
+    inputs:
+      update-type:
+        required: true
+        type: string
+        description: Version upgrade type
+      author-name:
+        required: false
+        type: string
+        description: Commit author name
+      author-email:
+        required: false
+        type: string
+        description: Commit author email
+
+jobs:
+  update-version:
+    name: Update version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout to commit
+        uses: actions/checkout@v3
+      - name: Set up node
+        uses: actions/setup-node@v3
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Configure commit author from previous commit
+        if: |
+          !(inputs.author-name && inputs.author-email)
+        run: |
+          git config --local user.name "$(git log -1 --format='%an')"
+          git config --local user.email "$(git log -1 --format='%ae')"
+      - name: Configure commit author from dispatched inputs
+        if: inputs.author-name && inputs.author-email
+        run: |
+          git config --local user.name "${{inputs.author-name}}"
+          git config --local user.email "${{inputs.author-email}}"
+      - name: Updating version
+        run: npm version ${{inputs.update-type}} --m "Upgrade to v%s"
+      - name: Push changes
+        run: git push origin HEAD
+      - name: Draft release preparation trigger
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Draft release
+          ref: ${{ github.event.pull_request.head.ref }}

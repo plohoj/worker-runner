@@ -2,7 +2,7 @@ name: Versioning
 
 on:
   pull_request:
-    types: [ closed ]
+    types: [closed]
   workflow_dispatch:
     inputs:
       update-type:
@@ -27,118 +27,31 @@ jobs:
     name: Patch version
     if: |
       (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'version:patch'))
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.update-type == 'patch')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout to commit
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.PUSH_TOKEN }}
-      - name: Set up node
-        uses: actions/setup-node@v2
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Configure commit author from previous commit
-        if: |
-          !(github.event.inputs.author-name && github.event.inputs.author-email)
-        run: |
-          git config --local user.name "$(git log -1 --format='%an')"
-          git config --local user.email "$(git log -1 --format='%ae')"
-      - name: Configure commit author from dispatched inputs
-        if: github.event.inputs.author-name && github.event.inputs.author-email
-        env:
-          AUTHOR_NAME: ${{github.event.inputs.author-name}}
-          AUTHOR_EMAIL: ${{github.event.inputs.author-email}}
-        run: |
-          git config --local user.name "$AUTHOR_NAME"
-          git config --local user.email "$AUTHOR_EMAIL"
-      - name: Updating version
-        run: npm run version:patch
-      - name: Push changes
-        run: git push origin HEAD
-      - name: Draft release preparation trigger
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: Draft release
-          token: ${{ secrets.WORKFLOW_DISPATCH_TOKEN }}
-          ref: ${{ github.event.pull_request.head.ref }}
+      || (github.event_name == 'workflow_dispatch' && inputs.update-type == 'patch')
+    uses: ./.github/workflows/update-version.yml
+    with:
+      update-type: patch
+      author-name: ${{inputs.author-name}}
+      author-email: ${{inputs.author-email}}
 
   minor-version:
     name: Minor version
     if: |
       (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'version:minor'))
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.update-type == 'minor')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout to commit
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.PUSH_TOKEN }}
-      - name: Set up node
-        uses: actions/setup-node@v2
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Configure commit author from previous commit
-        if: |
-          !(github.event.inputs.author-name && github.event.inputs.author-email)
-        run: |
-          git config --local user.name "$(git log -1 --format='%an')"
-          git config --local user.email "$(git log -1 --format='%ae')"
-      - name: Configure commit author from dispatched inputs
-        if: github.event.inputs.author-name && github.event.inputs.author-email
-        env:
-          AUTHOR_NAME: ${{github.event.inputs.author-name}}
-          AUTHOR_EMAIL: ${{github.event.inputs.author-email}}
-        run: |
-          git config --local user.name "$AUTHOR_NAME"
-          git config --local user.email "$AUTHOR_EMAIL"
-      - name: Updating version
-        run: npm run version:minor
-      - name: Push changes
-        run: git push origin HEAD
-      - name: Draft release preparation trigger
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: Draft release
-          token: ${{ secrets.WORKFLOW_DISPATCH_TOKEN }}
-          ref: ${{ github.event.pull_request.head.ref }}
+      || (github.event_name == 'workflow_dispatch' && inputs.update-type == 'minor')
+    uses: ./.github/workflows/update-version.yml
+    with:
+      update-type: minor
+      author-name: ${{inputs.author-name}}
+      author-email: ${{inputs.author-email}}
 
   major-version:
     name: Major version
     if: |
       (github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'version:major'))
-      || (github.event_name == 'workflow_dispatch' && github.event.inputs.update-type == 'major')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout to commit
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.PUSH_TOKEN }}
-      - name: Set up node
-        uses: actions/setup-node@v2
-      - name: Install npm dependencies
-        run: npm ci
-      - name: Configure commit author from previous commit
-        if: |
-          !(github.event.inputs.author-name && github.event.inputs.author-email)
-        run: |
-          git config --local user.name "$(git log -1 --format='%an')"
-          git config --local user.email "$(git log -1 --format='%ae')"
-      - name: Configure commit author from dispatched inputs
-        if: github.event.inputs.author-name && github.event.inputs.author-email
-        env:
-          AUTHOR_NAME: ${{github.event.inputs.author-name}}
-          AUTHOR_EMAIL: ${{github.event.inputs.author-email}}
-        run: |
-          git config --local user.name "$AUTHOR_NAME"
-          git config --local user.email "$AUTHOR_EMAIL"
-      - name: Updating version
-        run: npm run version:major
-      - name: Push changes
-        run: git push origin HEAD
-      - name: Draft release preparation trigger
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: Draft release
-          token: ${{ secrets.WORKFLOW_DISPATCH_TOKEN }}
-          ref: ${{ github.event.pull_request.head.ref }}
+      || (github.event_name == 'workflow_dispatch' && inputs.update-type == 'major')
+    uses: ./.github/workflows/update-version.yml
+    with:
+      update-type: major
+      author-name: ${{inputs.author-name}}
+      author-email: ${{inputs.author-email}}

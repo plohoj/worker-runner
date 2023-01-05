@@ -10,14 +10,14 @@ jobs:
 
     steps:
     - name: Checkout to commit
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up node
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
     - name: Get version from package.json
-      run: echo "::set-output name=version::$(node -pe "require('./package.json').version")"
+      run: echo "version=$(node -pe "require('./package.json').version")" >> $GITHUB_OUTPUT
       id: get_version
     - name: Create Release
-      uses: actions/create-release@latest
+      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
