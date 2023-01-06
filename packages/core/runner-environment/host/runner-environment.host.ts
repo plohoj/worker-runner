@@ -438,10 +438,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                     for (const [iteratedActionController, connectData] of this.connectDataMap) {
                         // TODO Move into the Connection Strategy a check for the need to send an Initiated action
                         // and waiting for any event to resubmit the Disconnect action
-                        if (!connectData.isInitiated) {
-                            iteratedActionController.removeActionHandler(connectData.handler);
-                            RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
-                        } else {
+                        if (connectData.isInitiated) {
                             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                             const isActionWasSendedForActionController = this.destroyProcess!.actionTriggers
                                 .some(actionTriggerData => actionTriggerData.actionController === iteratedActionController);
@@ -451,6 +448,9 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                                 });
                             }
                             iteratedActionController.destroy();
+                        } else {
+                            iteratedActionController.removeActionHandler(connectData.handler);
+                            RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
                         }
                         this.connectDataMap.delete(iteratedActionController);
                     }

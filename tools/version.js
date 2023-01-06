@@ -56,7 +56,9 @@ async function getDataFromJsonFile(path) {
 }
 
 await Promise.all([
+    // eslint-disable-next-line unicorn/prefer-top-level-await
     updateVersion(`./package.json`, versionType),
+    // eslint-disable-next-line unicorn/prefer-top-level-await
     updateVersion(`./package-lock.json`, versionType, true),
     ... moduleNames.map(moduleName => 
         updateVersion(`./packages/${moduleName}/package.json`),

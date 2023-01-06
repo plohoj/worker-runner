@@ -1,5 +1,5 @@
 import copyPlugin from 'rollup-plugin-copy';
-import { generateRollupBuildConfig } from '../../tools/rollup-config';
+import { generateRollupBuildConfig } from '../../tools/rollup-config.js';
 
 const baseRollupConfig = generateRollupBuildConfig('rx');
 
@@ -7,7 +7,7 @@ const baseRollupConfig = generateRollupBuildConfig('rx');
 const config = {
     ...baseRollupConfig,
     plugins: [
-        ...baseRollupConfig.plugins,
+        ...await baseRollupConfig.plugins,
         copyPlugin({
             targets: [{ src: '../../README.md', dest: './' }],
             verbose: true,

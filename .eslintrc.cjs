@@ -32,11 +32,13 @@ module.exports = {
                 "default": [
                     // Index signature
                     "signature",
+                    "call-signature",
                 
                     // Fields
                     "public-static-field",
                     "protected-static-field",
                     "private-static-field",
+                    "#private-static-field",
                 
                     "public-decorated-field",
                     "protected-decorated-field",
@@ -45,14 +47,15 @@ module.exports = {
                     "public-instance-field",
                     "protected-instance-field",
                     "private-instance-field",
+                    "#private-instance-field",
                 
                     "public-abstract-field",
                     "protected-abstract-field",
-                    "private-abstract-field",
                 
                     "public-field",
                     "protected-field",
                     "private-field",
+                    "#private-field",
                 
                     "static-field",
                     "instance-field",
@@ -91,6 +94,7 @@ module.exports = {
                     "public-static-method",
                     "protected-static-method",
                     "private-static-method",
+                    "#private-static-method",
                 
                     "public-decorated-method",
                     "protected-decorated-method",
@@ -99,14 +103,15 @@ module.exports = {
                     "public-instance-method",
                     "protected-instance-method",
                     "private-instance-method",
+                    "#private-instance-method",
                 
                     "public-abstract-method",
                     "protected-abstract-method",
-                    "private-abstract-method",
                 
                     "public-method",
                     "protected-method",
                     "private-method",
+                    "#private-method",
                 
                     "static-method",
                     "instance-method",
@@ -179,6 +184,7 @@ module.exports = {
                 }
             }
         ],
+        "unicorn/switch-case-braces": ["warn", "avoid"],
 
         // plugin:es
         'es/no-symbol': 'error',

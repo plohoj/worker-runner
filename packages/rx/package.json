@@ -15,6 +15,7 @@
   },
   "description": "Worker Runner is a tool to assist use Web Worker",
   "homepage": "https://github.com/plohoj/worker-runner#readme",
+  "type": "module",
   "types": "./declarations/index.ts",
   "main": "./dist/umd/worker-runner-rx.js",
   "module": "./dist/esm/worker-runner-rx.js",
