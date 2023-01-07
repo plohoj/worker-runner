@@ -31,5 +31,5 @@ export function pickResolverFactories<T extends RunnerResolverNamePart[]>(
             resolverFactories[key as RunnerResolverNamePart] = factory;
         }
     }
-    return resolverFactories as unknown as FilteredResolverFactories<T>;
+    return resolverFactories satisfies Record<RunnerResolverNamePart, ResolverFactory> as unknown as FilteredResolverFactories<T>;
 }

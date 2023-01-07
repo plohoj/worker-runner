@@ -48,7 +48,7 @@ export abstract class BaseCollectionTransferPluginController<
                 data,
             }),
             errorFactory: runnerDataTransferErrorFactory,
-        }) as unknown as Promise<void>
+        }) as Promise<unknown> as Promise<void>
     }
 
     public async receiveData(
@@ -66,7 +66,7 @@ export abstract class BaseCollectionTransferPluginController<
         }
 
         return {
-            data: receivedDataCollection as unknown as TransferPluginReceivedData,
+            data: receivedDataCollection satisfies ICollectionTransferPluginReceivedData as unknown as TransferPluginReceivedData,
             cancel: this.generateCancelFunction(cancelFunctions),
         };
     }
@@ -74,7 +74,7 @@ export abstract class BaseCollectionTransferPluginController<
     public cancelReceiveData(
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<void> {
-        const iterator = this.getReceivedDataIterator(config.data as unknown as Send)
+        const iterator = this.getReceivedDataIterator(config.data satisfies TransferPluginSendData as unknown as Send)
         return parallelPromises({
             values: iterator,
             stopAtFirstError: false,
@@ -84,7 +84,7 @@ export abstract class BaseCollectionTransferPluginController<
                 data: data.data,
             }),
             errorFactory: runnerDataTransferErrorFactory,
-        }) as unknown as Promise<void>;
+        }) as Promise<unknown> as Promise<void>;
     }
 
     private async transferDataAsync(
@@ -108,7 +108,7 @@ export abstract class BaseCollectionTransferPluginController<
 
         const preparedData: ITransferPluginPreparedData = {
             type: this.type,
-            data: transferDataCollection as unknown as TransferPluginSendData,
+            data: transferDataCollection satisfies ICollectionTransferPluginSendData as unknown as TransferPluginSendData,
             cancel: this.generateCancelFunction(cancelFunctions),
             transfer,
         };
@@ -149,7 +149,7 @@ export abstract class BaseCollectionTransferPluginController<
             [keyof Received, ICollectionTransferPluginFieldData],
             [keyof Received, ITransferPluginReceivedData]
         >({
-            values: this.getReceivedDataEntries(config.data as unknown as Send),
+            values: this.getReceivedDataEntries(config.data satisfies ICollectionTransferPluginSendData as unknown as Send),
             stopAtFirstError: true,
             errorFactory: runnerDataTransferErrorFactory,
             mapper: async ([collectionIdentifier, transferData]) => {

@@ -1,13 +1,15 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
+import { Nominal } from '../../types/nominal';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 
+declare const dataForSendRunner: unique symbol;
 /**
  * Fields that must be attached to an object with a serialized Runner as an argument
  * or to an action with the result of a method execution
  */
-export type DataForSendRunner = 'FAKE_TYPE_FOR_DATA_FOR_SEND_RUNNER' | symbol;
+export type DataForSendRunner = Nominal<typeof dataForSendRunner>;
 
 export interface IPreparedForSendRunnerData {
     data: DataForSendRunner,
@@ -20,7 +22,8 @@ export interface IPreparedForSendProxyRunnerData {
     preparedData: IPreparedForSendRunnerData;
 }
 
-export type PreparedDataIdentifier = 'FAKE_TYPE_FOR_PREPARED_DATA_IDENTIFIER' | symbol;
+declare const preparedDataIdentifier: unique symbol;
+export type PreparedDataIdentifier = Nominal<typeof preparedDataIdentifier>;
 
 export abstract class BaseConnectionStrategyClient {
 

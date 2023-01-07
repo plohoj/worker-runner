@@ -1,6 +1,11 @@
-export type TransferPluginDataType = "FAKE_TYPE_FOR_TRANSFER_PLUGIN_DATA_TYPE" | symbol;
-export type TransferPluginSendData = "FAKE_TYPE_FOR_TRANSFER_PLUGIN_DATA" | symbol;
-export type TransferPluginReceivedData = "FAKE_TYPE_FOR_TRANSFER_PLUGIN_RECEIVED_DATA" | symbol;
+import { Nominal } from '../../../types/nominal';
+
+declare const transferPluginDataType: unique symbol;
+export type TransferPluginDataType = Nominal<typeof transferPluginDataType>;
+declare const transferPluginSendData: unique symbol;
+export type TransferPluginSendData = Nominal<typeof transferPluginSendData>;
+declare const transferPluginReceivedData: unique symbol;
+export type TransferPluginReceivedData = Nominal<typeof transferPluginReceivedData>;
 
 export type TransferPluginCancelPreparedDataFunction = () => void | Promise<void>;
 

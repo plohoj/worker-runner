@@ -25,7 +25,8 @@ export class CoreErrorCodeMapSerializationPlugin implements IErrorSerializationP
     }
 
     public deserializeError(serializedError: ISerializedError): DeserializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        const errorConstructor = this.errorMap[serializedError.type as unknown as WorkerRunnerCoreErrorCode];
+        const errorConstructor
+            = this.errorMap[serializedError.type satisfies SerializedErrorType as unknown as WorkerRunnerCoreErrorCode];
         if (!errorConstructor) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
@@ -36,10 +37,9 @@ export class CoreErrorCodeMapSerializationPlugin implements IErrorSerializationP
             originalErrors: serializedError.originalErrors
                 ?.map(serializedOriginalError => this.errorSerialization
                     .deserializeError(serializedOriginalError)),
-        }) as unknown as DeserializedError;
+        }) satisfies WorkerRunnerError as unknown as DeserializedError;
     }
 
-    
     public serializeError(error: unknown = {}): ISerializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
         const errorConstructor: WorkerRunnerErrorConstructor
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -53,7 +53,7 @@ export class CoreErrorCodeMapSerializationPlugin implements IErrorSerializationP
             ?.map(originalError => this.errorSerialization.serializeError(originalError))
 
         const serializedError: ISerializedError = {
-            type: errorCode as SerializedErrorType,
+            type: errorCode satisfies string as unknown as SerializedErrorType,
             message: (error as WorkerRunnerError | WorkerRunnerMultipleError).message,
             stack: (error as WorkerRunnerError | WorkerRunnerMultipleError).stack,
             originalErrors,

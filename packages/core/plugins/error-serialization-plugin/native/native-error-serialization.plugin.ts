@@ -18,7 +18,7 @@ export class NativeErrorSerializationPlugin implements IErrorSerializationPlugin
     }
 
     public deserializeError(serializedError: ISerializedError): DeserializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        const errorConstructor = this.errorMap[serializedError.type as string];
+        const errorConstructor = this.errorMap[serializedError.type satisfies SerializedErrorType as unknown as string];
         if (!errorConstructor) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
@@ -27,7 +27,7 @@ export class NativeErrorSerializationPlugin implements IErrorSerializationPlugin
         if (serializedError.name) {
             error.name = serializedError.name;
         }
-        return error as unknown as DeserializedError;
+        return error satisfies Error as unknown as DeserializedError;
     }
 
     public serializeError(error: unknown = {}): ISerializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
@@ -39,7 +39,7 @@ export class NativeErrorSerializationPlugin implements IErrorSerializationPlugin
         }
 
         const serializedError: ISerializedError = {
-            type: errorCode as SerializedErrorType,
+            type: errorCode satisfies string as unknown as SerializedErrorType,
             message: (error as Error).message,
             name: (error as Error).name,
             stack: (error as Error).stack,

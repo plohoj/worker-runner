@@ -8,7 +8,7 @@ import { IWorkerRunnerErrorConfig, WorkerRunnerUnexpectedError } from '../../err
 import { ErrorSerializationPluginsResolver } from '../../plugins/error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { ARRAY_TRANSFER_TYPE } from '../../plugins/transfer-plugin/array-transfer-plugin/array-transfer-plugin-data';
-import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
+import { ITransferPluginReceivedData, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 import { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ITransferPluginControllerTransferDataConfig } from '../../plugins/transfer-plugin/base/transfer.plugin-controller';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
@@ -141,7 +141,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         const actionController = this.initActionController(config.connectionChannel);
         const receiveDataConfig: ITransferPluginsResolverReceiveDataConfig = {
             actionController,
-            data: config.arguments as unknown as TransferPluginSendData,
+            data: config.arguments satisfies ICollectionTransferPluginSendArrayData as unknown as TransferPluginSendData,
             type: ARRAY_TRANSFER_TYPE,
         };
         let runnerConstructor: RunnerConstructor;
@@ -174,7 +174,9 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         }
 
         try {
-            runnerInstance = new runnerConstructor(...receivedData.data as unknown as unknown[]) as InstanceType<R>;
+            runnerInstance = new runnerConstructor(
+                ...receivedData.data satisfies TransferPluginReceivedData as unknown as unknown[]
+            ) as InstanceType<R>;
         } catch (constructError) {
             try {
                 await receivedData.cancel?.();
@@ -201,7 +203,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
     ): Promise<void> {
         const receiveDataConfig: ITransferPluginsResolverReceiveDataConfig = {
             actionController,
-            data: action.args as unknown as TransferPluginSendData,
+            data: action.args satisfies ICollectionTransferPluginSendArrayData as unknown as TransferPluginSendData,
             type: ARRAY_TRANSFER_TYPE,
         };
         if (typeof this.runnerInstance[action.method] !== 'function') {
@@ -220,7 +222,9 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const notAwaitedResult: IRunnerMethodResult | Promise<IRunnerMethodResult>
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                = this.runnerInstance[action.method](...receivedData.data as unknown as unknown[]);
+                = this.runnerInstance[action.method](
+                    ...receivedData.data satisfies TransferPluginReceivedData as unknown as unknown[]
+                );
             methodResult = notAwaitedResult instanceof Promise
                 ? (await Promise.race([
                     notAwaitedResult,

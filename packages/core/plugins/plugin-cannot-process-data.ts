@@ -1,3 +1,6 @@
-type PluginCannotProcessData = "FAKE_TYPE_FOR_PLUGIN_CANNOT_TRANSFER" | symbol;
+import { Nominal } from '../types/nominal';
+
+declare const pluginCannotProcessData: unique symbol;
+type PluginCannotProcessData = Nominal<typeof pluginCannotProcessData>;
 /** A flag that means that this plugin cannot process data */
 export const PLUGIN_CANNOT_PROCESS_DATA: PluginCannotProcessData = {} as PluginCannotProcessData;

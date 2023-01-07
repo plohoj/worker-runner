@@ -3,8 +3,10 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { ConnectionClosedError, RunnerDestroyError } from '../../../errors/runner-errors';
 import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
 import { RunnerEnvironmentClientCollection } from '../../../runner-environment/client/runner-environment.client.collection';
+import { ResolvedRunner } from '../../../runner/resolved-runner';
 import { IRunnerDescription } from '../../../runner/runner-description';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
+import { RunnerConstructor } from '../../../types/constructor';
 import { RunnerToken } from '../../../types/runner-identifier';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
@@ -76,10 +78,10 @@ export class RunnerTransferPluginController implements ITransferPluginController
     public async receiveData(
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<ITransferPluginReceivedData> {
-        const transferData = config.data as unknown as IRunnerTransferPluginData;
+        const transferData = config.data satisfies TransferPluginSendData as unknown as IRunnerTransferPluginData;
         const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
             config.actionController.connectionChannel,
-            transferData as unknown as DataForSendRunner,
+            transferData satisfies IRunnerTransferPluginData as unknown as DataForSendRunner,
         )
         const environmentClient: RunnerEnvironmentClient = await this.runnerEnvironmentClientFactory({
             token: transferData.token,
@@ -104,7 +106,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
         }
         this.environmentCollection.add(environmentClient);
         const receivedData: ITransferPluginReceivedData = {
-            data: environmentClient.resolvedRunner as unknown as TransferPluginReceivedData,
+            data: environmentClient.resolvedRunner satisfies ResolvedRunner<RunnerConstructor> as unknown as TransferPluginReceivedData,
             cancel: () => environmentClient.disconnect(),
         }
         return receivedData;
@@ -113,10 +115,10 @@ export class RunnerTransferPluginController implements ITransferPluginController
     public async cancelReceiveData(
         config: ITransferPluginControllerReceiveDataConfig,
     ): Promise<void> {
-        const transferData = config.data as unknown as IRunnerTransferPluginData;
+        const transferData = config.data satisfies TransferPluginSendData as unknown as IRunnerTransferPluginData;
         const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
             config.actionController.connectionChannel,
-            transferData as unknown as DataForSendRunner,
+            transferData satisfies IRunnerTransferPluginData as unknown as DataForSendRunner,
         );
         await RunnerEnvironmentClient.disconnectConnection(connectionChannel);
         connectionChannel.destroy();
@@ -139,7 +141,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
         };
         Object.assign(transferData, preparedStrategyData.data);
         const preparedForTransferData: ITransferPluginPreparedData = {
-            data: transferData as unknown as TransferPluginSendData,
+            data: transferData satisfies IRunnerTransferPluginData as unknown as TransferPluginSendData,
             type: RUNNER_TRANSFER_TYPE,
             transfer: preparedStrategyData.transfer,
             cancel: () => connectionStrategyClient.cancelSendAttachRunnerData(preparedStrategyData.data),

@@ -5,6 +5,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { IPlugin } from '../../plugins/plugins.type';
+import { TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../runner-environment/client/runner-environment.client';
@@ -18,7 +19,7 @@ import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
 import { rowPromisesErrors } from '../../utils/row-promises-errors';
-import { IRunnerResolverHostAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from '../host/runner-resolver.host.actions';
+import { IRunnerResolverHostAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from '../host/runner-resolver.host.actions';
 import { IRunnerResolverClientAction, IRunnerResolverClientDestroyAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from './runner-resolver.client.actions';
 
 export interface IConnectedRunnerResolverClientConfig {
@@ -89,15 +90,16 @@ export class ConnectedRunnerResolverClient {
             });
         }
 
+        type IInitAction = IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction;
         const responseAction = await this.resolveActionAndHandleError<
             IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction,
-            IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction
+            IInitAction
         >({
             type: this.runnerDefinitionCollection.hasControllerConstructor(token)
                 ? RunnerResolverClientAction.INIT_RUNNER
                 : RunnerResolverClientAction.SOFT_INIT_RUNNER,
             token: token,
-            args: preparedData.data as unknown as ICollectionTransferPluginSendArrayData,
+            args: preparedData.data satisfies TransferPluginSendData as unknown as ICollectionTransferPluginSendArrayData,
         }, preparedData.transfer);
 
         if (responseAction.type === RunnerResolverHostAction.SOFT_RUNNER_INITED) {
@@ -105,7 +107,7 @@ export class ConnectedRunnerResolverClient {
         }
         const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
             this.actionController.connectionChannel,
-            responseAction as unknown as DataForSendRunner,
+            responseAction satisfies IInitAction as unknown as DataForSendRunner,
         )
         const environmentClient: RunnerEnvironmentClient = await this.environmentFactory({
             token,
@@ -193,9 +195,7 @@ export class ConnectedRunnerResolverClient {
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerResolverHostAction.ERROR) {
-            throw this.pluginsResolver.errorSerialization.deserializeError(
-                (responseAction as unknown as IRunnerResolverHostErrorAction).error,
-            );
+            throw this.pluginsResolver.errorSerialization.deserializeError(responseAction.error);
         }
         return responseAction;
     }

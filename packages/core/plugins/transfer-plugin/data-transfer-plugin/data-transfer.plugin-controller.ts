@@ -24,7 +24,7 @@ export class DataTransferPluginController implements ITransferPluginController {
         config: ITransferPluginControllerReceiveDataConfig,
     ): ITransferPluginReceivedData {
         return {
-            data: config.data as TransferPluginReceivedData,
+            data: config.data satisfies TransferPluginSendData as unknown as TransferPluginReceivedData,
         };
     }
 }

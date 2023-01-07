@@ -126,7 +126,7 @@ export class ActionController implements IActionTarget, IDestroyTarget {
             handlers = new Set();
             this.handlersByIdMap.set(actionId, handlers);
         }
-        handlers.add(handler as unknown as ActionHandler);
+        handlers.add(handler satisfies ActionHandler<A> as unknown as ActionHandler);
     }
 
     private removeActionHandlerById<A extends IAction>(actionId: WorkerRunnerIdentifier, handler: ActionHandler<A>): void {
@@ -134,7 +134,7 @@ export class ActionController implements IActionTarget, IDestroyTarget {
         if (!handlers) {
             return;
         }
-        handlers.delete(handler as unknown as ActionHandler);
+        handlers.delete(handler satisfies ActionHandler<A> as unknown as ActionHandler);
         if (handlers.size === 0) {
             this.handlersByIdMap.delete(actionId);
         }

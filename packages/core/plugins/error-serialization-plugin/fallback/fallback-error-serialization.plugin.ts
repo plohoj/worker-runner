@@ -14,7 +14,7 @@ export class FallbackErrorSerializationPlugin implements IErrorSerializationPlug
 
     public serializeError(error: unknown = {}): ISerializedError {
         const serializedError: ISerializedError = {
-            type: WorkerRunnerCoreErrorCode.UNEXPECTED_ERROR as string as SerializedErrorType,
+            type: WorkerRunnerCoreErrorCode.UNEXPECTED_ERROR satisfies string as unknown as SerializedErrorType,
             name: (error as Error)?.name,
             message: (error as Error)?.message || String(error),
             stack: (error as Error)?.stack,

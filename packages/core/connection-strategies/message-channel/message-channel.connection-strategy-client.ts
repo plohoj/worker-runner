@@ -16,7 +16,7 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         receivedData: DataForSendRunner,
     ): BaseConnectionChannel {
         return new MessagePortConnectionChannel({
-            target: (receivedData as unknown as IMessageChannelConnectionRunnerSendData).port,
+            target: (receivedData satisfies DataForSendRunner as unknown as IMessageChannelConnectionRunnerSendData).port,
         });
     }
 
@@ -26,7 +26,7 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         const port = this.getIdentifierForPreparedData(sendData);
         if (!this.resolvedConnectionMap.has(port)) { // The port was passed without building a proxy
             const connectionChannel = new MessagePortConnectionChannel({
-                target: port as unknown as IMessagePortTarget
+                target: port satisfies PreparedDataIdentifier as unknown as IMessagePortTarget
             });
             return RunnerEnvironmentClient.disconnectConnection(connectionChannel);
         }
@@ -43,7 +43,7 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
                 port,
             };
             return {
-                data: sendData as unknown as DataForSendRunner,
+                data: sendData satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
                 transfer: [port as MessagePort],
             }
         }
@@ -58,17 +58,17 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
             port: messageChannel.port2,
         };
         return {
-            identifier: messageChannel.port2 as unknown as PreparedDataIdentifier,
+            identifier: messageChannel.port2 satisfies MessagePort as unknown as PreparedDataIdentifier,
             proxyChannel,
             preparedData: {
-                data: sendData as unknown as DataForSendRunner,
+                data: sendData satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
                 transfer: [messageChannel.port2],
             },
         };
     }
 
     protected getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier {
-        return (sendData as unknown as IMessageChannelConnectionRunnerSendData)
-            .port as unknown as PreparedDataIdentifier;
+        return (sendData satisfies  DataForSendRunner as unknown as IMessageChannelConnectionRunnerSendData)
+            .port satisfies IMessagePortTarget as unknown as PreparedDataIdentifier;
     }
 }

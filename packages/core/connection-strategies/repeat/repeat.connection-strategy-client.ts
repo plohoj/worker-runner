@@ -36,12 +36,12 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
         }
         const proxyData: ConnectionChannelProxyData | undefined
             = this.getProxyDataForPrimaryField(
-                sendData as unknown as IRepeatConnectionRunnerSendData,
+                sendData satisfies DataForSendRunner as unknown as IRepeatConnectionRunnerSendData,
                 RepeatConnectionClientRunnerSendDataFields.ClientId,
                 RepeatConnectionClientRunnerSendDataFields.NewClientId,
             )
             || this.getProxyDataForPrimaryField(
-                sendData as unknown as IRepeatConnectionRunnerSendData,
+                sendData satisfies DataForSendRunner as unknown as IRepeatConnectionRunnerSendData,
                 RepeatConnectionClientRunnerSendDataFields.HostId,
                 RepeatConnectionClientRunnerSendDataFields.NewHostId,
             );
@@ -73,16 +73,16 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
         } as unknown as IRepeatConnectionClientRunnerProxySendData;
         return {
             proxyChannel,
-            identifier: identifier as unknown as PreparedDataIdentifier,
+            identifier: identifier satisfies WorkerRunnerIdentifier as unknown as PreparedDataIdentifier,
             preparedData: {
-                data: sendData as unknown as DataForSendRunner,
+                data: sendData satisfies IRepeatConnectionClientRunnerProxySendData as unknown as DataForSendRunner,
             },
         };
     }
 
     protected getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier {
-        return (sendData as unknown as IRepeatConnectionNewClientRunnerSendData)
-            .newClientId as unknown as PreparedDataIdentifier;
+        return (sendData satisfies DataForSendRunner as unknown as IRepeatConnectionNewClientRunnerSendData)
+            .newClientId satisfies WorkerRunnerIdentifier as unknown as PreparedDataIdentifier;
     }
 
     private getProxyDataForPrimaryField(

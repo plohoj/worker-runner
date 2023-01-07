@@ -16,7 +16,7 @@ export class MessageChannelConnectionStrategyHost extends BaseConnectionStrategy
             port: messageChannel.port2
         }
         const preparedData: IPreparedForSendRunnerDataWithConnectionChannel = {
-            data: sendData as unknown as DataForSendRunner,
+            data: sendData satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
             connectionChannel: new MessagePortConnectionChannel({target: messageChannel.port1}),
             transfer: [messageChannel.port2],
         };

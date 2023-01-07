@@ -28,5 +28,5 @@ export function pickApartResolverFactories<T extends RunnerResolverPackageName =
             resolverFactories[key as RunnerApartResolverName] = factory;
         }
     }
-    return resolverFactories as unknown as FilteredApartResolverFactories<T>;
+    return resolverFactories satisfies Record<RunnerApartResolverName, ApartResolverFactory> as unknown as FilteredApartResolverFactories<T>;
 }

@@ -113,7 +113,7 @@ export class RxTransferPluginController implements ITransferPluginController {
         proxyConnection.run();
 
         return {
-            data: actionIdentifier as TransferPluginSendData,
+            data: actionIdentifier satisfies WorkerRunnerIdentifier as unknown as TransferPluginSendData,
             type: RX_TRANSFER_TYPE,
         };
     }
@@ -122,7 +122,7 @@ export class RxTransferPluginController implements ITransferPluginController {
     public receiveData(
         config: ITransferPluginControllerReceiveDataConfig,
     ): ITransferPluginReceivedData {
-        const actionIdentifier = config.data as WorkerRunnerIdentifier;
+        const actionIdentifier = config.data satisfies TransferPluginSendData as unknown as WorkerRunnerIdentifier;
         const proxyConnection = new ProxyConnectionChannel(
             config.actionController.connectionChannel,
             ['rxId', actionIdentifier],
@@ -192,7 +192,7 @@ export class RxTransferPluginController implements ITransferPluginController {
         )
 
         return {
-            data: observable as unknown as TransferPluginReceivedData,
+            data: observable satisfies Observable<TransferPluginReceivedData> as unknown as TransferPluginReceivedData,
         };
     }
 

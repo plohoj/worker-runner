@@ -22,7 +22,7 @@ export class ErrorSerializationPluginsResolver implements IErrorSerializationPlu
         for (const plugin of this.plugins) {
             const serializedError = plugin.serializeError(error);
             if (serializedError !== PLUGIN_CANNOT_PROCESS_DATA) {
-                return serializedError as unknown as ISerializedError;
+                return serializedError as ISerializedError;
             }
         }
         throw new WorkerRunnerUnexpectedError({

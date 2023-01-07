@@ -33,7 +33,7 @@ export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
             [RepeatConnectionClientRunnerSendDataFields.NewHostId]: newHostId,
         };
         return {
-            data: sendData as unknown as DataForSendRunner,
+            data: sendData satisfies IRepeatConnectionNewHostRunnerSendData as unknown as DataForSendRunner,
             connectionChannel,
         }
     }

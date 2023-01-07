@@ -104,7 +104,7 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
                 originalErrors,
             }),
-        }) as unknown as Promise<void>;
+        }) as Promise<unknown> as Promise<void>;
     }
 
     protected registerPlugins(plugins: ITransferPlugin[]): void {

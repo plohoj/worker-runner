@@ -6,6 +6,7 @@ import { ConnectionClosedError } from '../../errors/runner-errors';
 import { IWorkerRunnerErrorConfig } from '../../errors/worker-runner-error';
 import { ErrorSerializationPluginsResolver } from '../../plugins/error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
+import { TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 import { TransferPluginsResolver } from '../../plugins/transfer-plugin/base/transfer-plugins.resolver';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { ResolvedRunner } from '../../runner/resolved-runner';
@@ -42,7 +43,7 @@ export interface IRunnerEnvironmentClientInitSyncConfig extends IRunnerEnvironme
     runnerControllerConstructor: IRunnerControllerConstructor;
 }
 
-const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' as unknown as WorkerRunnerIdentifier;
+const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' satisfies string as unknown as WorkerRunnerIdentifier;
 
 export class RunnerEnvironmentClient {
     public readonly runnerDescription: IRunnerDescription;
@@ -218,7 +219,7 @@ export class RunnerEnvironmentClient {
             IRunnerEnvironmentHostExecutedAction
         >({
             type: RunnerEnvironmentClientAction.EXECUTE,
-            args: preparedData.data as unknown as ICollectionTransferPluginSendArrayData,
+            args: preparedData.data satisfies TransferPluginSendData as unknown as ICollectionTransferPluginSendArrayData,
             method: methodName,
         }, preparedData.transfer);
 
@@ -250,12 +251,15 @@ export class RunnerEnvironmentClient {
     }
 
     public async cloneControl(): Promise<BaseConnectionChannel> {
-        const clonedAction = await this.resolveActionAndHandleError<IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentHostClonedAction>({
+        const clonedAction = await this.resolveActionAndHandleError<
+            IRunnerEnvironmentClientCloneAction,
+            IRunnerEnvironmentHostClonedAction
+        >({
             type: RunnerEnvironmentClientAction.CLONE,
         });
         return this.connectionStrategy.resolveConnectionForRunner(
             this.actionController.connectionChannel,
-            clonedAction as unknown as DataForSendRunner,
+            clonedAction satisfies IRunnerEnvironmentHostClonedAction as unknown as DataForSendRunner,
         );
     }
 
@@ -312,9 +316,7 @@ export class RunnerEnvironmentClient {
     >(action: I, transfer?: Transferable[]): Promise<O & IActionWithId> {
         const responseAction = await this.actionController.resolveAction<I, O>(action, transfer);
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.errorSerialization.deserializeError(
-                (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
-            );
+            throw this.errorSerialization.deserializeError(responseAction.error);
         }
         return responseAction;
     }
@@ -345,9 +347,7 @@ export class RunnerEnvironmentClient {
         }
         await this.handleDestroy();
         if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.errorSerialization.deserializeError(
-                (responseAction as unknown as IRunnerEnvironmentHostErrorAction).error,
-            );
+            throw this.errorSerialization.deserializeError(responseAction.error);
         }
     }
 
