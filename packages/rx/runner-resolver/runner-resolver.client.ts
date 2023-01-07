@@ -1,13 +1,11 @@
-import { RunnerResolverClientBase, Constructor, RunnerConstructor, RunnerIdentifierConfigList, RunnerByIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier, IRunnerResolverClientBaseConfig } from '@worker-runner/core';
+import { RunnerResolverClientBase, RunnerConstructor, RunnerIdentifierConfigList, RunnerByIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier, IRunnerResolverClientBaseConfig } from '@worker-runner/core';
 import { RxWorkerRunnerPlugin } from '../plugins/rx-worker-runner-plugin';
-import { IRxRunnerSerializedParameter, RxResolvedRunner, RxResolvedRunnerArguments } from '../runner/resolved-runner';
+import { RxResolvedRunner, RxResolvedRunnerArguments } from '../runner/resolved-runner';
 
 export type RxRunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    = R extends Constructor<any, infer A>
-        ? A extends ArrayLike<IRxRunnerSerializedParameter>
-            ? RxResolvedRunnerArguments<A>
-            : never
+    = R extends RunnerConstructor<any, infer A>
+        ? RxResolvedRunnerArguments<A>
         : never;
 
 export class RxRunnerResolverClient<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClientBase<L> {

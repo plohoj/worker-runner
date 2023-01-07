@@ -9,7 +9,15 @@ import { IRxTransferPluginHostActions, IRxTransferPluginHostCompletedAction, IRx
 
 // TODO Split implementation into client and host
 
+const RX_ID_FIELD_NAME = 'rxId';
+
 export class RxTransferPluginController implements ITransferPluginController {
+    /**
+     * No need to cancel transfer the Observable,
+     * because it has not yet been processed and no data has been stored for it
+     */
+    public readonly cancelTransferData: undefined;
+
     private transferPluginsResolver!: TransferPluginsResolver;
     private errorSerialization!: ErrorSerializationPluginsResolver;
 
@@ -31,7 +39,7 @@ export class RxTransferPluginController implements ITransferPluginController {
         const actionIdentifier = config.actionController.generateActionIdentifier();
         const proxyConnection = new ProxyConnectionChannel(
             config.actionController.connectionChannel,
-            ['rxId', actionIdentifier],
+            [RX_ID_FIELD_NAME, actionIdentifier],
         );
         let wasPreviouslySubscribed = false;
         const sendErrorEmit = (error: unknown) => {
@@ -118,14 +126,13 @@ export class RxTransferPluginController implements ITransferPluginController {
         };
     }
 
-    
     public receiveData(
         config: ITransferPluginControllerReceiveDataConfig,
     ): ITransferPluginReceivedData {
         const actionIdentifier = config.data satisfies TransferPluginSendData as unknown as WorkerRunnerIdentifier;
         const proxyConnection = new ProxyConnectionChannel(
             config.actionController.connectionChannel,
-            ['rxId', actionIdentifier],
+            [RX_ID_FIELD_NAME, actionIdentifier],
         );
         let wasPreviouslySubscribed = false;
 
@@ -197,13 +204,11 @@ export class RxTransferPluginController implements ITransferPluginController {
     }
 
     public cancelReceiveData(config: ITransferPluginsResolverReceiveDataConfig): void {
-        // TODO implementation
-    }
-
-    public cancelTransferData?(
-        config: ITransferPluginControllerTransferDataConfig,
-    ): void | Promise<void> | typeof PLUGIN_CANNOT_PROCESS_DATA {
-        // TODO implementation
+        const actionIdentifier = config.data satisfies TransferPluginSendData as unknown as WorkerRunnerIdentifier;
+        const action: IRxTransferPluginClientUnsubscribeAction & {[RX_ID_FIELD_NAME]: WorkerRunnerIdentifier} = {
+            rxId: actionIdentifier,
+            type: RxTransferPluginClientAction.RX_UNSUBSCRIBE,
+        }
+        config.actionController.sendAction(action);
     }
 }
-

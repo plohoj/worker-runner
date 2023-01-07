@@ -30,7 +30,7 @@ export interface ITransferPluginController {
     ): Promise<ITransferPluginPreparedData> | ITransferPluginPreparedData | typeof PLUGIN_CANNOT_PROCESS_DATA;
 
     /**
-     * During the execution of the method, the data was prepared by another environment.
+     * During the execution of the method, the data was prepared by another environment and has not yet been serialized.
      * But the connection for the current environment was closed.
      * Need to destroy data prepared in another environment
      */
@@ -44,7 +44,8 @@ export interface ITransferPluginController {
     ): Promise<ITransferPluginReceivedData> | ITransferPluginReceivedData | typeof PLUGIN_CANNOT_PROCESS_DATA;
 
     /**
-     * The data has been received. But before processing the data at one of the stages, an error occurred.
+     * The data has been serialized and received.
+     * But before processing the data at one of the stages, an error occurred.
      * The data has not yet been processed and it is necessary to cancel the processes associated with obtaining data
      */
     cancelReceiveData?(

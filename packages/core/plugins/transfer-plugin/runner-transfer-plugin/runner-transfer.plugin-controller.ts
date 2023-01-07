@@ -70,6 +70,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
         if (!RunnerController.isRunnerController(config.data)) {
             return PLUGIN_CANNOT_PROCESS_DATA;
         }
+        // Need to destroy the original Runner only if it was marked for transfer
         if (config.data[RUNNER_ENVIRONMENT_CLIENT].isMarkedForTransfer) {
             return config.data.disconnect();
         }

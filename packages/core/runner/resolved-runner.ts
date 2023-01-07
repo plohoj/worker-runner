@@ -1,7 +1,13 @@
 import { TransferRunnerData } from '../transfer-data/transfer-runner-data';
-import { IRunnerMethodResult, IRunnerSerializedParameter } from '../types/constructor';
+import { IRunnerSerializedParameter } from '../types/constructor';
 import { JsonLike, TransferableJsonLike } from '../types/json-like';
 import { RunnerController } from './runner.controller';
+
+// TODO TransferRunnerArray and TransferRunnerObject
+export type ResolvedData<T>
+    =  T extends TransferRunnerData<infer TD>
+        ? ResolvedData<TD>
+        : T;
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
     ? T extends TransferableJsonLike
@@ -11,26 +17,17 @@ type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
         :T
     : never;
 
-export type ResolvedRunnerArguments<T extends ArrayLike<IRunnerSerializedParameter>>
-    = { [P in keyof T]: ResolvedRunnerArgument<T[P]> };
+export type ResolvedRunnerArguments<T extends unknown[]> = { [P in keyof T]: ResolvedRunnerArgument<T[P]> };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ResolvedRunnerMethod<T extends (...args: any[]) => any, A extends any[] = Parameters<T>> =
-    ReturnType<T> extends IRunnerMethodResult
-        ? ReturnType<T> extends TransferRunnerData<infer TD>
-            ? (...args: ResolvedRunnerArguments<A>) => Promise<TD>
-            : (...args: ResolvedRunnerArguments<A>) => Promise<ReturnType<T>>
-        : ReturnType<T> extends Promise<infer PR>
-            ? PR extends IRunnerMethodResult
-                ? PR extends TransferRunnerData<infer TD>
-                    ? (...args: ResolvedRunnerArguments<A>) => Promise<TD>
-                    : (...args: ResolvedRunnerArguments<A>) => ReturnType<T>
-                :never
-            : never;
+export type ResolvedRunnerMethod<T extends (...args: any[]) => any>
+    = (...args: ResolvedRunnerArguments<Parameters<T>>) => Promise<ResolvedData<Awaited<ReturnType<T>>>>;
 
 type ResolvedRunnerMethods<T> = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [P in keyof T]: T[P] extends (...args: any[]) => any ? ResolvedRunnerMethod<T[P]> : never;
+    [P in keyof T]: T[P] extends (...args: any[]) => any
+        ? ResolvedRunnerMethod<T[P]>
+        : never;
 };
 
 // TODO It may be worth allowing any type of argument and return type,

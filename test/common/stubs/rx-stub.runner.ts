@@ -1,7 +1,7 @@
 import { JsonLike, ResolvedRunner } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { RxResolvedRunner } from '@worker-runner/rx';
-import { from, Observable, of, Subject, throwError, timer } from 'rxjs';
+import { from, Observable, of, Subject, throwError, timer, lastValueFrom } from 'rxjs';
 import { concatAll, delay as delayPipe, mergeMap, takeUntil } from 'rxjs/operators';
 import { ExecutableStubRunner } from './executable-stub.runner';
 
@@ -32,6 +32,10 @@ export class RxStubRunner {
             this.localResolver.resolve(ExecutableStubRunner, data).then(executableStubRunner =>
                 executableStubRunner.markForTransfer() as ResolvedRunner<ExecutableStubRunner<T>>),
         );
+    }
+
+    public forwardObservableMessage(data: Observable<string>): Promise<string> {
+        return lastValueFrom(data);
     }
 
     public getObservableFromOtherRxStub(

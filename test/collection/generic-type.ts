@@ -295,4 +295,6 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         // @ts-expect-error
         check2.method12();
     }
+
+    // TODO generic test for Rx
 }

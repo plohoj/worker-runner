@@ -1,6 +1,6 @@
-import { ConnectionClosedError, ResolvedRunner, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, ResolvedRunner, RUNNER_ENVIRONMENT_CLIENT, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError, RX_WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/rx';
-import { lastValueFrom, noop, Observable } from 'rxjs';
+import { lastValueFrom, noop, Observable, NEVER, tap, of } from 'rxjs';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
 import { isIE } from '../client/utils/is-internet-explorer';
@@ -9,7 +9,7 @@ import { ExecutableStubRunner } from '../common/stubs/executable-stub.runner';
 import { RxStubRunner } from '../common/stubs/rx-stub.runner';
 
 each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
-    describe(mode, () => {
+    describe(`${mode} Rx:`, () => {
         const resolver = resolverFactory();
 
         beforeAll(async () => {
@@ -148,11 +148,21 @@ each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
             await resolver.destroy();
             await resolver.run();
         });
+
+        it('should pass Observable for Runner as argument', async () => {
+            const message = 'stub:customMessage';
+            const observable = of(message);
+            const rxStubRunner = await resolver.resolve(RxStubRunner);
+
+            const receivedMessage = await rxStubRunner.forwardObservableMessage(observable);
+
+            expect(receivedMessage).toEqual(message);
+        })
     })
 );
 
 each(pickResolverFactories('Rx', 'Local', 'Repeat'), (mode, resolverFactory) =>
-    describe(mode, () => {
+    describe(`${mode} Rx:`, () => {
         const resolver = resolverFactory();
 
         beforeAll(() => {
@@ -174,6 +184,65 @@ each(pickResolverFactories('Rx', 'Local', 'Repeat'), (mode, resolverFactory) =>
                 name: RxRunnerEmitError.name,
                 message: RX_WORKER_RUNNER_ERROR_MESSAGES.EMITTED_ERROR(),
             }));
+        });
+    })
+);
+
+each(pickResolverFactories('Rx', 'Local'), (mode, resolverFactory) =>
+    describe(`${mode} Rx:`, () => {
+        const resolver = resolverFactory();
+
+        beforeAll(() => {
+            resolver.run();
+        });
+
+        afterAll(async () => {
+            await resolver.destroy();
+        });
+
+        it('should unsubscribe from original Observable', async () => {
+            const subscribeSpy: jasmine.Spy<() => void> = jasmine.createSpy('subscribe');
+            const unsubscribeSpy: jasmine.Spy<() => void> = jasmine.createSpy('unsubscribe');
+            const rxUnsubscribeRunner = await resolver.resolve(class UnsubscribeRunnerStub {
+                getObservable(): Observable<void> {
+                    return NEVER.pipe(
+                        tap({
+                            subscribe: subscribeSpy,
+                            unsubscribe: unsubscribeSpy,
+                        })
+                    );
+                }
+            });
+
+            const observable = await rxUnsubscribeRunner.getObservable();
+            observable.subscribe().unsubscribe();
+            await rxUnsubscribeRunner.destroy();
+
+            expect(subscribeSpy).toHaveBeenCalledOnceWith();
+            expect(unsubscribeSpy).toHaveBeenCalledOnceWith();
+        });
+
+        it('should cancel receive Observable as an argument for non-existing method', async () => {
+            class ObservableRunnerStub {
+                subscribeToObservable(observable: Observable<void>): void {
+                    observable.subscribe();
+                }
+            }
+            const rxSubscribeRunner = await resolver.resolve(ObservableRunnerStub);
+            Object.assign(ObservableRunnerStub.prototype, {
+                subscribeToObservable: undefined,
+            });
+            function checkRxProxy(): boolean {
+                const runnerActionController = rxSubscribeRunner[RUNNER_ENVIRONMENT_CLIENT]['actionController'];
+                const proxyChannels = runnerActionController.connectionChannel['proxyChannels'];
+                return proxyChannels.has('rxId')
+            }
+
+            expect(checkRxProxy()).withContext('before calling a non-existing method').toBeFalse();
+            const promise$ = rxSubscribeRunner.subscribeToObservable(NEVER).catch(noop);
+            expect(checkRxProxy()).withContext('after calling a non-existing method').toBeTrue();
+            await promise$;
+            expect(checkRxProxy()).withContext('after waiting for call to a non-existing method to complete').toBeFalse();
         });
     })
 );
