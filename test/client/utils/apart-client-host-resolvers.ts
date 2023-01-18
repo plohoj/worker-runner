@@ -15,14 +15,14 @@ export function createApartClientHostResolvers<
         ...config.clientConfig,
         connection: new MessageEventConnectionClient({
             target: messageChannel.port1,
-            strategies: [new RepeatConnectionStrategyClient()],
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
         }),
     });
     const runnerResolverHost = new config.runnerResolverHostConstructor({
         ...config.hostConfig,
         connection: new MessageEventConnectionHost({
             target: messageChannel.port2,
-            strategies: [new RepeatConnectionStrategyHost()],
+            connectionStrategies: [new RepeatConnectionStrategyHost()],
         }),
     });
 

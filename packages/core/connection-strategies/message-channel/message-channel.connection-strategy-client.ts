@@ -1,10 +1,10 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
-import { IMessagePortTarget } from '../../types/message-port-target.interface';
+import { IMessagePortTarget } from '../../types/targets/message-port-target';
 import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data.interface';
+import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data';
 
 // TODO should use MessageChannel for send new Runner arguments for resolve
 // (Local resolver should serialize data for constructor)

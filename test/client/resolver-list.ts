@@ -1,49 +1,145 @@
-import { MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, WorkerConnectionClient } from "@worker-runner/core";
+import { DirectionConnectionIdentificationStrategyClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, WindowMessageEventConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost, RunnerResolverLocal } from "@worker-runner/promise";
 import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from '@worker-runner/rx';
+import { PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT, PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST, PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT, RX_CONNECTION_IDENTIFIER_IFRAME_HOST, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
 import { runners } from "../common/runner-list";
 import { ApartResolverFactory, IApartResolverFactoryConfig, IApartRunnerResolversManager } from './types/apart-resolver-factory';
 import { ResolverFactory } from './types/resolver-factory';
-import { RunnerApartResolverName, RunnerResolverName, RunnerResolverPackageName } from './types/runner-resolver-name';
+import { RunnerApartResolverName, RunnerResolverConnectionSideName, RunnerResolverName, RunnerResolverPackageName } from './types/runner-resolver-name';
 import { createApartClientHostResolvers } from './utils/apart-client-host-resolvers';
 
+// TODO hack for karma-webpack
+new Worker(new URL('../host/iframe-host', import.meta.url), {name: 'iframe-host'}).terminate();
+
+function iframeFactory(source: URL): Window {
+    const iframe = document.createElement('iframe');
+    iframe.src = source.toString();
+    document.body.append(iframe);
+    const iframeWindow = iframe.contentWindow;
+    if (!iframeWindow) {
+        throw new Error('iframe window not available');
+    }
+    return iframeWindow;
+}
+
+const iframe = iframeFactory(new URL('../host/iframe-host.html', import.meta.url));
+const worker = new Worker(new URL('../host/host', import.meta.url), {name: 'WorkerRunnerHost'});
+
 const resolvers = {
-    'Promise#Bridge#MessageChannel': new RunnerResolverClient({
+    'Promise#Worker#MessageChannel': new RunnerResolverClient({
         runners,
         connection: new WorkerConnectionClient({
-            target: new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'}),
-            strategies: [new MessageChannelConnectionStrategyClient()],
+            target: worker,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
         }),
     }),
-    'Promise#Bridge#Repeat': new RunnerResolverClient({
+    'Promise#Worker#Repeat': new RunnerResolverClient({
         runners,
         connection: new WorkerConnectionClient({
-            target: new Worker(new URL('../host/host', import.meta.url), {name: 'HostWorker'}),
-            strategies: [new RepeatConnectionStrategyClient()],
+            target: worker,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
         }),
     }),
-    'Rx#Bridge#MessageChannel': new RxRunnerResolverClient({
+    'Promise#Iframe#MessageChannel': new RunnerResolverClient({
         runners,
-        connection: new WorkerConnectionClient({
-            target: new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'}),
-            strategies: [new MessageChannelConnectionStrategyClient()],
+        connection: new WindowMessageEventConnectionClient({
+            target: iframe,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
+                }),
+            ],
         }),
     }),
-    'Rx#Bridge#Repeat': new RxRunnerResolverClient({
+    'Promise#Iframe#Repeat': new RunnerResolverClient({
+        runners,
+        connection: new WindowMessageEventConnectionClient({
+            target: iframe,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
+                }),
+            ],
+        }),
+    }),
+    'Rx#Worker#MessageChannel': new RxRunnerResolverClient({
         runners,
         connection: new WorkerConnectionClient({
-            target: new Worker(new URL('../host/rx-host', import.meta.url), {name: 'RxHostWorker'}),
-            strategies: [new RepeatConnectionStrategyClient()],
+            target: worker,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
+    'Rx#Worker#Repeat': new RxRunnerResolverClient({
+        runners,
+        connection: new WorkerConnectionClient({
+            target: worker,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
+    'Rx#Iframe#MessageChannel': new RxRunnerResolverClient({
+        runners,
+        connection: new WindowMessageEventConnectionClient({
+            target: iframe,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
+                }),
+            ],
+        }),
+    }),
+    'Rx#Iframe#Repeat': new RxRunnerResolverClient({
+        runners,
+        connection: new WindowMessageEventConnectionClient({
+            target: iframe,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
+                }),
+            ],
         }),
     }),
 } satisfies Record<
-    RunnerResolverName<RunnerResolverPackageName, 'Bridge'>,
+    RunnerResolverName<RunnerResolverPackageName, Exclude<RunnerResolverConnectionSideName, 'Local'>>,
     RunnerResolverClient | RxRunnerResolverClient
 >;
 
 export const allRunnerResolversFactories = {
-    'Promise#Bridge#MessageChannel': () => resolvers['Promise#Bridge#MessageChannel'],
-    'Promise#Bridge#Repeat': () => resolvers['Promise#Bridge#Repeat'],
+    'Promise#Worker#MessageChannel': () => resolvers['Promise#Worker#MessageChannel'],
+    'Promise#Worker#Repeat': () => resolvers['Promise#Worker#Repeat'],
+    'Promise#Iframe#MessageChannel': () => resolvers['Promise#Iframe#MessageChannel'],
+    'Promise#Iframe#Repeat': () => resolvers['Promise#Iframe#Repeat'],
     'Promise#Local#MessageChannel': <T extends RunnerIdentifierConfigList = typeof runners>(runnersList?: T) => new RunnerResolverLocal({
         runners: runnersList || runners,
         connectionStrategy: new MessageChannelConnectionStrategyHost(),
@@ -52,15 +148,17 @@ export const allRunnerResolversFactories = {
         runners: runnersList || runners,
         connectionStrategy: new RepeatConnectionStrategyHost(),
     }),
-    'Rx#Bridge#MessageChannel': () => resolvers['Rx#Bridge#MessageChannel'],
-    'Rx#Bridge#Repeat': () => resolvers['Rx#Bridge#Repeat'],
+    'Rx#Worker#MessageChannel': () => resolvers['Rx#Worker#MessageChannel'],
+    'Rx#Worker#Repeat': () => resolvers['Rx#Worker#Repeat'],
+    'Rx#Iframe#MessageChannel': () => resolvers['Rx#Iframe#MessageChannel'],
+    'Rx#Iframe#Repeat': () => resolvers['Rx#Iframe#Repeat'],
     'Rx#Local#MessageChannel': <T extends RunnerIdentifierConfigList = typeof runners>(runnersList?: T) => new RxRunnerResolverLocal({
         runners: runnersList || runners,
         connectionStrategy: new MessageChannelConnectionStrategyHost(),
     }),
     'Rx#Local#Repeat': <T extends RunnerIdentifierConfigList = typeof runners>(runnersList?: T) => new RxRunnerResolverLocal({
         runners: runnersList || runners,
-        connectionStrategy: new RepeatConnectionStrategyHost()
+        connectionStrategy: new RepeatConnectionStrategyHost(),
     }),
 } satisfies Record<RunnerResolverName, ResolverFactory>;
 

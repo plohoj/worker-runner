@@ -1,9 +1,8 @@
-import { IMessagePortTarget } from '../types/message-port-target.interface';
+import { IMessagePortTarget } from '../types/targets/message-port-target';
+import { IBaseMessageEventListenerConnectionChannelConfig } from './base-message-event-listener.connection-channel';
 import { MessageEventConnectionChannel } from './message-event.connection-channel';
 
-export interface IMessagePortConnectionChannelConfig {
-    target: IMessagePortTarget;
-}
+export type IMessagePortConnectionChannelConfig = IBaseMessageEventListenerConnectionChannelConfig<IMessagePortTarget>;
 
 export class MessagePortConnectionChannel extends MessageEventConnectionChannel {
 

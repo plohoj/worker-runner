@@ -4,7 +4,7 @@ import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IRepeatConnectionClientRunnerProxySendData, IRepeatConnectionNewClientRunnerSendData, IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data.interface';
+import { IRepeatConnectionClientRunnerProxySendData, IRepeatConnectionNewClientRunnerSendData, IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data';
 
 export interface IRepeatConnectionStrategyClientConfig {
     identifierGenerator?: IdentifierGenerator;

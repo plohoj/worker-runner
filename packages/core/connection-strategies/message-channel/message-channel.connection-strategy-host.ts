@@ -2,7 +2,7 @@ import { MessagePortConnectionChannel } from '../../connection-channels/message-
 import { DataForSendRunner } from '../base/base.connection-strategy-client';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data.interface';
+import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data';
 import { MessageChannelConnectionStrategyClient } from './message-channel.connection-strategy-client';
 
 

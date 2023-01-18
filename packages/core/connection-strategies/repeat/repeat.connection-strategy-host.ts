@@ -4,7 +4,7 @@ import { IdentifierGenerator } from '../../utils/identifier-generator';
 import { DataForSendRunner } from '../base/base.connection-strategy-client';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IRepeatConnectionNewHostRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data.interface';
+import { IRepeatConnectionNewHostRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data';
 import { RepeatConnectionStrategyClient } from './repeat.connection-strategy-client';
 
 export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{

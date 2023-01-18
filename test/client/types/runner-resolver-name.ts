@@ -1,5 +1,5 @@
 export type RunnerResolverPackageName = 'Promise' | 'Rx';
-export type RunnerResolverConnectionSideName = 'Bridge' | 'Local';
+export type RunnerResolverConnectionSideName = 'Worker' | 'Iframe' | 'Local';
 export type RunnerResolverConnectionStrategyName = 'MessageChannel' | 'Repeat';
 
 export type RunnerResolverNamePart =

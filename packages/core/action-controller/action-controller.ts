@@ -2,9 +2,8 @@ import { BaseConnectionChannel } from '../connection-channels/base.connection-ch
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
-import { IActionTarget } from '../types/action-target';
-import { IDestroyTarget } from '../types/destroy-target';
 import { DisconnectErrorFactory } from '../types/disconnect-error-factory';
+import { IActionTarget } from '../types/targets/action-target';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../utils/identifier-generator';
 
 export interface IPromiseMethods<T = unknown, E = unknown> {
@@ -23,7 +22,7 @@ export interface IActionControllerConfig {
  * Allows to get a promise for actions that are guaranteed to receive one response action.
  * Also allows to track actions by type or ID.
  */
-export class ActionController implements IActionTarget, IDestroyTarget {
+export class ActionController implements IActionTarget {
     public readonly sendActionResponse: <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
     public readonly addActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;
     public readonly removeActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;

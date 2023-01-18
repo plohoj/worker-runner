@@ -1,4 +1,4 @@
-import { IMessagePortTarget } from '../../types/message-port-target.interface';
+import { IMessagePortTarget } from '../../types/targets/message-port-target';
 
 export interface IMessageChannelConnectionRunnerSendData {
     port: IMessagePortTarget;

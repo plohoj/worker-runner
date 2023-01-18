@@ -1,4 +1,4 @@
-import { IPlugin } from '../plugins.type';
+import { IPlugin } from '../plugins';
 
 export interface IPluginsPack {
     getPluginsPack(): IPlugin[];

@@ -3,7 +3,7 @@ import { CoreErrorCodeMapSerializationPlugin } from '../error-serialization-plug
 import { FallbackErrorSerializationPlugin } from '../error-serialization-plugin/fallback/fallback-error-serialization.plugin';
 import { NATIVE_ERROR_CODE_MAP } from '../error-serialization-plugin/native/native-error-code-map';
 import { NativeErrorSerializationPlugin } from '../error-serialization-plugin/native/native-error-serialization.plugin';
-import { IPlugin } from '../plugins.type';
+import { IPlugin } from '../plugins';
 import { ArrayTransferPlugin } from '../transfer-plugin/array-transfer-plugin/array-transfer.plugin';
 import { DataTransferPlugin } from '../transfer-plugin/data-transfer-plugin/data-transfer.plugin';
 import { JsonTransferPlugin } from '../transfer-plugin/json-transfer-plugin/json-transfer.plugin';

@@ -167,7 +167,11 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
     }),
 );
 
-each({...pickResolverFactories('Bridge'), ...pickResolverFactories('Local', 'MessageChannel')}, (mode, resolverFactory) =>
+each({
+    ...pickResolverFactories('Worker'),
+    ...pickResolverFactories('Iframe'),
+    ...pickResolverFactories('Local', 'MessageChannel')
+}, (mode, resolverFactory) =>
     describe(`${mode} execute:`, () => {
         const resolver = resolverFactory();
 

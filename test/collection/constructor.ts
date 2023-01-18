@@ -159,7 +159,7 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
     }),
 );
 
-each(pickResolverFactories('Bridge'), (mode, resolverFactory) =>
+each({...pickResolverFactories('Worker'), ...pickResolverFactories('Iframe')}, (mode, resolverFactory) =>
     describe(`${mode} constructor:`, () => {
         const resolver = resolverFactory();
 

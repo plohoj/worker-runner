@@ -17,6 +17,7 @@
         "corejs",
         "deserialize",
         "devtool",
+        "iframes",
         "inited",
         "preprocessors",
         "proxied"

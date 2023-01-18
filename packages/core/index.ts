@@ -1,10 +1,14 @@
 /// <reference lib="webworker" />
 
-export { BaseConnectionStrategyHost } from './connection-strategies/base/base.connection-strategy-host';
 export { ActionController } from './action-controller/action-controller';
 export { LocalPortalConnectionChannel } from './connection-channels/local-portal.connection-channel';
 export { ProxyConnectionChannel } from './connection-channels/proxy.connection-channel';
+export { DirectionConnectionIdentificationStrategyClient } from './connection-identification/strategy/direction/direction.connection-identification-strategy.client';
+export { DirectionConnectionIdentificationStrategyHost } from './connection-identification/strategy/direction/direction.connection-identification-strategy.host';
+export { IdConnectionIdentificationStrategyClient } from './connection-identification/strategy/identifier/id.connection-identification-strategy.client';
+export { IdConnectionIdentificationStrategyHost } from './connection-identification/strategy/identifier/id.connection-identification-strategy.host';
 export { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from './connection-strategies/base/base.connection-strategy-client';
+export { BaseConnectionStrategyHost } from './connection-strategies/base/base.connection-strategy-host';
 export { MessageChannelConnectionStrategyClient } from './connection-strategies/message-channel/message-channel.connection-strategy-client';
 export { MessageChannelConnectionStrategyHost } from './connection-strategies/message-channel/message-channel.connection-strategy-host';
 export { RepeatConnectionStrategyClient } from './connection-strategies/repeat/repeat.connection-strategy-client';
@@ -13,6 +17,8 @@ export { MessageEventConnectionClient } from './connections/message-event/messag
 export { MessageEventConnectionHost } from './connections/message-event/message-event.connection-host';
 export { PortalConnectionClient } from './connections/portal/portal.connection-client';
 export { PortalConnectionHost } from './connections/portal/portal.connection-host';
+export { WindowMessageEventConnectionClient } from './connections/window-message-event/window-message-event.connection-client';
+export { WindowMessageEventConnectionHost } from './connections/window-message-event/window-message-event.connection-host';
 export { WorkerConnectionClient } from './connections/worker/worker.connection-client';
 export { WorkerConnectionHost } from './connections/worker/worker.connection-host';
 export { ICoreCodeToErrorMap } from './errors/core-error-code-map';
@@ -26,7 +32,7 @@ export { IErrorSerializationPlugin } from './plugins/error-serialization-plugin/
 export { CoreErrorCodeMapSerializationPlugin } from './plugins/error-serialization-plugin/core-error-code-map/core-error-code-map-serialization.plugin';
 export { IPluginsPack } from './plugins/pack/plugins-pack';
 export { PLUGIN_CANNOT_PROCESS_DATA } from './plugins/plugin-cannot-process-data';
-export { IPlugin } from './plugins/plugins.type';
+export { IPlugin } from './plugins/plugins';
 export { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from './plugins/transfer-plugin/base/transfer-plugin-data';
 export { ITransferPluginsResolverReceiveDataConfig, TransferPluginsResolver } from './plugins/transfer-plugin/base/transfer-plugins.resolver';
 export { ITransferPlugin } from './plugins/transfer-plugin/base/transfer.plugin';
@@ -47,10 +53,10 @@ export { RunnerDefinitionCollection } from './runner/runner-definition.collectio
 export { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from './runner/runner.controller';
 export { TransferRunnerData } from './transfer-data/transfer-runner-data';
 export { IAction } from './types/action';
-export { IActionTarget } from './types/action-target';
 export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMethodResult, IRunnerSerializedParameter, RunnerConstructor } from './types/constructor';
-export { IDestroyTarget } from './types/destroy-target';
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonLike, TransferableJsonLike } from './types/json-like';
 export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerByIdentifier, RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from './types/runner-identifier';
+export { IActionTarget } from './types/targets/action-target';
+export { IDestroyHandlersTarget } from './types/targets/destroy-target';
 export { WorkerRunnerIdentifier } from './utils/identifier-generator';

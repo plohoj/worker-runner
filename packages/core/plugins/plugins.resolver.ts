@@ -4,7 +4,7 @@ import { ErrorSerializationPluginsResolver } from './error-serialization-plugin/
 import { IErrorSerializationPlugin, isErrorSerializationPlugin } from './error-serialization-plugin/base/error-serialization.plugin';
 import { CorePluginsPack } from './pack/core.plugins-pack';
 import { IPluginsPack, isPluginsPack } from './pack/plugins-pack';
-import { IPlugin } from './plugins.type';
+import { IPlugin } from './plugins';
 import { TransferPluginsResolver } from './transfer-plugin/base/transfer-plugins.resolver';
 import { isTransferPlugin, ITransferPlugin } from './transfer-plugin/base/transfer.plugin';
 

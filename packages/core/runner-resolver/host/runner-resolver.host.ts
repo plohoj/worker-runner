@@ -2,7 +2,7 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
-import { IPlugin } from '../../plugins/plugins.type';
+import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";

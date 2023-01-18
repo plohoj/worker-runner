@@ -1,7 +1,7 @@
 import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
-import { IPlugin } from '../../plugins/plugins.type';
+import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerController } from '../../runner/runner.controller';
 import { IRunnerParameter } from '../../types/constructor';

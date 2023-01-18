@@ -1,8 +1,9 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionIdentificationChecker } from '../../connection-identification/checker/base.connection-identification-checker';
+import { IBaseConnectionIdentificationStrategyHost } from '../../connection-identification/strategy/base/base.connection-identification-strategy.host';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../../connection-strategies/connection-strategy.enum';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
-import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { isAction } from '../../utils/is-action';
 import { IBestStrategyResolverClientConnectAction, BestStrategyResolverClientActions } from '../client/best-strategy-resolver.client.actions';
 import { BestStrategyResolverHostActions, IBestStrategyResolverHostConnectedAction, IBestStrategyResolverHostPingAction } from "./best-strategy-resolver.host.actions";
@@ -11,6 +12,12 @@ export interface IBestStrategyResolverHostConfig {
     connectionChannel: BaseConnectionChannel;
     sendPingAction: boolean;
     availableStrategies: BaseConnectionStrategyHost[];
+    identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
+}
+
+export interface IBestStrategyResolverHostResolvedConnection {
+    connectionStrategy: BaseConnectionStrategyHost;
+    identificationChecker?: IBaseConnectionIdentificationChecker;
 }
 
 /**
@@ -25,19 +32,20 @@ export class BestStrategyResolverHost {
     private readonly sendPingAction: boolean;
     private readonly availableStrategies: BaseConnectionStrategyHost[];
     private readonly availableStrategiesTypes: Array<ConnectionStrategyEnum | string>;
+    private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
     private stopCallback?: () => void;
-    private lastConnectIdentifier?: WorkerRunnerIdentifier;
 
     constructor(config: IBestStrategyResolverHostConfig) {
         this.connectionChannel = config.connectionChannel;
         this.sendPingAction = config.sendPingAction;
         this.availableStrategies = config.availableStrategies;
+        this.identificationStrategy = config.identificationStrategy;
         this.availableStrategiesTypes
             = this.availableStrategies.map(availableStrategy => availableStrategy.type)
     }
 
     public run(
-        next: (bestStrategy: BaseConnectionStrategyHost) => void,
+        next: (resolvedConnection: IBestStrategyResolverHostResolvedConnection) => void,
         error: (error: WorkerRunnerCommonConnectionStrategyError) => void
     ): void {
         let wasReceivedConnectAction = false;
@@ -48,16 +56,21 @@ export class BestStrategyResolverHost {
             if (action.type !== BestStrategyResolverClientActions.CONNECT) {
                 return;
             }
-            if (this.lastConnectIdentifier === action.id) {
-                // There may be a situation when the client:
-                // 1) Sent a Connect action;
-                // 2) Got the Ping action;
-                // 3) Sent a duplicate Connect action;
+            // TODO There may be a situation when the client:
+            // 1) Sent a Connect action;
+            // 2) Got the Ping action;
+            // 3) Sent a duplicate Connect action;
+
+            const connectedAction: IBestStrategyResolverHostConnectedAction = {
+                type: BestStrategyResolverHostActions.CONNECTED,
+                strategies: this.availableStrategiesTypes,
+            };
+            const identificationChecker = this.identificationStrategy?.checkIdentifier(action, connectedAction);
+            if (identificationChecker === false) {
                 return;
             }
 
             wasReceivedConnectAction = true;
-            this.lastConnectIdentifier = action.id;
 
             let bestStrategyEnum: ConnectionStrategyEnum | string | undefined;
             // The client has priority in choosing strategies
@@ -70,13 +83,12 @@ export class BestStrategyResolverHost {
             const bestStrategy: BaseConnectionStrategyHost | undefined = this.availableStrategies
                 .find(availableStrategy => availableStrategy.type === bestStrategyEnum);
 
-            const connectedAction: IBestStrategyResolverHostConnectedAction = {
-                type: BestStrategyResolverHostActions.CONNECTED,
-                strategies: this.availableStrategiesTypes,
-            };
             this.connectionChannel.sendAction(connectedAction);
             if (bestStrategy) {
-                next(bestStrategy);
+                next({
+                    connectionStrategy: bestStrategy,
+                    identificationChecker,
+                });
             } else {
                 error(new WorkerRunnerCommonConnectionStrategyError());
             }

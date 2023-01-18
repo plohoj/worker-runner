@@ -3,8 +3,8 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
+import { IPlugin } from '../../plugins/plugins';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
-import { IPlugin } from '../../plugins/plugins.type';
 import { TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';

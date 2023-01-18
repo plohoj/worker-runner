@@ -51,13 +51,19 @@ module.exports = {
                     },
                 ]
             },
+            {
+                test: /\.html$/,
+                type: 'asset/resource',
+            }
         ],
     },
     target: isDebugMode ? undefined : ['web', 'es5'], // For IE11
     plugins: [
-        new ESLintPlugin({
-            extensions: ["ts", "tsx"],
-        }),
+        ...isDebugMode ? [
+            new ESLintPlugin({
+                extensions: ["ts", "tsx"],
+            })
+        ] : [],
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         new CircularDependencyPlugin({
             // exclude detection of files based on a RegExp
@@ -91,7 +97,11 @@ module.exports = {
     ],
     output: {
         path: path.resolve('dist'),
+        assetModuleFilename: '[name][ext]',
         clean: true,
+    },
+    optimization: {
+        splitChunks: false,        
     },
     mode: 'development',
     resolve: {

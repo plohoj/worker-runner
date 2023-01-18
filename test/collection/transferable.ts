@@ -4,7 +4,7 @@ import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
 import { WithTransferableRunnerStub } from '../common/stubs/with-transferable-data.stub';
 
 // TODO should work with ...pickResolverFactories('Local', 'MessageChannel') 
-each(pickResolverFactories('Bridge'), (mode, resolverFactory) =>
+each({...pickResolverFactories('Worker'), ...pickResolverFactories('Iframe')}, (mode, resolverFactory) =>
     describe(`${mode} Transfer data:`, () => {
         const resolver = resolverFactory();
 

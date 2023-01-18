@@ -1,5 +1,5 @@
 import { ActionHandler, IAction } from '../types/action';
-import { IActionTarget } from '../types/action-target';
+import { IActionTarget } from '../types/targets/action-target';
 import { ConnectionChannelProxyData } from './proxy.connection-channel';
 
 /**
