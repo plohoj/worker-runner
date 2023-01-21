@@ -18,7 +18,7 @@ module.exports = {
         'plugin:promise/recommended',
         'plugin:import/warnings',
         'plugin:import/typescript',
-        // TODO lint rxjs
+        'plugin:rxjs/recommended',
     ],
     plugins: ['es'],
     parserOptions: { project: './tsconfig.json' },

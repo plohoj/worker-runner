@@ -105,7 +105,7 @@ export class RxTransferPluginController implements ITransferPluginController {
                         });
                 }
             }),
-            catchError(error => {
+            catchError((error: unknown) => {
                 if (config.actionController.connectionChannel.isConnected) {
                     sendErrorEmit(error);
                 } else {
