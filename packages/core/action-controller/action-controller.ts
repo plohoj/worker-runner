@@ -3,7 +3,7 @@ import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
 import { DisconnectErrorFactory } from '../types/disconnect-error-factory';
-import { IActionTarget } from '../types/targets/action-target';
+import { EventHandlerController } from '../utils/event-handler-controller';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../utils/identifier-generator';
 
 export interface IPromiseMethods<T = unknown, E = unknown> {
@@ -22,14 +22,15 @@ export interface IActionControllerConfig {
  * Allows to get a promise for actions that are guaranteed to receive one response action.
  * Also allows to track actions by type or ID.
  */
-export class ActionController implements IActionTarget {
-    public readonly sendActionResponse: <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
-    public readonly addActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;
-    public readonly removeActionHandler: <A extends IAction>(handler: ActionHandler<A>) => void;
+export class ActionController {
+    /** Same as {@link sendAction}, but additionally requires an id field */
+    public readonly sendActionResponse: 
+        <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
+    public readonly actionHandlerController: EventHandlerController<IAction>;
+    public readonly destroyHandlerController = new EventHandlerController<void>();
     public readonly connectionChannel: BaseConnectionChannel;
 
     private readonly disconnectErrorFactory: DisconnectErrorFactory;
-    private readonly destroyHandlers = new Set<(saveConnectionOpened: boolean) => void>();
     private readonly handlersByIdMap = new Map<WorkerRunnerIdentifier, Set<ActionHandler<IActionWithId>>>();
     private readonly resolveActionRejectSet = new Set<(error: unknown) => void>(); 
     // TODO Action Id controller to solve the problem of id intersection when using one worker in several resolvers
@@ -38,8 +39,7 @@ export class ActionController implements IActionTarget {
     constructor(config: IActionControllerConfig) {
         this.connectionChannel = config.connectionChannel;
         this.sendActionResponse = this.sendAction;
-        this.addActionHandler = this.connectionChannel.addActionHandler.bind(this.connectionChannel);
-        this.removeActionHandler = this.connectionChannel.removeActionHandler.bind(this.connectionChannel);
+        this.actionHandlerController = config.connectionChannel.actionHandlerController;
         this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
     }
 
@@ -81,26 +81,15 @@ export class ActionController implements IActionTarget {
 
     /** Initializes event listeners, also calls initialization for the Connection channel */
     public run(): void {
-        this.connectionChannel.addActionHandler(this.actionHandler);
+        this.actionHandlerController.addHandler(this.actionHandler);
         this.connectionChannel.run();
-    }
-
-    
-    public addDestroyHandler(handler: (saveConnectionOpened: boolean) => void): void {
-        this.destroyHandlers.add(handler);
-    }
-
-    public removeDestroyHandler(handler: (saveConnectionOpened: boolean) => void): void {
-        this.destroyHandlers.delete(handler);
     }
 
     /** Stops listening to all events and calls the destroy method on the Connection channel */
     public destroy(saveConnectionOpened = false): void {
         this.rejectResolingAllActions();
-        for (const destroyHandler of this.destroyHandlers) {
-            destroyHandler(saveConnectionOpened);
-        }
-        this.destroyHandlers.clear();
+        this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.clear();
         this.connectionChannel.destroy(saveConnectionOpened);
         this.handlersByIdMap.clear();
     }

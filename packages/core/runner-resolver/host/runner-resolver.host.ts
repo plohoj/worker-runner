@@ -70,8 +70,8 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
             connectionStrategy: newConnectionData.connectionStrategy,
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             plugins: this.plugins,
-            onDestroy: () => this.connectedResolvers.delete(connectedResolver),
         });
+        connectedResolver.destroyHandlerController.addHandler(() => this.connectedResolvers.delete(connectedResolver));
         connectedResolver.run();
 
         this.connectedResolvers.add(connectedResolver);

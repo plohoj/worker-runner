@@ -14,7 +14,9 @@ new Worker(new URL('../host/iframe-host', import.meta.url), {name: 'iframe-host'
 function iframeFactory(source: URL): Window {
     const iframe = document.createElement('iframe');
     iframe.src = source.toString();
-    document.body.append(iframe);
+    // For IE11
+    // eslint-disable-next-line unicorn/prefer-dom-node-append
+    document.body.appendChild(iframe);
     const iframeWindow = iframe.contentWindow;
     if (!iframeWindow) {
         throw new Error('iframe window not available');

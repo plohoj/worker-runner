@@ -17,6 +17,7 @@ import { IRunnerDescription } from '../../runner/runner-description';
 import { ActionHandler, IActionWithId } from '../../types/action';
 import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken } from "../../types/runner-identifier";
+import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { parallelPromises } from '../../utils/parallel.promises';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
@@ -40,7 +41,6 @@ export interface IRunnerEnvironmentHostConfig {
     connectionStrategy: BaseConnectionStrategyHost,
     runnerDefinitionCollection: RunnerDefinitionCollection;
     pluginsResolver: PluginsResolver;
-    onDestroyed: () => void;
 }
 
 export interface IRunnerEnvironmentHostActionControllerConnectData {
@@ -65,13 +65,13 @@ const WAIT_FOR_RESPONSE_DESTROYED_ACTION_TIMEOUT = 10_000;
 export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstructor> {
 
     public readonly connectionStrategy: BaseConnectionStrategyHost;
+    public readonly destroyHandlerController = new EventHandlerController<void>();
     
     private readonly runnerDescription: IRunnerDescription;
     private readonly connectDataMap = new Map<ActionController, IRunnerEnvironmentHostActionControllerConnectData>();
     private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly errorSerialization: ErrorSerializationPluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
-    private readonly onDestroyed: () => void;
 
     private _runnerInstance?: InstanceType<R>;
     private destroyProcess?: IRunnerEnvironmentHostDestroyProcessData;
@@ -85,7 +85,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.connectionStrategy = config.connectionStrategy;
         const pluginsResolver = config.pluginsResolver;
         this.errorSerialization = pluginsResolver.errorSerialization;
-        this.onDestroyed = config.onDestroyed;
         this.transferPluginsResolver = pluginsResolver.resolveTransferResolver({
             runnerEnvironmentClientFactory: RunnerEnvironmentClient.buildFactory({
                 connectionStrategy: this.connectionStrategy.strategyClient,
@@ -125,7 +124,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             actionController.destroy();
             clearTimeout(timeoutKey);
         }
-        actionController.addActionHandler(afterDisconnectHandler);
+        actionController.actionHandlerController.addHandler(afterDisconnectHandler);
     }
 
     // TODO Move to a static method and make the constructor private
@@ -453,7 +452,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                             }
                             iteratedActionController.destroy();
                         } else {
-                            iteratedActionController.removeActionHandler(connectData.handler);
+                            iteratedActionController.actionHandlerController.removeHandler(connectData.handler);
                             RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
                         }
                         this.connectDataMap.delete(iteratedActionController);
@@ -466,7 +465,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 })
             });
         } finally {
-            this.onDestroyed();
+            this.destroyHandlerController.dispatch();
+            this.destroyHandlerController.clear();
         }
     }
 
@@ -509,7 +509,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             interrupter: new PromiseInterrupter(),
         });
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        actionController.addActionHandler(handler);
+        actionController.actionHandlerController.addHandler(handler);
     }
 
     private getConnectionClosedConfig(): IWorkerRunnerErrorConfig {

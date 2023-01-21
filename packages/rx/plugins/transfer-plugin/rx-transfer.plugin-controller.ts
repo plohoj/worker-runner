@@ -1,8 +1,7 @@
 import { ConnectionClosedError, ErrorSerializationPluginsResolver, ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig, ITransferPluginPreparedData, ITransferPluginReceivedData, ITransferPluginsResolverReceiveDataConfig, normalizeError, PLUGIN_CANNOT_PROCESS_DATA, ProxyConnectionChannel, TransferPluginReceivedData, TransferPluginSendData, TransferPluginsResolver, WorkerRunnerIdentifier, WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { catchError, concatMap, defer, EMPTY, finalize, from, isObservable, map, merge, mergeMap, Observable, of, shareReplay, Subject, takeUntil, takeWhile, tap } from 'rxjs';
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from '../../errors/runner-errors';
-import { observeAction } from '../../utils/observe-action';
-import { observeDestroy } from '../../utils/observe-destroy';
+import { observeEvent } from '../../utils/observe-event';
 import { RX_TRANSFER_TYPE } from './rx-transfer-plugin-data';
 import { IRxTransferPluginClientActions, IRxTransferPluginClientSubscribeAction, IRxTransferPluginClientUnsubscribeAction, RxTransferPluginClientAction } from './rx-transfer-plugin.client.actions';
 import { IRxTransferPluginHostActions, IRxTransferPluginHostCompletedAction, IRxTransferPluginHostEmitAction, IRxTransferPluginHostErrorAction, RxTransferPluginHostAction } from './rx-transfer-plugin.host.actions';
@@ -53,7 +52,7 @@ export class RxTransferPluginController implements ITransferPluginController {
         }
         const destroySubject = new Subject<void>();
 
-        observeAction<IRxTransferPluginClientActions>(proxyConnection).pipe(
+        observeEvent<IRxTransferPluginClientActions>(proxyConnection.actionHandlerController).pipe(
             mergeMap(action => {
                 switch (action.type) {
                     case RxTransferPluginClientAction.RX_SUBSCRIBE:
@@ -115,7 +114,7 @@ export class RxTransferPluginController implements ITransferPluginController {
                 return EMPTY;
             }),
             takeUntil(destroySubject),
-            takeUntil(observeDestroy(config.actionController)),
+            takeUntil(observeEvent(config.actionController.destroyHandlerController)),
             finalize(() => proxyConnection.destroy()),
         ).subscribe()
         proxyConnection.run();
@@ -142,11 +141,11 @@ export class RxTransferPluginController implements ITransferPluginController {
             }
             wasPreviouslySubscribed = true;
             return merge(
-                observeAction<IRxTransferPluginHostActions>(proxyConnection),
-                observeDestroy(config.actionController).pipe(
+                observeEvent<IRxTransferPluginHostActions>(proxyConnection.actionHandlerController),
+                observeEvent(config.actionController.destroyHandlerController).pipe(
                     tap(() => {
                         throw new ConnectionClosedError();
-                    })
+                    }),
                 ) as Observable<never>,
                 defer(() => { // Send a subscribe action after the listen action has started
                     const subscribeAction: IRxTransferPluginClientSubscribeAction = {

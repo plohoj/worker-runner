@@ -113,15 +113,10 @@ export class ConnectedRunnerResolverClient {
             token,
             connectionChannel,
             transferPluginsResolver,
-            onDestroyed: () => {
-                try {
-                    this.environmentCollection.remove(environmentClient)
-                } catch {
-                    // Between successful initialization and waiting for the promise queue, destruction may be called.
-                    // Therefore, a ReferenceError is thrown.
-                }
-            },
         });
+        environmentClient.destroyHandlerController.addHandler(
+            () => this.environmentCollection.remove(environmentClient)
+        );
 
         // While waiting for the turn of promises Runner could be destroyed.
         // Before adding a runner to the collection,
@@ -155,9 +150,11 @@ export class ConnectedRunnerResolverClient {
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
             runnerDefinitionCollection: this.runnerDefinitionCollection,
-            onDestroyed: () => this.environmentCollection.remove(environmentClient),
             runnerControllerConstructor,
         });
+        environmentClient.destroyHandlerController.addHandler(
+            () => this.environmentCollection.remove(environmentClient)
+        );
         this.environmentCollection.add(environmentClient);
 
         return environmentClient.resolvedRunner;

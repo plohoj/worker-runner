@@ -29,5 +29,6 @@ export class IdConnectionIdentificationChecker implements IBaseConnectionIdentif
 
     public destroy(): void {
         this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.clear();
     }
 }

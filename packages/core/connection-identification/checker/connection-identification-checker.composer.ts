@@ -39,5 +39,6 @@ export class ConnectionIdentificationCheckerComposer implements IBaseConnectionI
             identificationChecker.destroy();
         }
         this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.clear();
     }
 }

@@ -57,6 +57,5 @@ export { Constructor, IRunnerMethodResult, IRunnerParameter, IRunnerSerializedMe
 export { InstanceTypeOrUnknown } from './types/instance-type-or-unknown';
 export { JsonLike, TransferableJsonLike } from './types/json-like';
 export { AnyRunnerFromList, AvailableRunnerIdentifier, AvailableRunnersFromList, IRunnerIdentifierConfig, RunnerByIdentifier, RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from './types/runner-identifier';
-export { IActionTarget } from './types/targets/action-target';
-export { IDestroyHandlersTarget } from './types/targets/destroy-target';
+export { EventHandlerController } from './utils/event-handler-controller';
 export { WorkerRunnerIdentifier } from './utils/identifier-generator';

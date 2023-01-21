@@ -1,13 +1,13 @@
 import { ActionHandler, IAction } from '../types/action';
-import { IActionTarget } from '../types/targets/action-target';
+import { EventHandlerController } from '../utils/event-handler-controller';
 import { ConnectionChannelProxyData } from './proxy.connection-channel';
 
 /**
  * A wrapper for any type of connection that implements a set of methods for exchanging actions
  */
-export abstract class BaseConnectionChannel implements IActionTarget {
+export abstract class BaseConnectionChannel {
 
-    protected readonly handlers = new Set<ActionHandler>();
+    public readonly actionHandlerController = new EventHandlerController<IAction>();
     protected saveConnectionOpened = false;
 
     /** {proxyField: {proxyValue: {proxyChannel}}} */
@@ -40,7 +40,7 @@ export abstract class BaseConnectionChannel implements IActionTarget {
 
     /** 
      * To get the best result of receiving a message through the MessagePort,
-     * it is preferable to add listeners using the {@link addActionHandler} method
+     * it is preferable to add listeners using the {@link actionHandlerController}
      * before calling this initialization method.
      */
     public run(): void {
@@ -56,18 +56,10 @@ export abstract class BaseConnectionChannel implements IActionTarget {
         this._isConnected = false;
         this.isDestroyed = true;
         this.saveConnectionOpened = saveConnectionOpened;
-        this.handlers.clear();
+        this.actionHandlerController.clear();
         if (this.proxyChannels.size === 0) {
             this.afterDestroy();
         }
-    }
-
-    public addActionHandler<A extends IAction>(handler: ActionHandler<A>): void {
-        this.handlers.add(handler as ActionHandler);
-    }
-
-    public removeActionHandler<A extends IAction>(handler: ActionHandler<A>): void {
-        this.handlers.delete(handler as ActionHandler);
     }
 
     protected readonly actionHandler: ActionHandler = (action: IAction): void => {
@@ -87,9 +79,7 @@ export abstract class BaseConnectionChannel implements IActionTarget {
                 return;
             }
         }
-        for (const handler of this.handlers) {
-            handler(action);
-        }
+        this.actionHandlerController.dispatch(action);
     }
 
     private addProxyChannel(proxyData: ConnectionChannelProxyData, proxyChannel: BaseConnectionChannel): void {

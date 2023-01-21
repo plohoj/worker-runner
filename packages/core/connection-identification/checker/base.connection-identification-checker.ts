@@ -1,5 +1,4 @@
 import { IAction } from '../../types/action';
-import { IDestroyTarget } from '../../types/targets/destroy-target';
 import { EventHandlerController } from '../../utils/event-handler-controller';
 
 export interface IConnectionIdentificationCheckerSplitAction<T extends IAction> {
@@ -9,7 +8,7 @@ export interface IConnectionIdentificationCheckerSplitAction<T extends IAction> 
     isMatched: boolean;
 }
 
-export  interface IBaseConnectionIdentificationChecker extends IDestroyTarget {
+export  interface IBaseConnectionIdentificationChecker {
     readonly destroyHandlerController: EventHandlerController<void>;
 
     /** Attaching fields with a connection identifier for each action before sending */
@@ -20,4 +19,5 @@ export  interface IBaseConnectionIdentificationChecker extends IDestroyTarget {
      * using the received connection identifier that was attached to the action on the host side
      */
     splitIdentifier<T extends IAction>(action: T): IConnectionIdentificationCheckerSplitAction<T>;
+    destroy(): void;
 }

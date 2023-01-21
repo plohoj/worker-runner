@@ -84,14 +84,14 @@ export class BestStrategyResolverClient {
                 }
             }
             stopCallback = () => {
-                this.connectionChannel.removeActionHandler(handler);
+                this.connectionChannel.actionHandlerController.removeHandler(handler);
                 this.rejectCallback = undefined
             };
             this.rejectCallback = () => {
                 stopCallback();
                 reject(new ConnectionClosedError());
             };
-            this.connectionChannel.addActionHandler(handler);
+            this.connectionChannel.actionHandlerController.addHandler(handler);
             this.connectionChannel.run();
             this.sendConnectAction();
         });

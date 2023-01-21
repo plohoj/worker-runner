@@ -17,6 +17,7 @@ import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, IRunnerSerializedMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken } from "../../types/runner-identifier";
+import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
@@ -26,7 +27,6 @@ export interface IRunnerEnvironmentClientFactoryConfig {
     token: RunnerToken,
     connectionChannel: BaseConnectionChannel;
     transferPluginsResolver?: TransferPluginsResolver;
-    onDestroyed: () => void;
 }
 
 export type RunnerEnvironmentClientFactory
@@ -53,10 +53,10 @@ export class RunnerEnvironmentClient {
      * * Throws an event when the destruction process is completed
      */
     public destroyInProcess$?: Promise<void>;
+    public readonly destroyHandlerController = new EventHandlerController<void>();
 
     private readonly actionController: ActionController;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
-    private readonly onDestroyed: () => void;
     private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly errorSerialization: ErrorSerializationPluginsResolver; 
     private readonly transferPluginsResolver: TransferPluginsResolver;
@@ -77,7 +77,6 @@ export class RunnerEnvironmentClient {
         this.runnerDefinitionCollection = config.runnerDefinitionCollection;
         this.connectionStrategy = config.connectionStrategy;
         this.errorSerialization = config.pluginsResolver.errorSerialization;
-        this.onDestroyed = config.onDestroyed;
         this.transferPluginsResolver = config.transferPluginsResolver || config.pluginsResolver.resolveTransferResolver({
             runnerEnvironmentClientFactory: RunnerEnvironmentClient.buildFactory({
                 connectionStrategy: this.connectionStrategy,
@@ -88,7 +87,7 @@ export class RunnerEnvironmentClient {
         });
 
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        this.actionController.addActionHandler(this.handleActionWithoutId);
+        this.actionController.actionHandlerController.addHandler(this.handleActionWithoutId);
     }
 
     public get resolvedRunner(): ResolvedRunner<RunnerConstructor> {
@@ -184,11 +183,11 @@ export class RunnerEnvironmentClient {
                     || action.type === RunnerEnvironmentHostAction.DISCONNECTED
                     || action.type === RunnerEnvironmentHostAction.DESTROYED;
                 if (isDisconnectionResponse) {
-                    connectionChannel.removeActionHandler(disconnectHandler);
+                    connectionChannel.actionHandlerController.removeHandler(disconnectHandler);
                     resolve();
                 }
             }
-            connectionChannel.addActionHandler(disconnectHandler);
+            connectionChannel.actionHandlerController.addHandler(disconnectHandler);
             connectionChannel.run();
         });
     }
@@ -273,7 +272,8 @@ export class RunnerEnvironmentClient {
             type: RunnerEnvironmentClientAction.TRANSFER,
         });
         this.actionController.destroy(true);
-        this.onDestroyed();
+        this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.clear();
         return this.actionController.connectionChannel;
     }
 
@@ -288,7 +288,8 @@ export class RunnerEnvironmentClient {
                 this.destroyInterrupter.interrupt();
                 await this.transferPluginsResolver.destroy();
                 this.actionController.destroy();
-                this.onDestroyed();
+                this.destroyHandlerController.dispatch();
+                this.destroyHandlerController.clear();
             })();
         }
         return this.destroyInProcess$;

@@ -14,6 +14,7 @@ import { RunnerDefinitionCollection } from "../../runner/runner-definition.colle
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
+import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { parallelPromises } from '../../utils/parallel.promises';
 import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from '../client/runner-resolver.client.actions';
@@ -24,18 +25,17 @@ export interface IConnectedRunnerResolverHostConfig {
     connectionStrategy: BaseConnectionStrategyHost,
     runnerDefinitionCollection: RunnerDefinitionCollection<RunnerIdentifierConfigList>;
     plugins?: IPlugin[];
-    onDestroy: () => void;
 }
 
 export class ConnectedRunnerResolverHost {
 
     public readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<RunnerConstructor>>();
+    public readonly destroyHandlerController = new EventHandlerController<void>();
 
     private readonly actionController: ActionController;
     private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly connectionStrategy: BaseConnectionStrategyHost;
     private readonly pluginsResolver: PluginsResolver;
-    private onDestroy: () => void;
 
     constructor(config: IConnectedRunnerResolverHostConfig) {
         this.runnerDefinitionCollection = config.runnerDefinitionCollection;
@@ -50,12 +50,11 @@ export class ConnectedRunnerResolverHost {
                 runnerTransferPlugin,
             ],
         });
-        this.onDestroy = config.onDestroy;
     }
 
     public run(): void {
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        this.actionController.addActionHandler(this.handleAction);
+        this.actionController.actionHandlerController.addHandler(this.handleAction);
         this.actionController.run();
     }
 
@@ -75,7 +74,8 @@ export class ConnectedRunnerResolverHost {
                 });
             }
             this.actionController.destroy();
-            this.onDestroy();
+            this.destroyHandlerController.dispatch();
+            this.destroyHandlerController.clear();
         }
     }
 
@@ -98,9 +98,11 @@ export class ConnectedRunnerResolverHost {
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
-            onDestroyed: () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost),
             ...config,
         });
+        runnerEnvironmentHost.destroyHandlerController.addHandler(
+            () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost)
+        );
         return runnerEnvironmentHost;
     }
 

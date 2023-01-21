@@ -87,15 +87,10 @@ export class RunnerTransferPluginController implements ITransferPluginController
         const environmentClient: RunnerEnvironmentClient = await this.runnerEnvironmentClientFactory({
             token: transferData.token,
             connectionChannel,
-            onDestroyed: () => {
-                try {
-                    this.environmentCollection.remove(environmentClient)
-                } catch {
-                    // Between successful initialization and waiting for the promise queue, destruction may be called.
-                    // Therefore, a ReferenceError is thrown.
-                }
-            },
         });
+        environmentClient.destroyHandlerController.addHandler(
+            () => this.environmentCollection.remove(environmentClient)
+        );
         // While waiting for the turn of promises Runner could be destroyed.
         // Before adding a runner to the collection,
         // we check the fact that the runner was not destroyed.

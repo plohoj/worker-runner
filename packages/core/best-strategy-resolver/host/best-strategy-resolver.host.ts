@@ -94,10 +94,10 @@ export class BestStrategyResolverHost {
             }
         }
         this.stopCallback = () => {
-            this.connectionChannel.removeActionHandler(handler);
+            this.connectionChannel.actionHandlerController.removeHandler(handler);
             this.stopCallback = undefined
         };
-        this.connectionChannel.addActionHandler(handler);
+        this.connectionChannel.actionHandlerController.addHandler(handler);
         this.connectionChannel.run();
         if (!wasReceivedConnectAction && this.sendPingAction) {
             const pingAction: IBestStrategyResolverHostPingAction = {

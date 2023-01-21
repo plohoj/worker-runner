@@ -32,5 +32,6 @@ export class DirectionConnectionIdentificationChecker implements IBaseConnection
 
     public destroy(): void {
         this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.clear();
     }
 }
