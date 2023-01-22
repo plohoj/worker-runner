@@ -36,7 +36,9 @@ export abstract class BaseMessageEventListenerConnectionChannel<
         this.identificationChecker?.destroy();
     }
 
-    private buildMessageHandler(identificationChecker?: IBaseConnectionIdentificationChecker): MessageEventHandler<unknown> {
+    protected buildMessageHandler(
+        identificationChecker?: IBaseConnectionIdentificationChecker
+    ): MessageEventHandler<unknown> {
         if (identificationChecker) {
             return (event: MessageEvent<unknown>) => {
                 const splitActionCheck = identificationChecker.splitIdentifier(event.data as IAction);

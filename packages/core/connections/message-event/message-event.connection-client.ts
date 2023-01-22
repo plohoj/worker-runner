@@ -11,10 +11,9 @@ export class MessageEventConnectionClient extends BaseMessageEventListenerConnec
         super(config);
     }
 
-    public override buildConnectionChannel(
-        target: IMessageEventTarget,
+    protected override buildConnectionChannel(
         identificationChecker?: IBaseConnectionIdentificationChecker,
     ): MessageEventConnectionChannel {
-        return new MessageEventConnectionChannel({target, identificationChecker});
+        return new MessageEventConnectionChannel({target: this.target, identificationChecker});
     }
 }

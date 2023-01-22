@@ -57,7 +57,8 @@ const resolvers = {
     'Promise#Iframe#MessageChannel': new RunnerResolverClient({
         runners,
         connection: new WindowMessageEventConnectionClient({
-            target: iframe,
+            postMessageTarget: iframe,
+            eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
             identificationStrategies: [
                 new DirectionConnectionIdentificationStrategyClient({
@@ -70,7 +71,8 @@ const resolvers = {
     'Promise#Iframe#Repeat': new RunnerResolverClient({
         runners,
         connection: new WindowMessageEventConnectionClient({
-            target: iframe,
+            postMessageTarget: iframe,
+            eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
             identificationStrategies: [
                 new DirectionConnectionIdentificationStrategyClient({
@@ -109,7 +111,8 @@ const resolvers = {
     'Rx#Iframe#MessageChannel': new RxRunnerResolverClient({
         runners,
         connection: new WindowMessageEventConnectionClient({
-            target: iframe,
+            postMessageTarget: iframe,
+            eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
             identificationStrategies: [
                 new DirectionConnectionIdentificationStrategyClient({
@@ -122,7 +125,8 @@ const resolvers = {
     'Rx#Iframe#Repeat': new RxRunnerResolverClient({
         runners,
         connection: new WindowMessageEventConnectionClient({
-            target: iframe,
+            postMessageTarget: iframe,
+            eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
             identificationStrategies: [
                 new DirectionConnectionIdentificationStrategyClient({

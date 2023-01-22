@@ -1,32 +1,38 @@
 import { WindowMessageEventConnectionChannel } from '../../connection-channels/window-message-event.connection-channel';
 import { IBaseConnectionIdentificationChecker } from '../../connection-identification/checker/base.connection-identification-checker';
+import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
 import { IWindowMessageEventTarget } from '../../types/targets/window-message-event-target';
 import { BaseMessageEventListenerConnectionHost, IBaseMessageEventListenerConnectionHostConfig } from '../base-message-event-listener/base-message-event-listener.connection-host';
+import { IBaseWindowMessageEventConnectionConfig } from './window-message-event-connection-config';
 
 export interface IWindowMessageEventConnectionHostConfig
-    extends IBaseMessageEventListenerConnectionHostConfig<IWindowMessageEventTarget>
-{
-    /** @default '/' */
-    targetOrigin?: string;
-}
+    extends Omit<IBaseMessageEventListenerConnectionHostConfig<IMessageEventListenerTarget>, 'target'>,
+        IBaseWindowMessageEventConnectionConfig {}
 
 export class WindowMessageEventConnectionHost
-    extends BaseMessageEventListenerConnectionHost<IWindowMessageEventTarget>
+    extends BaseMessageEventListenerConnectionHost<IMessageEventListenerTarget>
 {
 
+    public readonly postMessageTarget: IWindowMessageEventTarget;
     private readonly targetOrigin: string;
 
     constructor(config: IWindowMessageEventConnectionHostConfig) {
-        super(config);
-        this.targetOrigin = config.targetOrigin || '/';
+        super({
+            ...config,
+            target: config.eventListenerTarget,
+        });
+        this.targetOrigin = config.targetOrigin
+            ? new URL(config.targetOrigin).origin
+            : document.location.origin;
+        this.postMessageTarget = config.postMessageTarget;
     }
 
-    public override buildConnectionChannel(
-        target: IWindowMessageEventTarget,
+    protected override buildConnectionChannel(
         identificationChecker?: IBaseConnectionIdentificationChecker,
     ): WindowMessageEventConnectionChannel {
         return new WindowMessageEventConnectionChannel({
-            target,
+            eventListenerTarget: this.target,
+            postMessageTarget: this.postMessageTarget,
             targetOrigin: this.targetOrigin,
             identificationChecker,
         });

@@ -7,8 +7,8 @@ import { runners } from '../common/runner-list';
 new RunnerResolverHost({
     runners,
     connection: new WindowMessageEventConnectionHost({
-        target: self,
-        targetOrigin: location.origin,
+        eventListenerTarget: window,
+        postMessageTarget: window,
         connectionStrategies: [
             new MessageChannelConnectionStrategyHost(),
             new RepeatConnectionStrategyHost(),
@@ -25,8 +25,8 @@ new RunnerResolverHost({
 new RxRunnerResolverHost({
     runners,
     connection: new WindowMessageEventConnectionHost({
-        target: self,
-        targetOrigin: location.origin,
+        eventListenerTarget: window,
+        postMessageTarget: window,
         connectionStrategies: [
             new MessageChannelConnectionStrategyHost(),
             new RepeatConnectionStrategyHost(),

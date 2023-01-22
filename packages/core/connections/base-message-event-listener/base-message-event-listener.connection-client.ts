@@ -40,7 +40,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
     }
 
     public override async connect(): Promise<IEstablishedConnectionClientData> {
-        const initialConnectionChannel = this.buildConnectionChannel(this.target);
+        const initialConnectionChannel = this.buildConnectionChannel();
         // The ConnectionChannel.run() will be called in the BestStrategyResolverClient.resolve() method
         const bestStrategyResolver = new BestStrategyResolverClient({
             connectionChannel: initialConnectionChannel,
@@ -58,7 +58,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
             this.stopCallback = undefined;
         }
         initialConnectionChannel.destroy(true);
-        const resolvedConnectionChannel = this.buildConnectionChannel(this.target, resolvedConnection.identificationChecker);
+        const resolvedConnectionChannel = this.buildConnectionChannel(resolvedConnection.identificationChecker);
         return {
             connectionChannel: resolvedConnectionChannel,
             connectionStrategy: resolvedConnection.connectionStrategy,
@@ -70,8 +70,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
         this.stopCallback = undefined;
     }
 
-    public abstract buildConnectionChannel(
-        target: T,
+    protected abstract buildConnectionChannel(
         identificationChecker?: IBaseConnectionIdentificationChecker,
     ): BaseConnectionChannel;
 }

@@ -20,7 +20,7 @@ export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessag
 }
 
 export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageEventListenerTarget> extends BaseConnectionHost {
-    private readonly target: T;
+    public readonly target: T;
     private readonly connectionStrategies: BaseConnectionStrategyHost[];
     private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
     private stopCallback?: () => void;
@@ -38,7 +38,7 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
     }
 
     public override startListen(handler: ConnectionHostHandler): void {
-        const initialConnectionChannel = this.buildConnectionChannel(this.target);
+        const initialConnectionChannel = this.buildConnectionChannel();
         // The BaseConnectionChannel.run() will be called in the BestStrategyResolverHost.run() method
         const bestStrategyResolver = new BestStrategyResolverHost({
             connectionChannel: initialConnectionChannel,
@@ -48,7 +48,7 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         });
         bestStrategyResolver.run(
             resolvedConnection => handler({
-                connectionChannel: this.buildConnectionChannel(this.target, resolvedConnection.identificationChecker),
+                connectionChannel: this.buildConnectionChannel(resolvedConnection.identificationChecker),
                 connectionStrategy: resolvedConnection.connectionStrategy,
             }),
             error => {
@@ -66,8 +66,7 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         this.stopCallback?.();
     }
 
-    public abstract buildConnectionChannel(
-        target: T,
+    protected abstract buildConnectionChannel(
         identificationChecker?: IBaseConnectionIdentificationChecker
     ): BaseConnectionChannel;
 }
