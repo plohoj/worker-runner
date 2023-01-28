@@ -2,9 +2,10 @@ import { BaseConnectionChannel } from '../../connection-channels/base.connection
 import { ConnectionChannelProxyData, ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../../utils/identifier-generator';
-import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient, IPreparedForSendProxyRunnerData } from '../base/base.connection-strategy-client';
+import { DataForSendRunner } from "../base/prepared-for-send-data";
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { IRepeatConnectionClientRunnerProxySendData, IRepeatConnectionNewClientRunnerSendData, IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data';
+import { IRepeatConnectionRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data';
 
 export interface IRepeatConnectionStrategyClientConfig {
     identifierGenerator?: IdentifierGenerator;
@@ -68,21 +69,10 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
     protected prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData {
         const identifier: WorkerRunnerIdentifier = this.identifierGenerator.generate();
         const proxyChannel = new ProxyConnectionChannel(currentChannel, [this.prepareRunnerProxyKey, identifier]);
-        const sendData = {
-            [this.newRunnerProxySendDataKey]: identifier
-        } as unknown as IRepeatConnectionClientRunnerProxySendData;
         return {
             proxyChannel,
-            identifier: identifier satisfies WorkerRunnerIdentifier as unknown as PreparedDataIdentifier,
-            preparedData: {
-                data: sendData satisfies IRepeatConnectionClientRunnerProxySendData as unknown as DataForSendRunner,
-            },
+            data: {[this.newRunnerProxySendDataKey]: identifier} as unknown as DataForSendRunner,
         };
-    }
-
-    protected getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier {
-        return (sendData satisfies DataForSendRunner as unknown as IRepeatConnectionNewClientRunnerSendData)
-            .newClientId satisfies WorkerRunnerIdentifier as unknown as PreparedDataIdentifier;
     }
 
     private getProxyDataForPrimaryField(

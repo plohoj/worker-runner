@@ -1,8 +1,8 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
-import { IMessagePortTarget } from '../../types/targets/message-port-target';
-import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerData, PreparedDataIdentifier } from '../base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerDataClient } from '../base/base.connection-strategy-client';
+import { DataForSendRunner } from "../base/prepared-for-send-data";
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { IMessageChannelConnectionRunnerSendData } from './message-channel-connection-prepared-data';
 
@@ -20,31 +20,21 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         });
     }
 
-    public override cancelSendAttachRunnerData(
-        sendData: DataForSendRunner,
-    ): void | Promise<void> {
-        const port = this.getIdentifierForPreparedData(sendData);
-        if (!this.resolvedConnectionMap.has(port)) { // The port was passed without building a proxy
-            const connectionChannel = new MessagePortConnectionChannel({
-                target: port satisfies PreparedDataIdentifier as unknown as IMessagePortTarget
-            });
-            return RunnerEnvironmentClient.disconnectConnection(connectionChannel);
-        }
-        return super.cancelSendAttachRunnerData(sendData);
-    }
-
     protected override prepareRunnerForSendByConnectionChannel(
         currentChannel: BaseConnectionChannel,
         resolvedConnection: BaseConnectionChannel,
-    ): IPreparedForSendRunnerData {
+    ): IPreparedForSendRunnerDataClient {
         if (resolvedConnection instanceof MessagePortConnectionChannel) {
             const port = resolvedConnection.target;
-            const sendData: IMessageChannelConnectionRunnerSendData = {
-                port,
-            };
+            resolvedConnection.destroy(true);
             return {
-                data: sendData satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
+                data: {port} satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
                 transfer: [port as MessagePort],
+                cancel: async () => {
+                    const connectionChannel = new MessagePortConnectionChannel({target: port});
+                    await RunnerEnvironmentClient.disconnectConnection(connectionChannel);
+                    connectionChannel.destroy();
+                }
             }
         }
         return super.prepareRunnerForSendByConnectionChannel(currentChannel, resolvedConnection);
@@ -54,21 +44,12 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         const messageChannel = new MessageChannel();
         const proxyChannel = new MessagePortConnectionChannel({target: messageChannel.port1});
         proxyChannel.run();
-        const sendData: IMessageChannelConnectionRunnerSendData = {
-            port: messageChannel.port2,
-        };
         return {
-            identifier: messageChannel.port2 satisfies MessagePort as unknown as PreparedDataIdentifier,
             proxyChannel,
-            preparedData: {
-                data: sendData satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
-                transfer: [messageChannel.port2],
-            },
+            data: {
+                port: messageChannel.port2,
+            } satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
+            transfer: [messageChannel.port2],
         };
-    }
-
-    protected getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier {
-        return (sendData satisfies  DataForSendRunner as unknown as IMessageChannelConnectionRunnerSendData)
-            .port satisfies IMessagePortTarget as unknown as PreparedDataIdentifier;
     }
 }

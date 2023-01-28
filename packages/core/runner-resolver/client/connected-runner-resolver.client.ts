@@ -1,6 +1,7 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { DataForSendRunner } from "../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins';

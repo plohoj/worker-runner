@@ -3,7 +3,7 @@ import { TransferPluginDataType, TransferPluginSendData } from '../../plugins/tr
 
 export enum RunnerEnvironmentHostAction {
     /** Method execution result */
-    EXECUTED = 'EXECUTED', // TODO rename to RESPONSE
+    RESPONSE = 'RESPONSE',
     /** Error while executing an action */
     ERROR = 'ERROR',
     /** Duplicated environment that manages the same Runner instance */
@@ -20,8 +20,8 @@ export enum RunnerEnvironmentHostAction {
     DESTROYED = 'DESTROYED',
 }
 
-export type IRunnerEnvironmentHostExecutedAction = {
-    type: RunnerEnvironmentHostAction.EXECUTED;
+export type IRunnerEnvironmentHostResponseAction = {
+    type: RunnerEnvironmentHostAction.RESPONSE;
     responseType: TransferPluginDataType;
     response: TransferPluginSendData;
 }
@@ -49,7 +49,7 @@ export type IRunnerEnvironmentHostDestroyedAction = {
 }
 
 export type IRunnerEnvironmentHostAction = 
-    | IRunnerEnvironmentHostExecutedAction
+    | IRunnerEnvironmentHostResponseAction
     | IRunnerEnvironmentHostErrorAction
     | IRunnerEnvironmentHostClonedAction
     | IRunnerEnvironmentHostOwnMetadataAction

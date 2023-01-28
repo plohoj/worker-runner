@@ -13,7 +13,6 @@ export interface IMessageEventConnectionChannelConfig
     targetOrigin: string;
 }
 
-// TODO Add domain validation to incoming messages (event.origin)
 export class WindowMessageEventConnectionChannel
     extends BaseMessageEventListenerConnectionChannel<IMessageEventListenerTarget>
 {

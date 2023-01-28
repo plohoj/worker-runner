@@ -1,9 +1,10 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
-import { BaseConnectionStrategyClient, IPreparedForSendRunnerData } from './base.connection-strategy-client';
+import { BaseConnectionStrategyClient } from './base.connection-strategy-client';
+import { IPreparedForSendRunnerDataBase } from "./prepared-for-send-data";
 
-export interface IPreparedForSendRunnerDataWithConnectionChannel extends IPreparedForSendRunnerData {
-   connectionChannel: BaseConnectionChannel,
+export interface IPreparedForSendRunnerDataHost extends IPreparedForSendRunnerDataBase {
+    connectionChannel: BaseConnectionChannel,
 }
 
 export abstract class BaseConnectionStrategyHost {
@@ -16,5 +17,5 @@ export abstract class BaseConnectionStrategyHost {
      */
     public abstract prepareRunnerForSend(
         currentChannel: BaseConnectionChannel,
-    ): IPreparedForSendRunnerDataWithConnectionChannel;
+    ): IPreparedForSendRunnerDataHost;
 }

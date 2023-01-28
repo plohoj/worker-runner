@@ -1,8 +1,8 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { IdentifierGenerator } from '../../utils/identifier-generator';
-import { DataForSendRunner } from '../base/base.connection-strategy-client';
-import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataWithConnectionChannel } from '../base/base.connection-strategy-host';
+import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataHost } from '../base/base.connection-strategy-host';
+import { DataForSendRunner } from "../base/prepared-for-send-data";
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { IRepeatConnectionNewHostRunnerSendData, RepeatConnectionClientRunnerSendDataFields } from './repeat-connection-prepared-data';
 import { RepeatConnectionStrategyClient } from './repeat.connection-strategy-client';
@@ -22,7 +22,7 @@ export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
 
     public prepareRunnerForSend(
         currentChannel: BaseConnectionChannel,
-    ): IPreparedForSendRunnerDataWithConnectionChannel {
+    ): IPreparedForSendRunnerDataHost {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }

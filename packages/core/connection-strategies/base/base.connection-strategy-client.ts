@@ -1,35 +1,21 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
-import { Nominal } from '../../types/nominal';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
+import { DataForSendRunner, IPreparedForSendRunnerDataBase } from './prepared-for-send-data';
 
-declare const dataForSendRunner: unique symbol;
-/**
- * Fields that must be attached to an object with a serialized Runner as an argument
- * or to an action with the result of a method execution
- */
-export type DataForSendRunner = Nominal<typeof dataForSendRunner>;
-
-export interface IPreparedForSendRunnerData {
-    data: DataForSendRunner,
-    transfer?: Transferable[],
+export interface IPreparedForSendRunnerDataClient extends IPreparedForSendRunnerDataBase {
+    /** Canceling sending prepared data for control if an error occurs before sending */
+    cancel: () => void | Promise<void>,
 }
 
-export interface IPreparedForSendProxyRunnerData {
+export interface IPreparedForSendProxyRunnerData extends IPreparedForSendRunnerDataBase {
     proxyChannel: BaseConnectionChannel;
-    identifier: PreparedDataIdentifier;
-    preparedData: IPreparedForSendRunnerData;
 }
-
-declare const preparedDataIdentifier: unique symbol;
-export type PreparedDataIdentifier = Nominal<typeof preparedDataIdentifier>;
 
 export abstract class BaseConnectionStrategyClient {
 
-    // TODO handle destroy strategy?
-    /** {identifier: resolvedConnection} */
-    protected readonly resolvedConnectionMap = new Map<PreparedDataIdentifier, BaseConnectionChannel>();
+    // TODO handle destroy for strategy?
     public abstract readonly type: ConnectionStrategyEnum | string;
 
     /**
@@ -40,7 +26,7 @@ export abstract class BaseConnectionStrategyClient {
     public prepareRunnerForSend(
         currentChannel: BaseConnectionChannel,
         environment: RunnerEnvironmentClient,
-    ): IPreparedForSendRunnerData | Promise<IPreparedForSendRunnerData> {
+    ): IPreparedForSendRunnerDataClient | Promise<IPreparedForSendRunnerDataClient> {
         if (environment.isMarkedForTransfer) {
             return this.prepareRunnerForSendByConnectionChannel(currentChannel, environment.transferControl());
         }
@@ -51,22 +37,11 @@ export abstract class BaseConnectionStrategyClient {
             );
     }
 
-    // TODO prepareRunnerForSend must return cancel method
-    /** Canceling submission of prepared data for control when an error occurs while preparing arguments */
-    public cancelSendAttachRunnerData(
-        sendData: DataForSendRunner,
-    ): void | Promise<void> {
-        const resolvedConnection = this.resolvedConnectionMap.get(this.getIdentifierForPreparedData(sendData));
-        if (!resolvedConnection) {
-            return;
-        }
-        return RunnerEnvironmentClient.disconnectConnection(resolvedConnection);
-    }
-
     protected prepareRunnerForSendByConnectionChannel(
         currentChannel: BaseConnectionChannel,
+        /** A connection channel that was obtained as a result of cloning or transferring Runner control */
         resolvedChannel: BaseConnectionChannel,
-    ): IPreparedForSendRunnerData {
+    ): IPreparedForSendRunnerDataClient {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }
@@ -77,10 +52,16 @@ export abstract class BaseConnectionStrategyClient {
         void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then(() => {
             preparedProxyData.proxyChannel.destroy();
             resolvedChannel.destroy();
-            this.resolvedConnectionMap.delete(preparedProxyData.identifier);
         });
-        this.resolvedConnectionMap.set(preparedProxyData.identifier, resolvedChannel);
-        return preparedProxyData.preparedData;
+        return {
+            data: preparedProxyData.data,
+            transfer: preparedProxyData.transfer,
+            cancel: async () => {
+                preparedProxyData.proxyChannel.destroy();
+                await RunnerEnvironmentClient.disconnectConnection(resolvedChannel);
+                resolvedChannel.destroy();
+            }
+        };
     }
 
     /**
@@ -101,5 +82,4 @@ export abstract class BaseConnectionStrategyClient {
     ): BaseConnectionChannel;
 
     protected abstract prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData;
-    protected abstract getIdentifierForPreparedData(sendData: DataForSendRunner): PreparedDataIdentifier;
 }

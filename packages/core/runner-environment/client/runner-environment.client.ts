@@ -1,6 +1,7 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { BaseConnectionStrategyClient, DataForSendRunner } from '../../connection-strategies/base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { DataForSendRunner } from "../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { IWorkerRunnerErrorConfig } from '../../errors/worker-runner-error';
@@ -20,8 +21,8 @@ import { RunnerToken } from "../../types/runner-identifier";
 import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
-import { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
-import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientDestroyAction, IRunnerEnvironmentClientDisconnectAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientInitiatedAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
+import { IRunnerEnvironmentHostAction, IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostResponseAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from '../host/runner-environment.host.actions';
+import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientDestroyAction, IRunnerEnvironmentClientDisconnectAction, IRunnerEnvironmentClientCallAction, IRunnerEnvironmentClientInitiatedAction, IRunnerEnvironmentClientRequestRunnerOwnDataAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from './runner-environment.client.actions';
 
 export interface IRunnerEnvironmentClientFactoryConfig {
     token: RunnerToken,
@@ -214,10 +215,10 @@ export class RunnerEnvironmentClient {
         // the passed control over Runners will be destroyed on the Host side
         // TODO Possibly more efficient if ConnectStrategy decides on which side to destroy Runner control
         const actionResult = await this.resolveActionAndHandleError<
-            IRunnerEnvironmentClientExecuteAction,
-            IRunnerEnvironmentHostExecutedAction
+            IRunnerEnvironmentClientCallAction,
+            IRunnerEnvironmentHostResponseAction
         >({
-            type: RunnerEnvironmentClientAction.EXECUTE,
+            type: RunnerEnvironmentClientAction.CALL,
             args: preparedData.data satisfies TransferPluginSendData as unknown as ICollectionTransferPluginSendArrayData,
             method: methodName,
         }, preparedData.transfer);

@@ -1,4 +1,5 @@
-import { BaseConnectionStrategyClient, DataForSendRunner, IPreparedForSendRunnerData } from '../../../connection-strategies/base/base.connection-strategy-client';
+import { BaseConnectionStrategyClient, IPreparedForSendRunnerDataClient } from '../../../connection-strategies/base/base.connection-strategy-client';
+import { DataForSendRunner } from "../../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { ConnectionClosedError, RunnerDestroyError } from '../../../errors/runner-errors';
 import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
@@ -53,14 +54,12 @@ export class RunnerTransferPluginController implements ITransferPluginController
                 this.strategyDataToTransferData(
                     runnerEnvironmentClient.runnerDescription.token,
                     preparedStrategyData,
-                    this.connectionStrategy,
                 )
             );
         }
         return this.strategyDataToTransferData(
             runnerEnvironmentClient.runnerDescription.token,
             preparedStrategyData$,
-            this.connectionStrategy,
         );
     }
 
@@ -129,8 +128,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
 
     private strategyDataToTransferData(
         token: RunnerToken,
-        preparedStrategyData: IPreparedForSendRunnerData,
-        connectionStrategyClient: BaseConnectionStrategyClient,
+        preparedStrategyData: IPreparedForSendRunnerDataClient,
     ): ITransferPluginPreparedData {
         const transferData: IRunnerTransferPluginData = {
             token,
@@ -140,7 +138,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
             data: transferData satisfies IRunnerTransferPluginData as unknown as TransferPluginSendData,
             type: RUNNER_TRANSFER_TYPE,
             transfer: preparedStrategyData.transfer,
-            cancel: () => connectionStrategyClient.cancelSendAttachRunnerData(preparedStrategyData.data),
+            cancel: () => preparedStrategyData.cancel(),
         }
         return preparedForTransferData;
     }

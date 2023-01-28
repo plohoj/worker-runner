@@ -23,8 +23,8 @@ import { parallelPromises } from '../../utils/parallel.promises';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { rowPromisesErrors } from '../../utils/row-promises-errors';
 import { RunnerEnvironmentClient } from '../client/runner-environment.client';
-import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientExecuteAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
-import { IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostExecutedAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from './runner-environment.host.actions';
+import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCallAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
+import { IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostResponseAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from './runner-environment.host.actions';
 
 interface IRunnerEnvironmentHostSyncInitConfig<R extends RunnerConstructor> {
     runnerInstance: InstanceType<R>,
@@ -196,9 +196,9 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         this.startHandleActionController(actionController);
     }
 
-    public async handleExecuteAction(
+    public async handleCallAction(
         actionController: ActionController,
-        action: IRunnerEnvironmentClientExecuteAction & IActionWithId,
+        action: IRunnerEnvironmentClientCallAction & IActionWithId,
     ): Promise<void> {
         const receiveDataConfig: ITransferPluginsResolverReceiveDataConfig = {
             actionController,
@@ -311,8 +311,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 case RunnerEnvironmentClientAction.INITIATED:
                     this.handleInitiatedAction(actionController);
                     break;
-                case RunnerEnvironmentClientAction.EXECUTE:
-                    await this.handleExecuteAction(actionController, action);
+                case RunnerEnvironmentClientAction.CALL:
+                    await this.handleCallAction(actionController, action);
                     break
                 case RunnerEnvironmentClientAction.CLONE:
                     this.handleCloneAction(actionController, action.id);
@@ -359,7 +359,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
 
     protected async handleExecuteResponse(
         actionController: ActionController,
-        action: IRunnerEnvironmentClientExecuteAction & IActionWithId,
+        action: IRunnerEnvironmentClientCallAction & IActionWithId,
         methodResult: IRunnerMethodResult,
     ): Promise<void> {
         const transferDataConfig: ITransferPluginControllerTransferDataConfig = {
@@ -375,8 +375,8 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             await preparedData.cancel?.();
             throw new ConnectionClosedError(this.getConnectionClosedConfig());
         }
-        actionController.sendActionResponse<IRunnerEnvironmentHostExecutedAction>({
-            type: RunnerEnvironmentHostAction.EXECUTED,
+        actionController.sendActionResponse<IRunnerEnvironmentHostResponseAction>({
+            type: RunnerEnvironmentHostAction.RESPONSE,
             id: action.id,
             responseType: preparedData.type,
             response: preparedData.data,

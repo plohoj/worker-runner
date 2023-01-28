@@ -8,7 +8,7 @@ export enum RunnerEnvironmentClientAction {
      */
     INITIATED = 'INITIATED',
     /** Request to execute a method */
-    EXECUTE = 'EXECUTE',
+    CALL = 'CALL',
     /** Environment clone request. Duplicated Environment Manages the Same Runner Instance */
     CLONE = 'CLONE',
     /** Requesting method names for the Runner instance used in the current environment */
@@ -26,8 +26,8 @@ export type IRunnerEnvironmentClientInitiatedAction = {
     type: RunnerEnvironmentClientAction.INITIATED;
 }
 
-export type IRunnerEnvironmentClientExecuteAction = {
-    type: RunnerEnvironmentClientAction.EXECUTE;
+export type IRunnerEnvironmentClientCallAction = {
+    type: RunnerEnvironmentClientAction.CALL;
     method: string;
     args: ICollectionTransferPluginSendArrayData;
 }
@@ -54,7 +54,7 @@ export interface IRunnerEnvironmentClientDestroyAction {
 
 export type IRunnerEnvironmentClientAction =
     | IRunnerEnvironmentClientInitiatedAction
-    | IRunnerEnvironmentClientExecuteAction
+    | IRunnerEnvironmentClientCallAction
     | IRunnerEnvironmentClientCloneAction
     | IRunnerEnvironmentClientRequestRunnerOwnDataAction
     | IRunnerEnvironmentClientTransferAction
