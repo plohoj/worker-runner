@@ -1,4 +1,4 @@
-import { BaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
+import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins';
@@ -9,7 +9,7 @@ import { AvailableRunnerIdentifier, RunnerIdentifierConfigList } from "../../typ
 import { ConnectedRunnerResolverClient } from './connected-runner-resolver.client';
 
 export type IRunnerResolverClientBaseConfig<L extends RunnerIdentifierConfigList> = {
-    connection: BaseConnectionClient
+    connection: IBaseConnectionClient;
     runners?: L;
     plugins?: IPlugin[];
 };
@@ -19,7 +19,7 @@ export abstract class RunnerResolverClientBase<L extends RunnerIdentifierConfigL
     protected readonly runnerDefinitionCollection: RunnerDefinitionCollection<L>;
     protected connectedResolver?: ConnectedRunnerResolverClient;
 
-    private readonly connection: BaseConnectionClient;
+    private readonly connection: IBaseConnectionClient;
     private readonly plugins?: IPlugin[];
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {

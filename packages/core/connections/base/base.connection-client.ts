@@ -6,8 +6,8 @@ export interface IEstablishedConnectionClientData {
     connectionStrategy: BaseConnectionStrategyClient;
 }
 
-export abstract class BaseConnectionClient {
-    public stop?(): Promise<void> | void;
+export interface IBaseConnectionClient {
+    stop?(): Promise<void> | void;
     /** Establishes a connection and returns the best strategy for communication */
-    public abstract connect(): Promise<IEstablishedConnectionClientData> | IEstablishedConnectionClientData;
+    connect(): Promise<IEstablishedConnectionClientData> | IEstablishedConnectionClientData;
 }

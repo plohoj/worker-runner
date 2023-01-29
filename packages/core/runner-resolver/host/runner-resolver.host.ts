@@ -1,5 +1,5 @@
 import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { BaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
+import { IBaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins';
@@ -11,7 +11,7 @@ import { parallelPromises } from '../../utils/parallel-promises';
 import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
 
 export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> = {
-    connection: BaseConnectionHost;
+    connection: IBaseConnectionHost;
     plugins?: IPlugin[];
 } & ({
     runners: L
@@ -23,7 +23,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     
     protected readonly runnerDefinitionCollection: RunnerDefinitionCollection<L>;
 
-    private readonly connection: BaseConnectionHost;
+    private readonly connection: IBaseConnectionHost;
     private readonly connectedResolvers = new Set<ConnectedRunnerResolverHost>();
     private readonly plugins?: IPlugin[];
 

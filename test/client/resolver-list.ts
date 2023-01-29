@@ -1,4 +1,4 @@
-import { DirectionConnectionIdentificationStrategyClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, WindowMessageEventConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
+import { DirectionConnectionIdentificationStrategyClient, IframeConnectionClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, SharedWorkerConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost, RunnerResolverLocal } from "@worker-runner/promise";
 import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT, PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST, PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT, RX_CONNECTION_IDENTIFIER_IFRAME_HOST, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
@@ -7,6 +7,7 @@ import { ApartResolverFactory, IApartResolverFactoryConfig, IApartRunnerResolver
 import { ResolverFactory } from './types/resolver-factory';
 import { RunnerApartResolverName, RunnerResolverConnectionSideName, RunnerResolverName, RunnerResolverPackageName } from './types/runner-resolver-name';
 import { createApartClientHostResolvers } from './utils/apart-client-host-resolvers';
+import { isIE } from './utils/is-internet-explorer';
 
 // TODO hack for karma-webpack
 new Worker(new URL('../host/iframe-host', import.meta.url), {name: 'iframe-host'}).terminate();
@@ -24,8 +25,19 @@ function iframeFactory(source: URL): Window {
     return iframeWindow;
 }
 
+function sharedWorkerFactory(): SharedWorker {
+    return isIE
+        ? {port: new MessageChannel().port1} as never
+        : new SharedWorker(
+            new URL('../host/shared-worker-host', import.meta.url),
+            {name: 'SharedWorkerRunnerHost'}
+        );
+}
+
 const iframe = iframeFactory(new URL('../host/iframe-host.html', import.meta.url));
-const worker = new Worker(new URL('../host/host', import.meta.url), {name: 'WorkerRunnerHost'});
+const worker = new Worker(new URL('../host/worker-host', import.meta.url), {name: 'WorkerRunnerHost'});
+const sharedWorker = sharedWorkerFactory();
+sharedWorker.port.start();
 
 const resolvers = {
     'Promise#Worker#MessageChannel': new RunnerResolverClient({
@@ -54,9 +66,35 @@ const resolvers = {
             ],
         }),
     }),
+    'Promise#SharedWorker#MessageChannel': new RunnerResolverClient({
+        runners,
+        connection: new SharedWorkerConnectionClient({
+            target: sharedWorker.port,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
+    'Promise#SharedWorker#Repeat': new RunnerResolverClient({
+        runners,
+        connection: new SharedWorkerConnectionClient({
+            target: sharedWorker.port,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
     'Promise#Iframe#MessageChannel': new RunnerResolverClient({
         runners,
-        connection: new WindowMessageEventConnectionClient({
+        connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
@@ -70,7 +108,7 @@ const resolvers = {
     }),
     'Promise#Iframe#Repeat': new RunnerResolverClient({
         runners,
-        connection: new WindowMessageEventConnectionClient({
+        connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
@@ -108,9 +146,35 @@ const resolvers = {
             ],
         }),
     }),
+    'Rx#SharedWorker#MessageChannel': new RxRunnerResolverClient({
+        runners,
+        connection: new SharedWorkerConnectionClient({
+            target: sharedWorker.port,
+            connectionStrategies: [new MessageChannelConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
+    'Rx#SharedWorker#Repeat': new RxRunnerResolverClient({
+        runners,
+        connection: new SharedWorkerConnectionClient({
+            target: sharedWorker.port,
+            connectionStrategies: [new RepeatConnectionStrategyClient()],
+            identificationStrategies: [
+                new DirectionConnectionIdentificationStrategyClient({
+                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
+                }),
+            ],
+        }),
+    }),
     'Rx#Iframe#MessageChannel': new RxRunnerResolverClient({
         runners,
-        connection: new WindowMessageEventConnectionClient({
+        connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
@@ -124,7 +188,7 @@ const resolvers = {
     }),
     'Rx#Iframe#Repeat': new RxRunnerResolverClient({
         runners,
-        connection: new WindowMessageEventConnectionClient({
+        connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
@@ -141,9 +205,11 @@ const resolvers = {
     RunnerResolverClient | RxRunnerResolverClient
 >;
 
-export const allRunnerResolversFactories = {
+export let allRunnerResolversFactories = {
     'Promise#Worker#MessageChannel': () => resolvers['Promise#Worker#MessageChannel'],
     'Promise#Worker#Repeat': () => resolvers['Promise#Worker#Repeat'],
+    'Promise#SharedWorker#MessageChannel': () => resolvers['Promise#SharedWorker#MessageChannel'],
+    'Promise#SharedWorker#Repeat': () => resolvers['Promise#SharedWorker#Repeat'],
     'Promise#Iframe#MessageChannel': () => resolvers['Promise#Iframe#MessageChannel'],
     'Promise#Iframe#Repeat': () => resolvers['Promise#Iframe#Repeat'],
     'Promise#Local#MessageChannel': <T extends RunnerIdentifierConfigList = typeof runners>(runnersList?: T) => new RunnerResolverLocal({
@@ -156,6 +222,8 @@ export const allRunnerResolversFactories = {
     }),
     'Rx#Worker#MessageChannel': () => resolvers['Rx#Worker#MessageChannel'],
     'Rx#Worker#Repeat': () => resolvers['Rx#Worker#Repeat'],
+    'Rx#SharedWorker#MessageChannel': () => resolvers['Rx#SharedWorker#MessageChannel'],
+    'Rx#SharedWorker#Repeat': () => resolvers['Rx#SharedWorker#Repeat'],
     'Rx#Iframe#MessageChannel': () => resolvers['Rx#Iframe#MessageChannel'],
     'Rx#Iframe#Repeat': () => resolvers['Rx#Iframe#Repeat'],
     'Rx#Local#MessageChannel': <T extends RunnerIdentifierConfigList = typeof runners>(runnersList?: T) => new RxRunnerResolverLocal({
@@ -167,6 +235,17 @@ export const allRunnerResolversFactories = {
         connectionStrategy: new RepeatConnectionStrategyHost(),
     }),
 } satisfies Record<RunnerResolverName, ResolverFactory>;
+
+if (isIE) { // Internet Explorer does not support sharedWorker
+    const modifiedAllRunnerResolversFactories: Record<RunnerResolverName, ResolverFactory>
+        = {} as Record<RunnerResolverName, ResolverFactory>
+    for (const key of Object.keys(allRunnerResolversFactories) as RunnerResolverName[]) {
+        if (!key.includes('SharedWorker' satisfies RunnerResolverConnectionSideName)) {
+            modifiedAllRunnerResolversFactories[key] = allRunnerResolversFactories[key];
+        }
+    }
+    allRunnerResolversFactories = modifiedAllRunnerResolversFactories as never;
+}
 
 export const apartResolversFactories = {
     'Promise#Apart': <

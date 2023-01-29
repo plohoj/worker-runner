@@ -14,10 +14,14 @@ export { MessageChannelConnectionStrategyClient } from './connection-strategies/
 export { MessageChannelConnectionStrategyHost } from './connection-strategies/message-channel/message-channel.connection-strategy-host';
 export { RepeatConnectionStrategyClient } from './connection-strategies/repeat/repeat.connection-strategy-client';
 export { RepeatConnectionStrategyHost } from './connection-strategies/repeat/repeat.connection-strategy-host';
+export { IframeConnectionClient } from './connections/iframe/iframe.connection-client';
+export { IframeConnectionHost } from './connections/iframe/iframe.connection-host';
 export { MessageEventConnectionClient } from './connections/message-event/message-event.connection-client';
 export { MessageEventConnectionHost } from './connections/message-event/message-event.connection-host';
 export { PortalConnectionClient } from './connections/portal/portal.connection-client';
 export { PortalConnectionHost } from './connections/portal/portal.connection-host';
+export { SharedWorkerConnectionClient } from './connections/shared-worker/shared-worker.connection-client';
+export { SharedWorkerConnectionHost } from './connections/shared-worker/shared-worker.connection-host';
 export { WindowMessageEventConnectionClient } from './connections/window-message-event/window-message-event.connection-client';
 export { WindowMessageEventConnectionHost } from './connections/window-message-event/window-message-event.connection-host';
 export { WorkerConnectionClient } from './connections/worker/worker.connection-client';
@@ -40,7 +44,7 @@ export { ITransferPlugin } from './plugins/transfer-plugin/base/transfer.plugin'
 export { ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from './plugins/transfer-plugin/base/transfer.plugin-controller';
 export { RunnerTransferPlugin } from './plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
 export { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from './runner-environment/client/runner-environment.client';
-export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IRunnerEnvironmentClientCallAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
+export { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCallAction, IRunnerEnvironmentClientCloneAction, RunnerEnvironmentClientAction } from './runner-environment/client/runner-environment.client.actions';
 export { RunnerEnvironmentClientCollection } from './runner-environment/client/runner-environment.client.collection';
 export { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from './runner-environment/host/runner-environment.host';
 export { IRunnerEnvironmentHostAction, RunnerEnvironmentHostAction } from './runner-environment/host/runner-environment.host.actions';

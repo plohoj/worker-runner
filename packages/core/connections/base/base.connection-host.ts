@@ -8,12 +8,11 @@ export interface IEstablishedConnectionHostData {
 
 export type ConnectionHostHandler = (newConnection: IEstablishedConnectionHostData) => void; 
 
-export abstract class BaseConnectionHost {
-
-    public stop?(): Promise<void> | void;
+export interface IBaseConnectionHost {
     /**
      * Starts listening for new connections.
      * In the case of a new connection, makes a callback and passes the new connection
      * and the best communication strategy as an argument */
-    public abstract startListen(handler: ConnectionHostHandler): void;
+    startListen(handler: ConnectionHostHandler): void;
+    stop?(): Promise<void> | void;
 }

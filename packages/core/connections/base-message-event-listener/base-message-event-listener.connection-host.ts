@@ -5,7 +5,7 @@ import { IBaseConnectionIdentificationStrategyHost } from '../../connection-iden
 import { ConnectionIdentificationStrategyComposerHost } from '../../connection-identification/strategy/composer/connection-identification-strategy.composer.host';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
-import { BaseConnectionHost, ConnectionHostHandler } from '../base/base.connection-host';
+import { IBaseConnectionHost, ConnectionHostHandler } from '../base/base.connection-host';
 
 export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessageEventListenerTarget> {
     target: T;
@@ -19,14 +19,15 @@ export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessag
     identificationStrategies?: IBaseConnectionIdentificationStrategyHost[];
 }
 
-export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageEventListenerTarget> extends BaseConnectionHost {
+export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageEventListenerTarget>
+    implements IBaseConnectionHost
+{
     public readonly target: T;
     private readonly connectionStrategies: BaseConnectionStrategyHost[];
     private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
     private stopCallback?: () => void;
 
     constructor(config: IBaseMessageEventListenerConnectionHostConfig<T>) {
-        super();
         this.target = config.target;
         this.connectionStrategies = config.connectionStrategies;
         const identificationStrategies = config.identificationStrategies || [];
@@ -37,7 +38,7 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         }
     }
 
-    public override startListen(handler: ConnectionHostHandler): void {
+    public startListen(handler: ConnectionHostHandler): void {
         const initialConnectionChannel = this.buildConnectionChannel();
         // The BaseConnectionChannel.run() will be called in the BestStrategyResolverHost.run() method
         const bestStrategyResolver = new BestStrategyResolverHost({
@@ -62,7 +63,7 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         }
     }
 
-    public override stop(): void {
+    public stop(): void {
         this.stopCallback?.();
     }
 

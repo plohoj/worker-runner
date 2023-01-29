@@ -5,7 +5,7 @@ import { IBaseConnectionIdentificationStrategyClient } from '../../connection-id
 import { ConnectionIdentificationStrategyComposerClient } from '../../connection-identification/strategy/composer/connection-identification-strategy.composer.client';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
-import { BaseConnectionClient, IEstablishedConnectionClientData } from '../base/base.connection-client';
+import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../base/base.connection-client';
 
 export interface IBaseMessageEventListenerConnectionClientConfig<T extends IMessageEventListenerTarget> {
     target: T;
@@ -21,14 +21,13 @@ export interface IBaseMessageEventListenerConnectionClientConfig<T extends IMess
 
 export abstract class BaseMessageEventListenerConnectionClient<
     T extends IMessageEventListenerTarget
-> extends BaseConnectionClient {
+> implements IBaseConnectionClient {
     protected readonly target: T;
     private readonly connectionStrategies: BaseConnectionStrategyClient[];
     private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyClient;
     private stopCallback?: () => void;
 
     constructor(config: IBaseMessageEventListenerConnectionClientConfig<T>) {
-        super();
         this.target = config.target;
         this.connectionStrategies = config.connectionStrategies;
         const identificationStrategies = config.identificationStrategies || [];
@@ -39,7 +38,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
         }
     }
 
-    public override async connect(): Promise<IEstablishedConnectionClientData> {
+    public async connect(): Promise<IEstablishedConnectionClientData> {
         const initialConnectionChannel = this.buildConnectionChannel();
         // The ConnectionChannel.run() will be called in the BestStrategyResolverClient.resolve() method
         const bestStrategyResolver = new BestStrategyResolverClient({
@@ -65,7 +64,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
         };
     }
 
-    public override stop(): void {
+    public stop(): void {
         this.stopCallback?.();
         this.stopCallback = undefined;
     }
