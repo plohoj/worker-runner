@@ -9,14 +9,16 @@ import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IPlugin } from '../../plugins/plugins';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
-import { IRunnerEnvironmentHostConfig, RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
+import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerDefinitionCollection } from "../../runner/runner-definition.collection";
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
+import { ErrorCollector } from '../../utils/error-collector';
 import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
-import { parallelPromises } from '../../utils/parallel.promises';
+import { parallelPromises } from '../../utils/parallel-promises';
+import { ParallelQueueController } from '../../utils/parallel-queue-controller';
 import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from '../client/runner-resolver.client.actions';
 import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from './runner-resolver.host.actions';
 
@@ -29,13 +31,14 @@ export interface IConnectedRunnerResolverHostConfig {
 
 export class ConnectedRunnerResolverHost {
 
-    public readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost<RunnerConstructor>>();
+    public readonly runnerEnvironmentHosts = new Set<RunnerEnvironmentHost>();
     public readonly destroyHandlerController = new EventHandlerController<void>();
 
     private readonly actionController: ActionController;
     private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly connectionStrategy: BaseConnectionStrategyHost;
     private readonly pluginsResolver: PluginsResolver;
+    private readonly initializationQueueController = new ParallelQueueController<RunnerEnvironmentHost | void>();
 
     constructor(config: IConnectedRunnerResolverHostConfig) {
         this.runnerDefinitionCollection = config.runnerDefinitionCollection;
@@ -59,6 +62,7 @@ export class ConnectedRunnerResolverHost {
     }
 
     public async handleDestroy(actionId?: WorkerRunnerIdentifier): Promise<void> {
+        // TODO Possible attempt to initialize a new Runner during destroying the connection.
         try {
             await this.clearEnvironments();
         } finally {
@@ -83,27 +87,18 @@ export class ConnectedRunnerResolverHost {
         runnerInstance: InstanceType<RunnerConstructor>,
         connectionChannel: BaseConnectionChannel,
     ): void {
-        const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
+        const runnerEnvironmentHost = RunnerEnvironmentHost.initSync({
             token: this.runnerDefinitionCollection.getRunnerTokenByInstance(runnerInstance),
-        });
-        runnerEnvironmentHost.initSync({ runnerInstance, connectionChannel });
-
-        this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
-    }
-    
-    private buildRunnerEnvironmentHostByPartConfig(
-        config: Pick<IRunnerEnvironmentHostConfig, 'token'>
-    ): RunnerEnvironmentHost<RunnerConstructor> {
-        const runnerEnvironmentHost: RunnerEnvironmentHost = new RunnerEnvironmentHost({
+            runnerInstance,
+            connectionChannel,
             runnerDefinitionCollection: this.runnerDefinitionCollection,
             connectionStrategy: this.connectionStrategy,
             pluginsResolver: this.pluginsResolver,
-            ...config,
         });
         runnerEnvironmentHost.destroyHandlerController.addHandler(
             () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost)
         );
-        return runnerEnvironmentHost;
+        this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
     }
 
     private handleAction = async (
@@ -144,20 +139,43 @@ export class ConnectedRunnerResolverHost {
 
     private async clearEnvironments(): Promise<void> {
         try {
+            const errorCollector = new ErrorCollector(
+                originalErrors => new RunnerResolverHostDestroyError({ originalErrors })
+            );
             await parallelPromises({
-                values: this.runnerEnvironmentHosts,
+                values: [
+                    () => parallelPromises({
+                        values: this.runnerEnvironmentHosts,
+                        stopAtFirstError: false,
+                        mapper: runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy(),
+                        errorCollector,
+                    }),
+                    () => parallelPromises({
+                        values: this.initializationQueueController.iterateUntilEmpty(),
+                        stopAtFirstError: false,
+                        mapper: runnerEnvironmentHost => runnerEnvironmentHost?.handleDestroy(),
+                        errorCollector,
+                    }),
+                ],
+                mapper: destroy => destroy(),
                 stopAtFirstError: false,
-                mapper: runnerEnvironmentHost => runnerEnvironmentHost.handleDestroy(),
-                errorFactory: originalErrors => new RunnerResolverHostDestroyError({originalErrors})
+                errorCollector,
             });
         } finally {
             this.runnerEnvironmentHosts.clear();
         }
     }
 
+    /**
+     * Asynchronous initialization of a Runner instance.
+     * During initialization, a destroy process may be started.
+     * But the destroy process will wait for the end of initialization using {@link initializationQueueController}
+     */
     private async initRunnerInstance(
         action: (IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction) & IActionWithId,
     ): Promise<void> {
+        const completeFunction = this.initializationQueueController.reserve();
+        let runnerEnvironmentHost: RunnerEnvironmentHost | undefined;
         try {
             const responseAction: (IRunnerResolverHostSoftRunnerInitedAction | IRunnerResolverHostRunnerInitedAction) & IActionWithId
                 = action.type === RunnerResolverClientAction.SOFT_INIT_RUNNER
@@ -173,19 +191,18 @@ export class ConnectedRunnerResolverHost {
             const preparedData = this.connectionStrategy
                 .prepareRunnerForSend(this.actionController.connectionChannel);
             Object.assign(responseAction, preparedData.data);
-            const runnerEnvironmentHost = this.buildRunnerEnvironmentHostByPartConfig({
+            runnerEnvironmentHost = await RunnerEnvironmentHost.initAsync({
                 token: action.token,
+                arguments: action.args,
+                connectionChannel: preparedData.connectionChannel,
+                runnerDefinitionCollection: this.runnerDefinitionCollection,
+                connectionStrategy: this.connectionStrategy,
+                pluginsResolver: this.pluginsResolver,
             });
-            try {
-                await runnerEnvironmentHost.initAsync({
-                    arguments: action.args,
-                    connectionChannel: preparedData.connectionChannel,
-                });
-            } catch (error) {
-                runnerEnvironmentHost.cancel();
-                throw error;
-            }
-            // TODO can be added after destroy action from RunnerResolverClient
+            runnerEnvironmentHost.destroyHandlerController.addHandler(
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                () => this.runnerEnvironmentHosts.delete(runnerEnvironmentHost!)
+            );
             this.runnerEnvironmentHosts.add(runnerEnvironmentHost);
             this.actionController.sendActionResponse(responseAction, preparedData.transfer);
         } catch (error: unknown) {
@@ -196,6 +213,8 @@ export class ConnectedRunnerResolverHost {
                         .getRunnerConstructorSoft(action.token)?.name,
                 }),
             });
+        } finally {
+            completeFunction(runnerEnvironmentHost);
         }
     }
 }

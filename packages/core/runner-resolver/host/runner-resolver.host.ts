@@ -6,7 +6,8 @@ import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerConstructor } from '../../types/constructor';
 import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
-import { parallelPromises } from '../../utils/parallel.promises';
+import { ErrorCollector } from '../../utils/error-collector';
+import { parallelPromises } from '../../utils/parallel-promises';
 import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
 
 export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> = {
@@ -44,7 +45,9 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
                 values: this.connectedResolvers,
                 stopAtFirstError: false,
                 mapper: connectedResolver => connectedResolver.handleDestroy(),
-                errorFactory: originalErrors => new RunnerResolverHostDestroyError({originalErrors}),
+                errorCollector: new ErrorCollector(
+                    originalErrors => new RunnerResolverHostDestroyError({originalErrors})
+                ),
             })
         } finally {
             await this.connection.stop?.();

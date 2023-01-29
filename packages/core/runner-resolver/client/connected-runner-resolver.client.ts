@@ -19,6 +19,9 @@ import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
+import { ErrorCollector } from '../../utils/error-collector';
+import { parallelPromises } from '../../utils/parallel-promises';
+import { ParallelQueueController } from '../../utils/parallel-queue-controller';
 import { rowPromisesErrors } from '../../utils/row-promises-errors';
 import { IRunnerResolverHostAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from '../host/runner-resolver.host.actions';
 import { IRunnerResolverClientAction, IRunnerResolverClientDestroyAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from './runner-resolver.client.actions';
@@ -38,6 +41,7 @@ export class ConnectedRunnerResolverClient {
     private readonly environmentCollection: RunnerEnvironmentClientCollection = new RunnerEnvironmentClientCollection();
     private readonly pluginsResolver: PluginsResolver;
     private readonly environmentFactory: RunnerEnvironmentClientFactory;
+    private readonly initializationQueueController = new ParallelQueueController<RunnerEnvironmentClient | void>();
 
     constructor(config: IConnectedRunnerResolverClientConfig) {
         this.runnerDefinitionCollection = config.runnerDefinitionCollection;
@@ -63,74 +67,86 @@ export class ConnectedRunnerResolverClient {
         this.actionController.run();
     }
 
-    /** Returns a runner control object that will call the methods of the source instance */
+    /**
+     * Asynchronous initialization of a Runner instance.
+     * During initialization, a destroy process may be started.
+     * But the destroy process will wait for the end of initialization using {@link initializationQueueController}
+     *
+     * Returns a runner control object that will call the methods of the source instance
+     */
     public async resolve(identifier: RunnerIdentifier, ...args: IRunnerParameter[]): Promise<RunnerController> {
-        const token: RunnerToken = this.getTokenByIdentifier(identifier);
-        if (!this.actionController?.connectionChannel.isConnected) {
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+        const completeFunction = this.initializationQueueController.reserve();
+        let environmentClient: RunnerEnvironmentClient | undefined;
+        try {
+            const token: RunnerToken = this.getTokenByIdentifier(identifier);
+            if (!this.actionController?.connectionChannel.isConnected) {
+                throw new ConnectionClosedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                });
+            }
+            const runnerDescription: IRunnerDescription = {
+                token,
+                runnerName: this.runnerDefinitionCollection.getRunnerConstructorSoft(token)?.name,
+            };
+            const transferPluginsResolver = this.pluginsResolver.resolveTransferResolver({
+                runnerEnvironmentClientFactory: this.environmentFactory,
+                runnerDescription,
             });
-        }
-        const runnerDescription: IRunnerDescription = {
-            token,
-            runnerName: this.runnerDefinitionCollection.getRunnerConstructorSoft(token)?.name,
-        };
-        const transferPluginsResolver = this.pluginsResolver.resolveTransferResolver({
-            runnerEnvironmentClientFactory: this.environmentFactory,
-            runnerDescription,
-        });
-        const preparedData = await transferPluginsResolver.transferData({
-            actionController: this.actionController,
-            data: new TransferRunnerArray(args),
-        });
-        if (!this.actionController?.connectionChannel.isConnected) {
-            await preparedData.cancel?.();
-            await transferPluginsResolver.destroy();
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+            const preparedData = await transferPluginsResolver.transferData({
+                actionController: this.actionController,
+                data: new TransferRunnerArray(args),
             });
-        }
+            if (!this.actionController?.connectionChannel.isConnected) {
+                await preparedData.cancel?.();
+                await transferPluginsResolver.destroy();
+                throw new ConnectionClosedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                });
+            }
 
-        type IInitAction = IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction;
-        const responseAction = await this.resolveActionAndHandleError<
-            IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction,
-            IInitAction
-        >({
-            type: this.runnerDefinitionCollection.hasControllerConstructor(token)
-                ? RunnerResolverClientAction.INIT_RUNNER
-                : RunnerResolverClientAction.SOFT_INIT_RUNNER,
-            token: token,
-            args: preparedData.data satisfies TransferPluginSendData as unknown as ICollectionTransferPluginSendArrayData,
-        }, preparedData.transfer);
+            type IInitAction = IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction;
+            const responseAction = await this.resolveActionAndHandleError<
+                IRunnerResolverClientInitRunnerAction | IRunnerResolverClientSoftInitRunnerAction,
+                IInitAction
+            >({
+                type: this.runnerDefinitionCollection.hasControllerConstructor(token)
+                    ? RunnerResolverClientAction.INIT_RUNNER
+                    : RunnerResolverClientAction.SOFT_INIT_RUNNER,
+                token: token,
+                args: preparedData.data satisfies TransferPluginSendData as unknown as ICollectionTransferPluginSendArrayData,
+            }, preparedData.transfer);
 
-        if (responseAction.type === RunnerResolverHostAction.SOFT_RUNNER_INITED) {
-            this.runnerDefinitionCollection.defineRunnerController(token, responseAction.methodsNames);
-        }
-        const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
-            this.actionController.connectionChannel,
-            responseAction satisfies IInitAction as unknown as DataForSendRunner,
-        )
-        const environmentClient: RunnerEnvironmentClient = await this.environmentFactory({
-            token,
-            connectionChannel,
-            transferPluginsResolver,
-        });
-        environmentClient.destroyHandlerController.addHandler(
-            () => this.environmentCollection.remove(environmentClient)
-        );
-
-        // While waiting for the turn of promises Runner could be destroyed.
-        // Before adding a runner to the collection,
-        // we check the fact that the runner was not destroyed.
-        // If the check fails, a connection error will be thrown.
-        if (!connectionChannel.isConnected) {
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(runnerDescription),
+            if (responseAction.type === RunnerResolverHostAction.SOFT_RUNNER_INITED) {
+                this.runnerDefinitionCollection.defineRunnerController(token, responseAction.methodsNames);
+            }
+            const connectionChannel = this.connectionStrategy.resolveConnectionForRunner(
+                this.actionController.connectionChannel,
+                responseAction satisfies IInitAction as unknown as DataForSendRunner,
+            )
+            environmentClient = await this.environmentFactory({
+                token,
+                connectionChannel,
+                transferPluginsResolver,
             });
-        }
-        this.environmentCollection.add(environmentClient);
+            environmentClient.destroyHandlerController.addHandler(
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                () => this.environmentCollection.remove(environmentClient!)
+            );
 
-        return environmentClient.resolvedRunner;
+            // While waiting for the turn of promises Runner could be destroyed.
+            // Before adding a runner to the collection,
+            // we check the fact that the runner was not destroyed.
+            // If the check fails, a connection error will be thrown.
+            if (!connectionChannel.isConnected) {
+                throw new ConnectionClosedError({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(runnerDescription),
+                });
+            }
+            this.environmentCollection.add(environmentClient);
+            return environmentClient.resolvedRunner;
+        } finally {
+            completeFunction(environmentClient);
+        }
     }
 
     public wrapRunner(
@@ -163,15 +179,30 @@ export class ConnectedRunnerResolverClient {
 
     /** Destroying of all resolved Runners instance */
     public destroy(): Promise<void> {
+        // TODO Possible attempt to initialize a new Runner during destroying the connection.
+        const errorCollector = new ErrorCollector(
+            originalErrors => new RunnerResolverClientDestroyError({originalErrors})
+        );
         return rowPromisesErrors([
             () => this.resolveActionAndHandleError<IRunnerResolverClientDestroyAction>({
                 type: RunnerResolverClientAction.DESTROY,
             }),
-            () => this.environmentCollection.destroy(),
+            () => parallelPromises({
+                values: [
+                    () => this.environmentCollection.destroy(errorCollector),
+                    () => parallelPromises({
+                        values: this.initializationQueueController.iterateUntilEmpty(),
+                        stopAtFirstError: false,
+                        mapper: runnerEnvironment => runnerEnvironment?.destroy(),
+                        errorCollector: errorCollector,
+                    }) as unknown,
+                ],
+                mapper: destroy => destroy(),
+                stopAtFirstError: false,
+                errorCollector,
+            }),
             () => this.actionController.destroy(),
-        ], {
-            errorFactory: originalErrors => new RunnerResolverClientDestroyError({originalErrors})
-        });
+        ], {errorCollector});
     }
 
     private getTokenByIdentifier(identifier: RunnerIdentifier): RunnerToken {

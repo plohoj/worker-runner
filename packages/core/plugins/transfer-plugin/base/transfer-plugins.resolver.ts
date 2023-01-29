@@ -1,7 +1,8 @@
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { RunnerDataTransferError, RunnerDestroyError } from '../../../errors/runner-errors';
 import { IRunnerDescription } from '../../../runner/runner-description';
-import { parallelPromises } from '../../../utils/parallel.promises';
+import { ErrorCollector } from '../../../utils/error-collector';
+import { parallelPromises } from '../../../utils/parallel-promises';
 import { ErrorSerializationPluginsResolver } from '../../error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { RUNNER_TRANSFER_TYPE } from '../runner-transfer-plugin/runner-transfer-plugin-data';
@@ -100,10 +101,10 @@ export class TransferPluginsResolver implements Omit<ITransferPluginController, 
             values: this.pluginControllers,
             mapper: ([, plugin]) => plugin.destroy?.(),
             stopAtFirstError: false,
-            errorFactory: originalErrors => new RunnerDestroyError({
+            errorCollector: new ErrorCollector(originalErrors => new RunnerDestroyError({
                 message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
                 originalErrors,
-            }),
+            })),
         }) as Promise<unknown> as Promise<void>;
     }
 

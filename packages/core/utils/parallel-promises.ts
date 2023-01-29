@@ -1,14 +1,15 @@
-import { WorkerRunnerMultipleError } from '../errors/worker-runner-error';
+import { ErrorCollector } from './error-collector';
+import { HalfPromisedIterator, halfPromisedIteratorDone } from './half-promised-iterator';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { WorkerRunnerMultipleError } from '../errors/worker-runner-error';
 
 // TODO Implement a fake promise that will call the callback immediately when there is no need to wait
 
-export type MultipleErrorFactory = (errors: unknown[]) => WorkerRunnerMultipleError;
-
 export interface IParallelPromisesConfig<I, O> {
-    values: Iterable<I> | I[];
+    values: Iterable<I> | HalfPromisedIterator<I>;
     /** Stop converting at the first error and start the process of canceling */
     stopAtFirstError: boolean;
-    errorFactory: MultipleErrorFactory;
+    errorCollector: ErrorCollector;
     mapper(value: I): Promise<O> | O;
     /** Method to canceling successfully mapped data */
     cancelMapped?(result: O): Promise<void> | void;
@@ -21,11 +22,15 @@ export interface IParallelPromisesConfig<I, O> {
 /**
  * Executes all promises in parallel and collects errors that occurred during execution
  * All thrown errors that occur during the conversion will be handled.
- * @throw generated {@link WorkerRunnerMultipleError} in {@link IParallelPromisesConfig.errorFactory}
+ * @throw generated {@link WorkerRunnerMultipleError} in {@link IParallelPromisesConfig.errorCollector}
  */
-export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): Promise<O[]> {
+export function parallelPromises<I, O>({
+    errorCollector,
+    values,
+    ...config
+}: IParallelPromisesConfig<I, O>): Promise<O[]> {
     return new Promise<O[]>((resolve, reject) => {
-        const errors = new Array<unknown>();
+        const completeFunction = errorCollector.completeQueueController.reserve();
         const mappedValuesMap = new Map<number, O>();
         let handledValuesLength = 0;
         let allValuesLength = 0;
@@ -33,15 +38,10 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
 
         function checkFinal(): void {
             if (isIterateEnded && handledValuesLength >= allValuesLength) {
-                if (errors.length > 0) {
-                    let multipleError: WorkerRunnerMultipleError;
-                    try {
-                        multipleError = config.errorFactory(errors);
-                    } catch (error) {
-                        reject(error);
-                        return;
-                    }
-                    reject(multipleError);
+                try {
+                    completeFunction();
+                } catch (error) {
+                    reject(error);
                     return;
                 }
                 const sortedKeys = [...mappedValuesMap.keys()].sort((first, second) => first - second);
@@ -55,7 +55,7 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
             try {
                 await config.cancelError?.(rest);
             } catch (error) {
-                errors.push(error);
+                errorCollector.addError(error);
             }
             handledValuesLength++;
             checkFinal();
@@ -65,7 +65,7 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
             try {
                 await config.cancelRest?.(rest);
             } catch (error) {
-                errors.push(error);
+                errorCollector.addError(error);
             }
             handledValuesLength++;
             checkFinal();
@@ -75,7 +75,7 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
             try {
                 await config.cancelMapped?.(mapped);
             } catch (error) {
-                errors.push(error);
+                errorCollector.addError(error);
             }
             handledValuesLength++;
             checkFinal();
@@ -92,7 +92,7 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
         }
 
         function addMapped(index: number, value: O): void {
-            if (errors.length > 0) {
+            if (errorCollector.hasErrors) {
                 void cancelMapped(value);
             } else {
                 mappedValuesMap.set(index, value);
@@ -101,27 +101,27 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
             }
         }
 
-        for (const iteratedValue of config.values) {
-            if (errors.length > 0 && config.stopAtFirstError) {
+        function handleValue(value: I): void {
+            if (errorCollector.hasErrors && config.stopAtFirstError) {
                 // TODO NEED TEST About rest exist
-                void cancelRest(iteratedValue);
+                void cancelRest(value);
             } else {
                 let mappedResult: O | Promise<O>; 
                 try {
-                    mappedResult = config.mapper(iteratedValue);
+                    mappedResult = config.mapper(value);
                 } catch (error) {
-                    errors.push(error);
-                    void cancelRest(iteratedValue);
+                    errorCollector.addError(error);
+                    void cancelRest(value);
                     onError();
-                    continue;
+                    return;
                 }
                 const index = allValuesLength;
                 if (mappedResult instanceof Promise) {
                     mappedResult
                         .then(response => addMapped(index, response))
                         .catch(error => {
-                            errors.push(error);
-                            void cancelError(iteratedValue);
+                            errorCollector.addError(error);
+                            void cancelError(value);
                             onError();
                         });
                 } else {
@@ -130,7 +130,35 @@ export function parallelPromises<I, O>(config: IParallelPromisesConfig<I, O>): P
             }
             allValuesLength++;
         }
-        isIterateEnded = true;
-        checkFinal();
+
+        function afterIterate(): void {
+            isIterateEnded = true;
+            checkFinal();
+        }
+
+        async function iterateAsync(halfPromisedIterator: HalfPromisedIterator<I>): Promise<void> {
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                const iterateValue = await halfPromisedIterator();
+                if ((iterateValue === halfPromisedIteratorDone)) {
+                    break;
+                }
+                handleValue(iterateValue);
+            }
+            afterIterate();
+        }
+
+        function iterateSync(values: Iterable<I>) {
+            for (const iteratedValue of values) {
+                handleValue(iteratedValue);
+            }
+            afterIterate();
+        }
+
+        if (typeof values === 'function') {
+            void iterateAsync(values);
+        } else {
+            iterateSync(values);
+        }
     });
 }

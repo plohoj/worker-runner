@@ -17,30 +17,31 @@ import { IRunnerDescription } from '../../runner/runner-description';
 import { ActionHandler, IActionWithId } from '../../types/action';
 import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor';
 import { RunnerToken } from "../../types/runner-identifier";
+import { ErrorCollector } from '../../utils/error-collector';
 import { EventHandlerController } from '../../utils/event-handler-controller';
 import { WorkerRunnerIdentifier } from '../../utils/identifier-generator';
-import { parallelPromises } from '../../utils/parallel.promises';
+import { parallelPromises } from '../../utils/parallel-promises';
 import { PromiseInterrupter } from '../../utils/promise-interrupter';
 import { rowPromisesErrors } from '../../utils/row-promises-errors';
 import { RunnerEnvironmentClient } from '../client/runner-environment.client';
 import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCallAction, IRunnerEnvironmentClientTransferAction, RunnerEnvironmentClientAction } from '../client/runner-environment.client.actions';
 import { IRunnerEnvironmentHostClonedAction, IRunnerEnvironmentHostDestroyedAction, IRunnerEnvironmentHostDisconnectedAction, IRunnerEnvironmentHostErrorAction, IRunnerEnvironmentHostResponseAction, IRunnerEnvironmentHostOwnMetadataAction, RunnerEnvironmentHostAction } from './runner-environment.host.actions';
 
-interface IRunnerEnvironmentHostSyncInitConfig<R extends RunnerConstructor> {
-    runnerInstance: InstanceType<R>,
-    connectionChannel: BaseConnectionChannel;
-}
-
-interface IRunnerEnvironmentHostAsyncInitConfig {
-    arguments: ICollectionTransferPluginSendArrayData,
-    connectionChannel: BaseConnectionChannel;
-}
-
 export interface IRunnerEnvironmentHostConfig {
     token: RunnerToken;
     connectionStrategy: BaseConnectionStrategyHost,
     runnerDefinitionCollection: RunnerDefinitionCollection;
     pluginsResolver: PluginsResolver;
+}
+
+export interface IRunnerEnvironmentHostSyncInitConfig extends IRunnerEnvironmentHostConfig {
+    runnerInstance: InstanceType<RunnerConstructor>,
+    connectionChannel: BaseConnectionChannel;
+}
+
+export interface IRunnerEnvironmentHostAsyncInitConfig extends IRunnerEnvironmentHostConfig {
+    arguments: ICollectionTransferPluginSendArrayData,
+    connectionChannel: BaseConnectionChannel;
 }
 
 export interface IRunnerEnvironmentHostActionControllerConnectData {
@@ -62,7 +63,7 @@ export interface IRunnerEnvironmentHostDestroyProcessData {
 
 const WAIT_FOR_RESPONSE_DESTROYED_ACTION_TIMEOUT = 10_000;
 
-export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstructor> {
+export class RunnerEnvironmentHost {
 
     public readonly connectionStrategy: BaseConnectionStrategyHost;
     public readonly destroyHandlerController = new EventHandlerController<void>();
@@ -73,10 +74,10 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
     private readonly errorSerialization: ErrorSerializationPluginsResolver;
     private readonly transferPluginsResolver: TransferPluginsResolver;
 
-    private _runnerInstance?: InstanceType<R>;
+    private _runnerInstance?: InstanceType<RunnerConstructor>;
     private destroyProcess?: IRunnerEnvironmentHostDestroyProcessData;
 
-    constructor(config: Readonly<IRunnerEnvironmentHostConfig>) {
+    private constructor(config: IRunnerEnvironmentHostConfig) {
         this.runnerDescription = {
             token: config.token,
             runnerName: config.runnerDefinitionCollection.getRunnerConstructorSoft(config.token)?.name,
@@ -95,13 +96,13 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         });
     }
 
-    public get runnerInstance(): InstanceType<R> {
+    public get runnerInstance(): InstanceType<RunnerConstructor> {
         if (!this._runnerInstance) {
             throw new ConnectionClosedError(this.getConnectionClosedConfig());
         }
         return this._runnerInstance;
     }
-    public set runnerInstance(value: InstanceType<R>) {
+    public set runnerInstance(value: InstanceType<RunnerConstructor>) {
         this._runnerInstance = value;
     }
 
@@ -127,17 +128,32 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         actionController.actionHandlerController.addHandler(afterDisconnectHandler);
     }
 
-    // TODO Move to a static method and make the constructor private
-    public initSync(config: IRunnerEnvironmentHostSyncInitConfig<R>): void {
-        this.runnerInstance = config.runnerInstance;
-        const actionController = this.initActionController(config.connectionChannel);
-        this.startHandleActionController(actionController);
+    /**
+     * Synchronous initialization of the Runner environment,
+     * in the case when the Runner instance has already been created earlier
+     */
+    public static initSync(config: IRunnerEnvironmentHostSyncInitConfig): RunnerEnvironmentHost {
+        const environmentHost = new this(config);
+        environmentHost.runnerInstance = config.runnerInstance;
+        const actionController = environmentHost.initActionController(config.connectionChannel);
+        environmentHost.startHandleActionController(actionController);
+        return environmentHost;
     }
 
-    // TODO Move to a static method and make the constructor private
-    public async initAsync(config: IRunnerEnvironmentHostAsyncInitConfig): Promise<void> {
-        let runnerInstance: InstanceType<R>;
-        const actionController = this.initActionController(config.connectionChannel);
+    /**
+     * Asynchronous initialization of the Runner environment.
+     * Argument data can be requested asynchronously during initialization.
+     * 
+     * The Runner cannot be disconnected or destroyed during initialization because control cannot be transferred
+     * until initialization has completed (successfully).
+     * But a request to destroy the Runner can be received when the connection of the main resolver is destroyed.
+     * The connection of the main resolver takes care that this destroy method
+     * is called only after the initialization is finished.
+     */
+    public static async initAsync(config: IRunnerEnvironmentHostAsyncInitConfig): Promise<RunnerEnvironmentHost> {
+        const environmentHost = new this(config);
+        let runnerInstance: InstanceType<RunnerConstructor>;
+        const actionController = environmentHost.initActionController(config.connectionChannel);
         const receiveDataConfig: ITransferPluginsResolverReceiveDataConfig = {
             actionController,
             data: config.arguments satisfies ICollectionTransferPluginSendArrayData as unknown as TransferPluginSendData,
@@ -146,13 +162,14 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         let runnerConstructor: RunnerConstructor;
 
         try {
-            runnerConstructor = this.runnerDefinitionCollection.getRunnerConstructor(this.runnerDescription.token);
+            runnerConstructor = environmentHost.runnerDefinitionCollection
+                .getRunnerConstructor(environmentHost.runnerDescription.token);
         } catch (notFoundConstructorError) {
             try {
-                await this.transferPluginsResolver.cancelReceiveData(receiveDataConfig);
+                await environmentHost.transferPluginsResolver.cancelReceiveData(receiveDataConfig);
             } catch (cancelError) {
                 throw new RunnerInitError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(this.runnerDescription),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(environmentHost.runnerDescription),
                     originalErrors: [
                         notFoundConstructorError,
                         cancelError,
@@ -166,7 +183,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
 
         let receivedData: ITransferPluginReceivedData;
         try {
-            receivedData = await this.transferPluginsResolver.receiveData(receiveDataConfig);
+            receivedData = await environmentHost.transferPluginsResolver.receiveData(receiveDataConfig);
         } catch(error) {
             actionController.destroy();
             throw error
@@ -175,13 +192,13 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         try {
             runnerInstance = new runnerConstructor(
                 ...receivedData.data satisfies TransferPluginReceivedData as unknown as unknown[]
-            ) as InstanceType<R>;
+            );
         } catch (constructError) {
             try {
                 await receivedData.cancel?.();
             } catch (cancelError) {
                 throw new RunnerInitError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(this.runnerDescription),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_INIT_ERROR(environmentHost.runnerDescription),
                     originalErrors: [
                         constructError,
                         cancelError,
@@ -192,8 +209,9 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
             }
             throw constructError;
         }
-        this.runnerInstance = runnerInstance;
-        this.startHandleActionController(actionController);
+        environmentHost.runnerInstance = runnerInstance;
+        environmentHost.startHandleActionController(actionController);
+        return environmentHost;
     }
 
     public async handleCallAction(
@@ -243,7 +261,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         if (methodResult instanceof PromiseInterrupter) {
             return;
         }
-        await this.handleExecuteResponse(actionController, action, methodResult);
+        await this.handleCallResponse(actionController, action, methodResult);
     }
 
     /** The destruction process can be triggered by parallel calls */
@@ -272,19 +290,6 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this.destroyProcess!.promise$
-    }
-
-    /**
-     * The method is called if the initialization ({@link initAsync}) was not successful. The method must:
-     * * Destroy initialized data;
-     * * Stop listening to actions;
-     * * Call {@link ActionController.destroy} method
-     */
-    public cancel(): void {
-        for (const [iteratedActionController] of this.connectDataMap) {
-            iteratedActionController.destroy();
-        }
-        this.connectDataMap.clear();
     }
 
     protected async handleDisconnect(actionController: ActionController, actionId: WorkerRunnerIdentifier): Promise<void> {
@@ -357,7 +362,7 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
         }
     }
 
-    protected async handleExecuteResponse(
+    protected async handleCallResponse(
         actionController: ActionController,
         action: IRunnerEnvironmentClientCallAction & IActionWithId,
         methodResult: IRunnerMethodResult,
@@ -404,10 +409,10 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                 ],
                 stopAtFirstError: false,
                 mapper: callback => callback(),
-                errorFactory: originalErrors => new RunnerDestroyError({
+                errorCollector: new ErrorCollector(originalErrors => new RunnerDestroyError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
                     originalErrors,
-                }),
+                })),
             });
         } catch (error) {
             this.sendActionsToDestroyTriggers({
@@ -459,10 +464,10 @@ export class RunnerEnvironmentHost<R extends RunnerConstructor = RunnerConstruct
                     }
                 }
             ], {
-                errorFactory: (originalErrors) => new RunnerDestroyError({
+                errorCollector: new ErrorCollector((originalErrors) => new RunnerDestroyError({
                     message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
                     originalErrors,
-                })
+                })),
             });
         } finally {
             this.destroyHandlerController.dispatch();

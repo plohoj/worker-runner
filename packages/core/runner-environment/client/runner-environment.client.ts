@@ -49,11 +49,6 @@ const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' satisfies string as unknown as Work
 export class RunnerEnvironmentClient {
     public readonly runnerDescription: IRunnerDescription;
 
-    /**
-     * * If the value is set, then the destruction process has already been started earlier.
-     * * Throws an event when the destruction process is completed
-     */
-    public destroyInProcess$?: Promise<void>;
     public readonly destroyHandlerController = new EventHandlerController<void>();
 
     private readonly actionController: ActionController;
@@ -61,6 +56,17 @@ export class RunnerEnvironmentClient {
     private readonly runnerDefinitionCollection: RunnerDefinitionCollection;
     private readonly errorSerialization: ErrorSerializationPluginsResolver; 
     private readonly transferPluginsResolver: TransferPluginsResolver;
+    /**
+     * * If the value is set, then the destruction process has already been started earlier in {@link handleDestroy}.
+     * * Throws an event when the destruction process is completed
+     */
+    private destroyProcess$?: Promise<void>;
+    /**
+     * * If the value is set, then the process of dispatching a destroy action to the host side
+     * has already started earlier in {@link destroyOrDisconnectByAction}.
+     * * Throws an event when the destruction process is completed
+     */
+    private destroyAction$?: Promise<void>;
 
     private _resolvedRunner?: ResolvedRunner<RunnerConstructor> | undefined;
     private _isMarkedForTransfer = false;
@@ -108,8 +114,13 @@ export class RunnerEnvironmentClient {
         this._isMarkedForTransfer = value;
     }
 
+    /**
+     * Synchronous initialization of the Runner environment,
+     * in the case when the previously constructed controller constructor is known
+     * (the names of the methods of the Runner instance are known)
+     */
     public static initSync(config: IRunnerEnvironmentClientInitSyncConfig): RunnerEnvironmentClient {
-        const environmentClient: RunnerEnvironmentClient = new RunnerEnvironmentClient(config);
+        const environmentClient: RunnerEnvironmentClient = new this(config);
         environmentClient.resolvedRunner = new config.runnerControllerConstructor(environmentClient);
         environmentClient.actionController.run();
         // TODO Move into the Connection Strategy a check for the need to send an Initiated action
@@ -119,7 +130,12 @@ export class RunnerEnvironmentClient {
         return environmentClient;
     }
 
-    // TODO Destroy process should wait for initialization to complete
+    /**
+     * Asynchronous initialization of the Runner environment,
+     * in case no controller constructor has been built before.
+     * The names of the Runner instance methods are not known and will be requested.
+     * (This happens when the Runner Controller was passed as a method argument or method result)
+     */
     public static async initAsync(config: IRunnerEnvironmentClientConfig): Promise<RunnerEnvironmentClient> {
         if (config.runnerDefinitionCollection.hasControllerConstructor(config.token)) {
             return this.initSync({
@@ -128,7 +144,7 @@ export class RunnerEnvironmentClient {
                     .getRunnerControllerConstructor(config.token)
             });
         } else {
-            const environmentClient: RunnerEnvironmentClient = new RunnerEnvironmentClient(config);
+            const environmentClient: RunnerEnvironmentClient = new this(config);
             environmentClient.actionController.run();
             const ownMetadataAction = await environmentClient.resolveActionAndHandleError<
                 IRunnerEnvironmentClientRequestRunnerOwnDataAction,
@@ -136,7 +152,7 @@ export class RunnerEnvironmentClient {
             >({
                 type: RunnerEnvironmentClientAction.OWN_METADATA,
             });
-            // It is a rare case that a Runner may receive a kill command during initialization.
+            // It is a rare case that a Runner may receive a destroy command during initialization.
             // In this case the connection will be closed
             if (!environmentClient.actionController.connectionChannel.isConnected) {
                 throw new ConnectionClosedError(environmentClient.getConnectionClosedConfig())
@@ -232,13 +248,13 @@ export class RunnerEnvironmentClient {
     }
 
     public disconnect(): Promise<void> {
-        return this.resolveAndHandleDestroyOrDisconnectAction({
+        return this.destroyOrDisconnectByAction({
             type: RunnerEnvironmentClientAction.DISCONNECT,
         });
     }
 
     public destroy(): Promise<void> {
-        return this.resolveAndHandleDestroyOrDisconnectAction({
+        return this.destroyOrDisconnectByAction({
             type: RunnerEnvironmentClientAction.DESTROY,
         });
     }
@@ -278,22 +294,26 @@ export class RunnerEnvironmentClient {
         return this.actionController.connectionChannel;
     }
 
-    private async handleDestroy(): Promise<void> {
-        if (!this.destroyInProcess$) {
-            // During the destruction of the Resolver,
-            // the Host sends a command to destroy the Runner Environment Client.
-            // The Runner Environment Client may take so long to destroy
-            // that the Resolver Client may additionally call disconnect.
-            // Storing the destroy flow to avoid throwing an error during the ActionController is destroyed
-            this.destroyInProcess$ = (async () => {
-                this.destroyInterrupter.interrupt();
+    private handleDestroy(): Promise<void> {
+        if (this.destroyProcess$) {
+            return this.destroyProcess$;
+        }
+        // During the destruction of the Resolver,
+        // the Host sends a command to destroy the Runner Environment Client.
+        // The Runner Environment Client may take so long to destroy
+        // that the Resolver Client may additionally call disconnect.
+        // Storing the destroy flow to avoid throwing an error during the ActionController is destroyed
+        this.destroyProcess$ = (async () => {
+            this.destroyInterrupter.interrupt();
+            try {
                 await this.transferPluginsResolver.destroy();
+            } finally {
                 this.actionController.destroy();
                 this.destroyHandlerController.dispatch();
                 this.destroyHandlerController.clear();
-            })();
-        }
-        return this.destroyInProcess$;
+            }
+        })();
+        return this.destroyProcess$;
     }
 
     private handleActionWithoutId = async (
@@ -327,30 +347,43 @@ export class RunnerEnvironmentClient {
      * Prevents throwing an error if, at the time of the disconnect or destroy request,
      * the action was handled on a different "thread"
      */
-    private async resolveAndHandleDestroyOrDisconnectAction(
+    private destroyOrDisconnectByAction(
         action: IRunnerEnvironmentClientDisconnectAction | IRunnerEnvironmentClientDestroyAction
     ): Promise<void> {
-        type IResponseAction = | IRunnerEnvironmentHostDisconnectedAction
-            | IRunnerEnvironmentHostDestroyedAction
-            | IRunnerEnvironmentHostErrorAction;
-        let responseAction: (IResponseAction & IActionWithId<string>) | PromiseInterrupter;
-        try {
-            responseAction = await Promise.race([
-                // WARNING interrupter should be before send action
-                this.destroyInterrupter.promise,
-                this.actionController.resolveAction<typeof action, IResponseAction>(action),
-            ]);
-        } catch (error) {
+        if (!this.actionController.connectionChannel.isConnected) {
+            throw new ConnectionClosedError(this.getConnectionClosedConfig());
+        }
+        if (this.destroyProcess$) {
+            return this.destroyProcess$;
+        }
+        if (this.destroyAction$) {
+            return this.destroyAction$;
+        }
+
+        this.destroyAction$ = (async () => {
+            type IResponseAction = | IRunnerEnvironmentHostDisconnectedAction
+                | IRunnerEnvironmentHostDestroyedAction
+                | IRunnerEnvironmentHostErrorAction;
+            let responseAction: (IResponseAction & IActionWithId<string>) | PromiseInterrupter;
+            try {
+                responseAction = await Promise.race([
+                    // WARNING interrupter should be before send action
+                    this.destroyInterrupter.promise,
+                    this.actionController.resolveAction<typeof action, IResponseAction>(action),
+                ]);
+            } catch (error) {
+                await this.handleDestroy();
+                throw error;
+            }
+            if (responseAction instanceof PromiseInterrupter) {
+                return this.destroyProcess$;
+            }
             await this.handleDestroy();
-            throw error;
-        }
-        if (responseAction instanceof PromiseInterrupter) {
-            return;
-        }
-        await this.handleDestroy();
-        if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
-            throw this.errorSerialization.deserializeError(responseAction.error);
-        }
+            if (responseAction.type === RunnerEnvironmentHostAction.ERROR) {
+                throw this.errorSerialization.deserializeError(responseAction.error);
+            }
+        })();
+        return this.destroyAction$;
     }
 
     private getConnectionClosedConfig(): IWorkerRunnerErrorConfig {

@@ -1,7 +1,6 @@
-import { RunnerDestroyError } from '../../errors/runner-errors';
-import { MultipleErrorFactory, parallelPromises } from '../../utils/parallel.promises';
+import { ErrorCollector } from '../../utils/error-collector';
+import { parallelPromises } from '../../utils/parallel-promises';
 import { RunnerEnvironmentClient } from "./runner-environment.client";
-
 
 export class RunnerEnvironmentClientCollection {    
     private readonly environments = new Set<RunnerEnvironmentClient>();
@@ -14,35 +13,30 @@ export class RunnerEnvironmentClientCollection {
         this.environments.delete(runner);
     }
 
-    public async disconnect(errorFactory: MultipleErrorFactory = this.destroyErrorFactory): Promise<void> {
+    public async disconnect(errorCollector: ErrorCollector): Promise<void> {
         try {
             await parallelPromises({
                 values: this.environments,
                 stopAtFirstError: false,
-                mapper: runnerEnvironment => runnerEnvironment.destroyInProcess$ || runnerEnvironment.disconnect(),
-                errorFactory,
+                mapper: runnerEnvironment => runnerEnvironment.disconnect(),
+                errorCollector: errorCollector,
             });
         } finally {
             this.environments.clear();
         }
     }
 
-    public async destroy(errorFactory: MultipleErrorFactory = this.destroyErrorFactory): Promise<void> {
+    public async destroy(errorCollector: ErrorCollector): Promise<void> {
         try {
             await parallelPromises({
                 values: this.environments,
                 stopAtFirstError: false,
-                mapper: runnerEnvironment => runnerEnvironment.destroyInProcess$ || runnerEnvironment.destroy(),
-                errorFactory,
+                mapper: runnerEnvironment => runnerEnvironment.destroy(),
+                errorCollector: errorCollector,
             });
         } finally {
             this.environments.clear();
         }
     }
 
-    private destroyErrorFactory = (originalErrors: unknown[]): RunnerDestroyError => {
-        return new RunnerDestroyError({ 
-            originalErrors,
-        });
-    }
 }

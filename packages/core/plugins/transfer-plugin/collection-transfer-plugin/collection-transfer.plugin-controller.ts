@@ -1,6 +1,7 @@
 import { RunnerDataTransferError } from '../../../errors/runner-errors';
 import { TransferRunnerObject } from '../../../transfer-data/transfer-runner-object';
-import { parallelPromises } from '../../../utils/parallel.promises';
+import { ErrorCollector } from '../../../utils/error-collector';
+import { parallelPromises } from '../../../utils/parallel-promises';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginCancelPreparedDataFunction, TransferPluginDataType, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { TransferPluginsResolver } from '../base/transfer-plugins.resolver';
@@ -47,7 +48,7 @@ export abstract class BaseCollectionTransferPluginController<
                 actionController: config.actionController,
                 data,
             }),
-            errorFactory: runnerDataTransferErrorFactory,
+            errorCollector: new ErrorCollector(runnerDataTransferErrorFactory),
         }) as Promise<unknown> as Promise<void>
     }
 
@@ -83,7 +84,7 @@ export abstract class BaseCollectionTransferPluginController<
                 type: data.type,
                 data: data.data,
             }),
-            errorFactory: runnerDataTransferErrorFactory,
+            errorCollector: new ErrorCollector(runnerDataTransferErrorFactory),
         }) as Promise<unknown> as Promise<void>;
     }
 
@@ -122,7 +123,7 @@ export abstract class BaseCollectionTransferPluginController<
         >({
             values: this.getTransferDataEntries(config.data as Input),
             stopAtFirstError: true,
-            errorFactory: runnerDataTransferErrorFactory,
+            errorCollector: new ErrorCollector(runnerDataTransferErrorFactory),
             mapper: async ([collectionIdentifier, fieldValue]) => {
                 const preparedData = await this.transferPluginsResolver.transferData({
                     ...config,
@@ -151,7 +152,7 @@ export abstract class BaseCollectionTransferPluginController<
         >({
             values: this.getReceivedDataEntries(config.data satisfies ICollectionTransferPluginSendData as unknown as Send),
             stopAtFirstError: true,
-            errorFactory: runnerDataTransferErrorFactory,
+            errorCollector: new ErrorCollector(runnerDataTransferErrorFactory),
             mapper: async ([collectionIdentifier, transferData]) => {
                 const receivedData = await this.transferPluginsResolver.receiveData({
                     ...config,
@@ -183,7 +184,7 @@ export abstract class BaseCollectionTransferPluginController<
                 mapper(cancelFunction) {
                     return cancelFunction();
                 },
-                errorFactory: runnerDataTransferErrorFactory,
+                errorCollector: new ErrorCollector(runnerDataTransferErrorFactory),
             });
         }
     }

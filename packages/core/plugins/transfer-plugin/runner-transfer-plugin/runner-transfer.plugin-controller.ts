@@ -9,6 +9,7 @@ import { IRunnerDescription } from '../../../runner/runner-description';
 import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
 import { RunnerConstructor } from '../../../types/constructor';
 import { RunnerToken } from '../../../types/runner-identifier';
+import { ErrorCollector } from '../../../utils/error-collector';
 import { PLUGIN_CANNOT_PROCESS_DATA } from "../../plugin-cannot-process-data";
 import { ITransferPluginPreparedData, ITransferPluginReceivedData, TransferPluginReceivedData, TransferPluginSendData } from '../base/transfer-plugin-data';
 import { ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig } from '../base/transfer.plugin-controller';
@@ -120,10 +121,12 @@ export class RunnerTransferPluginController implements ITransferPluginController
     }
 
     public destroy(): Promise<void> {
-        return this.environmentCollection.disconnect(originalErrors => new RunnerDestroyError({ 
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
-            originalErrors,
-        }));
+        return this.environmentCollection.disconnect(
+            new ErrorCollector(originalErrors => new RunnerDestroyError({ 
+                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_DESTROY_ERROR(this.runnerDescription),
+                originalErrors,
+            }))
+        );
     }
 
     private strategyDataToTransferData(
