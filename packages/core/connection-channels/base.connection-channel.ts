@@ -1,6 +1,6 @@
+import { ConnectionChannelInterceptorsComposer } from '../connection-channel-interceptor/connection-channel-interceptors-composer';
 import { ActionHandler, IAction } from '../types/action';
 import { EventHandlerController } from '../utils/event-handler-controller';
-import { ConnectionChannelProxyData } from './proxy.connection-channel';
 
 /**
  * A wrapper for any type of connection that implements a set of methods for exchanging actions
@@ -8,34 +8,17 @@ import { ConnectionChannelProxyData } from './proxy.connection-channel';
 export abstract class BaseConnectionChannel {
 
     public readonly actionHandlerController = new EventHandlerController<IAction>();
+    public readonly destroyEndHandlerController = new EventHandlerController<void>();
+    public readonly interceptorsComposer = new ConnectionChannelInterceptorsComposer({
+        connectionChannel: this,
+    });
     protected saveConnectionOpened = false;
 
-    /** {proxyField: {proxyValue: {proxyChannel}}} */
-    private readonly proxyChannels = new Map<
-        ConnectionChannelProxyData[0],
-        Map<
-            ConnectionChannelProxyData[1],
-            Set<BaseConnectionChannel> // TODO Set needed?
-        >
-    >();
     private _isConnected = false;
-    private isDestroyed = false;
+    private destroyProcess$?: void | Promise<void>;
 
     public get isConnected() {
         return this._isConnected;
-    }
-
-    /**
-     * @return The function that will be called after the proxy channel has been successfully destroyed,
-     * to clean up handlers.
-     */
-    protected static attachProxy(
-        originalChannel: BaseConnectionChannel,
-        proxyData: ConnectionChannelProxyData,
-        proxyChannel: BaseConnectionChannel,
-    ): () => void {
-        originalChannel.addProxyChannel(proxyData, proxyChannel);
-        return () => originalChannel.removeProxyChannel(proxyData, proxyChannel);
     }
 
     /** 
@@ -45,8 +28,19 @@ export abstract class BaseConnectionChannel {
      */
     public run(): void {
         this._isConnected = true;
-        this.isDestroyed = false;
         this.saveConnectionOpened = false;
+    }
+
+    public sendAction(action: IAction, transfer?: Transferable[]): void {
+        const interceptResult = this.interceptorsComposer.interceptSend(action);
+        if (interceptResult.rejected) {
+            return;
+        }
+        this.nativeSendAction(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            interceptResult.action!,
+            transfer
+        );
     }
 
     /** 
@@ -54,71 +48,37 @@ export abstract class BaseConnectionChannel {
      */
     public destroy(saveConnectionOpened = false): void {
         this._isConnected = false;
-        this.isDestroyed = true;
         this.saveConnectionOpened = saveConnectionOpened;
         this.actionHandlerController.clear();
-        if (this.proxyChannels.size === 0) {
+        if (this.destroyProcess$) {
+            return;
+        }
+        this.destroyProcess$ = this.interceptorsComposer.destroy();
+        if (this.destroyProcess$) {
+            void this.destroyProcess$.finally(() => {
+                this.destroyProcess$ = undefined;
+                this.afterDestroy();
+            });
+        } else {
             this.afterDestroy();
         }
     }
 
-    protected readonly actionHandler: ActionHandler = (action: IAction): void => {
-        for (const [proxyField, valueHandlerMap] of this.proxyChannels) {
-            // TODO Maybe it's better to use the filtering method in the proxy instance?
-            if (proxyField in action) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-                const {[proxyField]: _, ...originalAction} = action as Record<any, any>;
-                for (const [proxyValue, proxyChannelSet] of valueHandlerMap) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    if (proxyValue === (action as Record<any, any>)[proxyField]) {
-                        for (const proxiedChannel of proxyChannelSet) {
-                            proxiedChannel.actionHandler(originalAction as IAction);
-                        }
-                    }
-                }
-                return;
-            }
-        }
-        this.actionHandlerController.dispatch(action);
-    }
-
-    private addProxyChannel(proxyData: ConnectionChannelProxyData, proxyChannel: BaseConnectionChannel): void {
-        let valueHandlerMap = this.proxyChannels.get(proxyData[0]);
-        if (!valueHandlerMap) {
-            valueHandlerMap = new Map();
-            this.proxyChannels.set(proxyData[0], valueHandlerMap);
-        }
-        let handlerSet = valueHandlerMap.get(proxyData[1]);
-        if (!handlerSet) {
-            handlerSet = new Set();
-            valueHandlerMap.set(proxyData[1], handlerSet);
-        }
-        handlerSet.add(proxyChannel);
-    }
-
-    private removeProxyChannel(proxyData: ConnectionChannelProxyData, proxyChannel: BaseConnectionChannel): void {
-        const valueHandlerMap = this.proxyChannels.get(proxyData[0]);
-        const handlerSet = valueHandlerMap?.get(proxyData[1]);
-        if (!handlerSet?.delete(proxyChannel)) {
-            return;
-        }
-        if (handlerSet.size > 0) {
+    public readonly actionHandler: ActionHandler = (action: IAction): void => {
+        const interceptResult = this.interceptorsComposer.interceptReceive(action);
+        if (interceptResult.rejected) {
             return;
         }
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        valueHandlerMap!.delete(proxyData[1]);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (valueHandlerMap!.size > 0) {
-            return;
-        }
-        this.proxyChannels.delete(proxyData[0])
-        if (this.isDestroyed && this.proxyChannels.size === 0) {
-            this.afterDestroy();
-        }
+        this.actionHandlerController.dispatch(interceptResult.action!);
     }
 
-    public abstract sendAction(data: IAction, transfer?: Transferable[]): void;
-    protected abstract afterDestroy(): void;
+    protected afterDestroy(): void {
+        this.destroyEndHandlerController.dispatch();
+        this.destroyEndHandlerController.clear();
+    }
+
+    protected abstract nativeSendAction(action: IAction, transfer?: Transferable[]): void;
 }
 
 // TODO implements disconnect methods for cases when the Internet connection is lost

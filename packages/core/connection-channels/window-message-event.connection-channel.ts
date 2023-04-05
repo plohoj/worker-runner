@@ -28,7 +28,7 @@ export class WindowMessageEventConnectionChannel
         this.targetOrigin = config.targetOrigin;
     }
 
-    public override sendAction(action: IAction, transfer?: Transferable[]): void {
+    protected override nativeSendAction(action: IAction, transfer?: Transferable[]): void {
         this.identificationChecker?.attachIdentifier(action);
         this.postMessageTarget.postMessage(action, this.targetOrigin, transfer);
     }

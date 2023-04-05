@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 export { ActionController } from './action-controller/action-controller';
+export { ProxyReceiveConnectionChannelInterceptor } from './connection-channel-interceptor/proxy-receive.connection-channel-interceptor';
 export { LocalPortalConnectionChannel } from './connection-channels/local-portal.connection-channel';
 export { ProxyConnectionChannel } from './connection-channels/proxy.connection-channel';
 export { DirectionConnectionIdentificationStrategyClient } from './connection-identification/strategy/direction/direction.connection-identification-strategy.client';

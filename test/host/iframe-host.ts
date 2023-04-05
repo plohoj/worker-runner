@@ -1,4 +1,4 @@
-import { DirectionConnectionIdentificationStrategyHost, IframeConnectionHost, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, WindowMessageEventConnectionHost } from '@worker-runner/core';
+import { DirectionConnectionIdentificationStrategyHost, IframeConnectionHost, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost } from '@worker-runner/core';
 import { RunnerResolverHost } from '@worker-runner/promise';
 import { RxRunnerResolverHost } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT, PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST, RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT, RX_CONNECTION_IDENTIFIER_IFRAME_HOST } from '../common/connection-identifier';

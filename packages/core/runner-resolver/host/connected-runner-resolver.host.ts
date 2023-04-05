@@ -114,7 +114,7 @@ export class ConnectedRunnerResolverHost {
                     await this.handleDestroy(action.id)
                     break;
                 // Ignore side effects of connection establishment
-                case BestStrategyResolverClientActions.CONNECT:
+                case BestStrategyResolverClientActions.Connect:
                     return;
                 default:
                     throw new WorkerRunnerUnexpectedError({

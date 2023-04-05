@@ -1,3 +1,4 @@
+import { ProxyReceiveConnectionChannelInterceptor } from '../connection-channel-interceptor/proxy-receive.connection-channel-interceptor';
 import { IAction } from '../types/action';
 import { JsonLike } from '../types/json-like';
 import { WorkerRunnerIdentifier } from '../utils/identifier-generator';
@@ -8,25 +9,23 @@ export type ConnectionChannelProxyData<
     Value extends JsonLike | WorkerRunnerIdentifier = JsonLike | WorkerRunnerIdentifier
 > = [fieldName: FieldName, value: Value];
 
-export class ProxyConnectionChannel<
-    ProxyData extends ConnectionChannelProxyData = ConnectionChannelProxyData
-> extends BaseConnectionChannel {
-    private readonly onProxyDestroyed: () => void;
+export class ProxyConnectionChannel extends BaseConnectionChannel {
+    private proxyInterceptor: ProxyReceiveConnectionChannelInterceptor;
 
     constructor(
         private readonly originalChannel: BaseConnectionChannel,
-        private readonly proxyData: ProxyData,
+        private readonly proxyData: ConnectionChannelProxyData,
     ) {
         super();
-        this.onProxyDestroyed = BaseConnectionChannel.attachProxy(originalChannel, proxyData, this);
+        this.proxyInterceptor = new ProxyReceiveConnectionChannelInterceptor({
+            proxyConnectionChannel: this,
+            proxyData: this.proxyData,
+        });
     }
 
-    // TODO Proxy connection will not be able to resend transferable data
-    public override sendAction(action: IAction, transfer?: Transferable[]): void {
-        const proxyAction = {...action};
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-        (proxyAction as any)[this.proxyData[0]] = this.proxyData[1];
-        this.originalChannel.sendAction(proxyAction, transfer);
+    public override run(): void {
+        this.originalChannel.interceptorsComposer.addInterceptors(this.proxyInterceptor);
+        super.run();
     }
 
     public getRootOriginalChannel(): BaseConnectionChannel {
@@ -41,17 +40,16 @@ export class ProxyConnectionChannel<
         }
     }
 
+    // TODO Proxy connection will not be able to resend transferable data
+    protected override nativeSendAction(action: IAction, transfer?: Transferable[]): void {
+        this.originalChannel.sendAction({
+            ...action,
+            [this.proxyData[0]]: this.proxyData[1],
+        }, transfer);
+    }
+
     protected override afterDestroy(): void {
-        // The proxy connection was destroyed, but it was flagged that the connection should be kept alive.
-        // This means that this proxy will still be used to create a proxy on top of this proxy.
-        // * This proxy cannot be removed from the proxy list in the original connection.
-        //   Otherwise, the original connection will stop forwarding proxied messages to this proxy connection.
-        // * It is necessary to cancel the flag about the need to save the connection.
-        //   so that the next time it is destroyed or when all child proxies are destroyed,
-        //   it will cause the removal of this proxy from the proxy list of the original connection
-        if (!this.saveConnectionOpened) {
-            this.onProxyDestroyed();
-        }
-        this.saveConnectionOpened = false;
+        this.originalChannel.interceptorsComposer.removeInterceptors(this.proxyInterceptor);
+        super.afterDestroy();
     }
 }

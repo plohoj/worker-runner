@@ -1,16 +1,16 @@
 import { ConnectionStrategyEnum } from '../../connection-strategies/connection-strategy.enum';
 
 export enum BestStrategyResolverHostActions {
-    PING = "PING",
-    CONNECTED = "CONNECTED",
+    Ping = "PING",
+    Connected = "CONNECTED",
 }
 
 export interface IBestStrategyResolverHostPingAction {
-    type: BestStrategyResolverHostActions.PING;
+    type: BestStrategyResolverHostActions.Ping;
 }
 
 export interface IBestStrategyResolverHostConnectedAction {
-    type: BestStrategyResolverHostActions.CONNECTED;
+    type: BestStrategyResolverHostActions.Connected;
     strategies: Array<ConnectionStrategyEnum | string>;
 }
 

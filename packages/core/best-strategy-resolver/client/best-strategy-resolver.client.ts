@@ -50,11 +50,11 @@ export class BestStrategyResolverClient {
                 if (!isAction<IBestStrategyResolverHostAction>(action)) {
                     return;
                 }
-                if (action.type === BestStrategyResolverHostActions.PING) {
+                if (action.type === BestStrategyResolverHostActions.Ping) {
                     this.sendConnectAction();
                     return;
                 }
-                if (action.type !== BestStrategyResolverHostActions.CONNECTED) {
+                if (action.type !== BestStrategyResolverHostActions.Connected) {
                     return;
                 }
     
@@ -103,7 +103,7 @@ export class BestStrategyResolverClient {
 
     private sendConnectAction() {
         const connectAction: IBestStrategyResolverClientConnectAction = {
-            type: BestStrategyResolverClientActions.CONNECT,
+            type: BestStrategyResolverClientActions.Connect,
             strategies: this.availableConnectionStrategies.map(strategy => strategy.type),
         };
         this.identificationStrategy?.attachFirstIdentifier(connectAction);

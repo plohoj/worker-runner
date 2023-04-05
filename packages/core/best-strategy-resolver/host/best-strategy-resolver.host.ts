@@ -53,16 +53,12 @@ export class BestStrategyResolverHost {
             if (!isAction<IBestStrategyResolverClientConnectAction>(action)) {
                 return;
             }
-            if (action.type !== BestStrategyResolverClientActions.CONNECT) {
+            if (action.type !== BestStrategyResolverClientActions.Connect) {
                 return;
             }
-            // TODO There may be a situation when the client:
-            // 1) Sent a Connect action;
-            // 2) Got the Ping action;
-            // 3) Sent a duplicate Connect action;
 
             const connectedAction: IBestStrategyResolverHostConnectedAction = {
-                type: BestStrategyResolverHostActions.CONNECTED,
+                type: BestStrategyResolverHostActions.Connected,
                 strategies: this.availableStrategiesTypes,
             };
             const identificationChecker = this.identificationStrategy?.checkIdentifier(action, connectedAction);
@@ -99,12 +95,20 @@ export class BestStrategyResolverHost {
         };
         this.connectionChannel.actionHandlerController.addHandler(handler);
         this.connectionChannel.run();
-        if (!wasReceivedConnectAction && this.sendPingAction) {
-            const pingAction: IBestStrategyResolverHostPingAction = {
-                type: BestStrategyResolverHostActions.PING,
-            };
-            this.connectionChannel.sendAction(pingAction);
-        }
+        // TODO setTimeout - Crutch for synchronous calls. Because on the client side what happens is:
+        // 1) Sent a Connect action;
+        // 2) Got the Ping action;
+        // 3) Sent a duplicate Connect action;
+        // TODO The problem of duplicate connections is not completely solved
+        // It is preferable to use the algorithm to check the heartbeat
+        setTimeout(() => {
+            if (!wasReceivedConnectAction && this.sendPingAction) {
+                const pingAction: IBestStrategyResolverHostPingAction = {
+                    type: BestStrategyResolverHostActions.Ping,
+                };
+                this.connectionChannel.sendAction(pingAction);
+            }
+        }, 100);
     }
 
     public stop(): void {

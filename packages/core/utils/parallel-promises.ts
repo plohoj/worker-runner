@@ -1,5 +1,5 @@
 import { ErrorCollector } from './error-collector';
-import { HalfPromisedIterator, halfPromisedIteratorDone } from './half-promised-iterator';
+import { HalfPromisedIterator, HALF_PROMISED_ITERATOR_DONE } from './half-promised-iterator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { WorkerRunnerMultipleError } from '../errors/worker-runner-error';
 
@@ -140,10 +140,10 @@ export function parallelPromises<I, O>({
             // eslint-disable-next-line no-constant-condition
             while (true) {
                 const iterateValue = await halfPromisedIterator();
-                if ((iterateValue === halfPromisedIteratorDone)) {
+                if (iterateValue === HALF_PROMISED_ITERATOR_DONE) {
                     break;
                 }
-                handleValue(iterateValue);
+                handleValue(iterateValue as I);
             }
             afterIterate();
         }

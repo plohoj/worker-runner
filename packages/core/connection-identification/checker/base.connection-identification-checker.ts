@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { IConnectionChannelInterceptor } from '../../connection-channel-interceptor/connection-channel-interceptor';
 import { IAction } from '../../types/action';
 import { EventHandlerController } from '../../utils/event-handler-controller';
 
@@ -8,7 +10,8 @@ export interface IConnectionIdentificationCheckerSplitAction<T extends IAction> 
     isMatched: boolean;
 }
 
-export  interface IBaseConnectionIdentificationChecker {
+/** @deprecated use {@link IConnectionChannelInterceptor} */
+export interface IBaseConnectionIdentificationChecker {
     readonly destroyHandlerController: EventHandlerController<void>;
 
     /** Attaching fields with a connection identifier for each action before sending */

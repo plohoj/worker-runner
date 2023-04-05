@@ -1,10 +1,10 @@
 import { ConnectionStrategyEnum } from '../../connection-strategies/connection-strategy.enum';
 
 export enum BestStrategyResolverClientActions {
-    CONNECT = "CONNECT",
+    Connect = "CONNECT",
 }
 
 export interface IBestStrategyResolverClientConnectAction {
-    type: BestStrategyResolverClientActions.CONNECT;
+    type: BestStrategyResolverClientActions.Connect;
     strategies: Array<ConnectionStrategyEnum | string>;
 }

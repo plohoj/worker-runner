@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ResolvedRunner, RUNNER_ENVIRONMENT_CLIENT, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, ProxyReceiveConnectionChannelInterceptor, ResolvedRunner, RUNNER_ENVIRONMENT_CLIENT, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError, RX_WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/rx';
 import { lastValueFrom, noop, Observable, NEVER, tap, of } from 'rxjs';
 import { each } from '../client/utils/each';
@@ -234,8 +234,10 @@ each(pickResolverFactories('Rx', 'Local'), (mode, resolverFactory) =>
             });
             function checkRxProxy(): boolean {
                 const runnerActionController = rxSubscribeRunner[RUNNER_ENVIRONMENT_CLIENT]['actionController'];
-                const proxyChannels = runnerActionController.connectionChannel['proxyChannels'];
-                return proxyChannels.has('rxId')
+                const interceptors = [...runnerActionController.connectionChannel.interceptorsComposer['interceptors']];
+                return interceptors.some(interceptor => 
+                    (interceptor as ProxyReceiveConnectionChannelInterceptor)['proxyData'][0] === 'rxId'
+                );
             }
 
             expect(checkRxProxy()).withContext('before calling a non-existing method').toBeFalse();

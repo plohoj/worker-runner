@@ -1,5 +1,5 @@
 import { EventHandlerController } from './event-handler-controller';
-import { HalfPromisedIterator, halfPromisedIteratorDone, HalfPromisedIteratorResult } from './half-promised-iterator';
+import { HalfPromisedIterator, HALF_PROMISED_ITERATOR_DONE, HalfPromisedIteratorResult } from './half-promised-iterator';
 
 export type ConcurrentQueueCompleteFunction<T> = (event: T) => void;
 
@@ -33,7 +33,7 @@ export class ParallelQueueController<T> {
                 return events.shift()!;
             }
             if (this.amount === 0) {
-                return halfPromisedIteratorDone;
+                return HALF_PROMISED_ITERATOR_DONE;
             }
             return new Promise<T>(resolve => {
                 if (events.length > 0) { // If the event happened while the promise initialization was in the queue

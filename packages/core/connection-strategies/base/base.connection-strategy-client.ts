@@ -48,6 +48,7 @@ export abstract class BaseConnectionStrategyClient {
         const preparedProxyData = this.prepareRunnerProxyForSend(currentChannel);
         preparedProxyData.proxyChannel.actionHandlerController.addHandler(action => resolvedChannel.sendAction(action));
         resolvedChannel.actionHandlerController.addHandler(action => preparedProxyData.proxyChannel.sendAction(action));
+        preparedProxyData.proxyChannel.run();
         // eslint-disable-next-line promise/always-return
         void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then(() => {
             preparedProxyData.proxyChannel.destroy();

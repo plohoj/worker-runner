@@ -34,6 +34,7 @@ export abstract class BaseMessageEventListenerConnectionChannel<
     protected override afterDestroy(): void {
         this.target.removeEventListener('message', this.messageHandler);
         this.identificationChecker?.destroy();
+        super.afterDestroy();
     }
 
     protected buildMessageHandler(

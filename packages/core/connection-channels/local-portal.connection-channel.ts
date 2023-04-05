@@ -6,7 +6,7 @@ function noop(){}
 
 export class LocalPortalConnectionChannel extends BaseConnectionChannel {
 
-    public override sendAction: (data: IAction, transfer?: Transferable[]) => void = noop; 
+    protected override nativeSendAction: (data: IAction, transfer?: Transferable[]) => void = noop; 
 
     private target!: LocalPortalConnectionChannel;
 
@@ -24,10 +24,11 @@ export class LocalPortalConnectionChannel extends BaseConnectionChannel {
 
     public override run(): void {
         super.run();
-        this.target.sendAction = this.actionHandler;
+        this.target.nativeSendAction = this.actionHandler;
     }
 
     protected override afterDestroy(): void {
-        this.target.sendAction = noop;
+        this.target.nativeSendAction = noop;
+        super.afterDestroy();
     }
 }
