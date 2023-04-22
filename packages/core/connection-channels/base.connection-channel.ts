@@ -2,16 +2,32 @@ import { ConnectionChannelInterceptorsComposer } from '../connection-channel-int
 import { ActionHandler, IAction } from '../types/action';
 import { EventHandlerController } from '../utils/event-handler-controller';
 
-/**
- * A wrapper for any type of connection that implements a set of methods for exchanging actions
- */
-export abstract class BaseConnectionChannel {
+/** A wrapper for any type of connection that implements a set of methods for exchanging actions */
+export interface IBaseConnectionChannel {
+    readonly actionHandlerController: EventHandlerController<IAction>;
+    readonly destroyEndHandlerController: EventHandlerController<void>;
+    readonly interceptorsComposer: ConnectionChannelInterceptorsComposer;
+    readonly isConnected: boolean
+
+    actionHandler: ActionHandler;
+    /** 
+     * To get the best result of receiving a message through the MessagePort,
+     * it is preferable to add listeners using the {@link actionHandlerController}
+     * before calling this initialization method.
+     */
+    run(): void;
+    sendAction(action: IAction, transfer?: Transferable[]): void;
+    /** If the connection has a proxy, then the connection will not be terminated until all proxies are destroyed. */
+    destroy(saveConnectionOpened?: boolean): void;
+}
+
+/** A wrapper for any type of connection that implements a set of methods for exchanging actions */
+export abstract class BaseConnectionChannel implements IBaseConnectionChannel {
 
     public readonly actionHandlerController = new EventHandlerController<IAction>();
     public readonly destroyEndHandlerController = new EventHandlerController<void>();
-    public readonly interceptorsComposer = new ConnectionChannelInterceptorsComposer({
-        connectionChannel: this,
-    });
+    public readonly interceptorsComposer: ConnectionChannelInterceptorsComposer
+        = new ConnectionChannelInterceptorsComposer({ connectionChannel: this });
     protected saveConnectionOpened = false;
 
     private _isConnected = false;
@@ -21,11 +37,6 @@ export abstract class BaseConnectionChannel {
         return this._isConnected;
     }
 
-    /** 
-     * To get the best result of receiving a message through the MessagePort,
-     * it is preferable to add listeners using the {@link actionHandlerController}
-     * before calling this initialization method.
-     */
     public run(): void {
         this._isConnected = true;
         this.saveConnectionOpened = false;
@@ -43,9 +54,6 @@ export abstract class BaseConnectionChannel {
         );
     }
 
-    /** 
-     * If the connection has a proxy, then the connection will not be terminated until all proxies are destroyed.
-     */
     public destroy(saveConnectionOpened = false): void {
         this._isConnected = false;
         this.saveConnectionOpened = saveConnectionOpened;

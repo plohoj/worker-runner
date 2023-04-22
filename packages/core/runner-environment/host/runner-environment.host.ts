@@ -1,5 +1,5 @@
 import { ActionController } from '../../action-controller/action-controller';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { normalizeError } from '../../errors/normalize-error';
@@ -36,12 +36,12 @@ export interface IRunnerEnvironmentHostConfig {
 
 export interface IRunnerEnvironmentHostSyncInitConfig extends IRunnerEnvironmentHostConfig {
     runnerInstance: InstanceType<RunnerConstructor>,
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
 }
 
 export interface IRunnerEnvironmentHostAsyncInitConfig extends IRunnerEnvironmentHostConfig {
     arguments: ICollectionTransferPluginSendArrayData,
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
 }
 
 export interface IRunnerEnvironmentHostActionControllerConnectData {
@@ -475,7 +475,7 @@ export class RunnerEnvironmentHost {
         }
     }
 
-    private initActionController(connectionChannel: BaseConnectionChannel): ActionController {
+    private initActionController(connectionChannel: IBaseConnectionChannel): ActionController {
         const actionController =  new ActionController({
             connectionChannel,
             disconnectErrorFactory: () => new ConnectionClosedError(this.getConnectionClosedConfig()),

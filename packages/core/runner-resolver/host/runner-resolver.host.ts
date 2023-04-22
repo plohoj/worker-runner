@@ -1,7 +1,8 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { IBaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
+import { isInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerConstructor } from '../../types/constructor';
@@ -31,8 +32,11 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
         this.runnerDefinitionCollection = 'runners' in config
             ? new RunnerDefinitionCollection({ runners: config.runners })
             : config.runnerDefinitionCollection;
-        this.connection = config.connection;
         this.plugins = config.plugins;
+        this.connection = config.connection;
+        this.connection.registerPlugins?.(
+            this.plugins?.filter(isInterceptPlugin) || []
+        );
     }
 
     public run(): void {
@@ -56,7 +60,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
 
     public wrapRunner(
         runnerInstance: InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>,
-        connectionChannel: BaseConnectionChannel,
+        connectionChannel: IBaseConnectionChannel,
     ): void {
         const connectedResolver = this.connectedResolvers.values().next().value as ConnectedRunnerResolverHost | undefined;
         if (!connectedResolver) {

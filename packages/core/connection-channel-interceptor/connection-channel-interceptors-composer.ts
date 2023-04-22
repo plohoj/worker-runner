@@ -1,13 +1,13 @@
-import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { IAction } from '../types/action';
 import { IConnectionChannelInterceptResultOptions, IConnectionChannelInterceptor, IConnectionChannelInterceptResult, ConnectionChannelInterceptorRejectEnum } from './connection-channel-interceptor';
 
 export interface IConnectionChannelInterceptorsComposerConfig {
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
 }
 
 export class ConnectionChannelInterceptorsComposer implements IConnectionChannelInterceptor {
-    private readonly connectionChannel: BaseConnectionChannel;
+    private readonly connectionChannel: IBaseConnectionChannel;
     private readonly interceptors = new Set<IConnectionChannelInterceptor>;
     private destroyPromises = 0;
     private destroyPromise$?: Promise<void>;
@@ -103,7 +103,7 @@ export class ConnectionChannelInterceptorsComposer implements IConnectionChannel
             action: IAction
         ) => IConnectionChannelInterceptResult | undefined,
         interceptResult: (options: IConnectionChannelInterceptResultOptions) => void,
-    ): IConnectionChannelInterceptResult {
+    ): IConnectionChannelInterceptResultOptions {
         const interceptResultValue: IConnectionChannelInterceptResultOptions = {
             action: initialAction,
             initialAction,
@@ -116,6 +116,7 @@ export class ConnectionChannelInterceptorsComposer implements IConnectionChannel
                 continue;
             }
             if (iteratedInterceptResult.rejected === ConnectionChannelInterceptorRejectEnum.Hard) {
+                interceptResultValue.rejected = ConnectionChannelInterceptorRejectEnum.Hard;
                 interceptResult({
                     initialAction,
                     ...iteratedInterceptResult,

@@ -2,7 +2,7 @@ import { ProxyReceiveConnectionChannelInterceptor } from '../connection-channel-
 import { IAction } from '../types/action';
 import { JsonLike } from '../types/json-like';
 import { WorkerRunnerIdentifier } from '../utils/identifier-generator';
-import { BaseConnectionChannel } from './base.connection-channel';
+import { BaseConnectionChannel, IBaseConnectionChannel } from './base.connection-channel';
 
 export type ConnectionChannelProxyData<
     FieldName extends string = string,
@@ -13,7 +13,7 @@ export class ProxyConnectionChannel extends BaseConnectionChannel {
     private proxyInterceptor: ProxyReceiveConnectionChannelInterceptor;
 
     constructor(
-        private readonly originalChannel: BaseConnectionChannel,
+        private readonly originalChannel: IBaseConnectionChannel,
         private readonly proxyData: ConnectionChannelProxyData,
     ) {
         super();
@@ -28,7 +28,7 @@ export class ProxyConnectionChannel extends BaseConnectionChannel {
         super.run();
     }
 
-    public getRootOriginalChannel(): BaseConnectionChannel {
+    public getRootOriginalChannel(): IBaseConnectionChannel {
         let parent = this.originalChannel;
         // eslint-disable-next-line no-constant-condition
         while (true) {

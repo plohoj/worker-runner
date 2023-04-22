@@ -1,5 +1,5 @@
 import { ActionController } from '../../action-controller/action-controller';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { DataForSendRunner } from "../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
@@ -26,7 +26,7 @@ import { IRunnerEnvironmentClientAction, IRunnerEnvironmentClientCloneAction, IR
 
 export interface IRunnerEnvironmentClientFactoryConfig {
     token: RunnerToken,
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
     transferPluginsResolver?: TransferPluginsResolver;
 }
 
@@ -181,7 +181,7 @@ export class RunnerEnvironmentClient {
      * **WARNING**: To get the best result of receiving a message through the MessagePort,
      * running the ConnectionChannel will be called in this method
      */
-    public static disconnectConnection(connectionChannel: BaseConnectionChannel): Promise<void> {
+    public static disconnectConnection(connectionChannel: IBaseConnectionChannel): Promise<void> {
         const promise$ = RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(connectionChannel);
         const disconnectAction: IRunnerEnvironmentClientDisconnectAction & IActionWithId = {
             id: DISCONNECT_ACTION_ID,
@@ -192,7 +192,7 @@ export class RunnerEnvironmentClient {
     }
 
     /** Waiting for a disconnect or destroy action from the Runner environment host */
-    public static waitDisconnectedOrDestroyedAction(connectionChannel: BaseConnectionChannel): Promise<void> {
+    public static waitDisconnectedOrDestroyedAction(connectionChannel: IBaseConnectionChannel): Promise<void> {
         return new Promise(resolve => {
             function disconnectHandler(action: IRunnerEnvironmentHostAction & IActionWithId): void {
                 const isDisconnectionResponse: boolean
@@ -266,7 +266,7 @@ export class RunnerEnvironmentClient {
         this.isMarkedForTransfer = true;
     }
 
-    public async cloneControl(): Promise<BaseConnectionChannel> {
+    public async cloneControl(): Promise<IBaseConnectionChannel> {
         const clonedAction = await this.resolveActionAndHandleError<
             IRunnerEnvironmentClientCloneAction,
             IRunnerEnvironmentHostClonedAction
@@ -284,7 +284,7 @@ export class RunnerEnvironmentClient {
      * * Stop listening to all actions.
      * * Removing an {@link RunnerEnvironmentClient} Instance from a Collection
      */
-    public transferControl(): BaseConnectionChannel {
+    public transferControl(): IBaseConnectionChannel {
         this.actionController.sendAction<IRunnerEnvironmentClientTransferAction>({
             type: RunnerEnvironmentClientAction.TRANSFER,
         });

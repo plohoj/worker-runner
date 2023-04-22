@@ -1,4 +1,4 @@
-import { DirectionConnectionIdentificationStrategyClient, IframeConnectionClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, SharedWorkerConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
+import { DirectionInterceptPlugin, IframeConnectionClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, SharedWorkerConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost, RunnerResolverLocal } from "@worker-runner/promise";
 import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT, PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST, PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT, RX_CONNECTION_IDENTIFIER_IFRAME_HOST, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
@@ -45,10 +45,10 @@ const resolvers = {
         connection: new WorkerConnectionClient({
             target: worker,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
             ],
         }),
@@ -58,10 +58,10 @@ const resolvers = {
         connection: new WorkerConnectionClient({
             target: worker,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
             ],
         }),
@@ -71,10 +71,10 @@ const resolvers = {
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
             ],
         }),
@@ -84,10 +84,10 @@ const resolvers = {
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                    to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
             ],
         }),
@@ -98,10 +98,10 @@ const resolvers = {
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    to: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
                 }),
             ],
         }),
@@ -112,92 +112,92 @@ const resolvers = {
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
-                    hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
+            plugins: [
+                new DirectionInterceptPlugin({
+                    from: PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                    to: PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST,
                 }),
             ],
         }),
     }),
     'Rx#Worker#MessageChannel': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_WORKER,
+                to: RX_CONNECTION_IDENTIFIER_WORKER,
+            }),
+        ],
         connection: new WorkerConnectionClient({
             target: worker,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                }),
-            ],
         }),
     }),
     'Rx#Worker#Repeat': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_WORKER,
+                to: RX_CONNECTION_IDENTIFIER_WORKER,
+            }),
+        ],
         connection: new WorkerConnectionClient({
             target: worker,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                }),
-            ],
         }),
     }),
     'Rx#SharedWorker#MessageChannel': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_WORKER,
+                to: RX_CONNECTION_IDENTIFIER_WORKER,
+            }),
+        ],
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                }),
-            ],
         }),
     }),
     'Rx#SharedWorker#Repeat': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_WORKER,
+                to: RX_CONNECTION_IDENTIFIER_WORKER,
+            }),
+        ],
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                }),
-            ],
         }),
     }),
     'Rx#Iframe#MessageChannel': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                to: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
+            }),
+        ],
         connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new MessageChannelConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
-                }),
-            ],
         }),
     }),
     'Rx#Iframe#Repeat': new RxRunnerResolverClient({
         runners,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
+                to: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
+            }),
+        ],
         connection: new IframeConnectionClient({
             postMessageTarget: iframe,
             eventListenerTarget: iframe,
             connectionStrategies: [new RepeatConnectionStrategyClient()],
-            identificationStrategies: [
-                new DirectionConnectionIdentificationStrategyClient({
-                    clientIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT,
-                    hostIdentifier: RX_CONNECTION_IDENTIFIER_IFRAME_HOST,
-                }),
-            ],
         }),
     }),
 } satisfies Record<

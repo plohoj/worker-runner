@@ -11,7 +11,6 @@ export class MessageEventConnectionChannel extends BaseMessageEventListenerConne
     }
 
     protected override nativeSendAction(action: IAction, transfer?: Transferable[]): void {
-        this.identificationChecker?.attachIdentifier(action);
         this.target.postMessage(action, transfer)
     }
 }

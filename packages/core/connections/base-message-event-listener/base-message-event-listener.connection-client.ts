@@ -1,9 +1,7 @@
 import { BestStrategyResolverClient, IBestStrategyResolverClientResolvedConnection } from '../../best-strategy-resolver/client/best-strategy-resolver.client';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { IBaseConnectionIdentificationChecker } from '../../connection-identification/checker/base.connection-identification-checker';
-import { IBaseConnectionIdentificationStrategyClient } from '../../connection-identification/strategy/base/base.connection-identification-strategy.client';
-import { ConnectionIdentificationStrategyComposerClient } from '../../connection-identification/strategy/composer/connection-identification-strategy.composer.client';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
 import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../base/base.connection-client';
 
@@ -15,8 +13,8 @@ export interface IBaseMessageEventListenerConnectionClientConfig<T extends IMess
      * Preference is given to left to right
      */
     connectionStrategies: BaseConnectionStrategyClient[],
-    /** All connection identification strategies will be used for the connection */
-    identificationStrategies?: IBaseConnectionIdentificationStrategyClient[];
+    /** All intercept plugins will be used for the connection */
+    plugins?: IInterceptPlugin[];
 }
 
 export abstract class BaseMessageEventListenerConnectionClient<
@@ -24,18 +22,17 @@ export abstract class BaseMessageEventListenerConnectionClient<
 > implements IBaseConnectionClient {
     protected readonly target: T;
     private readonly connectionStrategies: BaseConnectionStrategyClient[];
-    private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyClient;
+    private interceptPlugins: IInterceptPlugin[];
     private stopCallback?: () => void;
 
     constructor(config: IBaseMessageEventListenerConnectionClientConfig<T>) {
         this.target = config.target;
+        this.interceptPlugins = config.plugins || []
         this.connectionStrategies = config.connectionStrategies;
-        const identificationStrategies = config.identificationStrategies || [];
-        if (identificationStrategies.length > 0) {
-            this.identificationStrategy = identificationStrategies.length === 1
-                ? identificationStrategies[0]
-                : new ConnectionIdentificationStrategyComposerClient({ identificationStrategies })
-        }
+    }
+
+    public registerPlugins(interceptPlugins: IInterceptPlugin[]): void {
+        this.interceptPlugins.unshift(...interceptPlugins);
     }
 
     public async connect(): Promise<IEstablishedConnectionClientData> {
@@ -44,7 +41,7 @@ export abstract class BaseMessageEventListenerConnectionClient<
         const bestStrategyResolver = new BestStrategyResolverClient({
             connectionChannel: initialConnectionChannel,
             availableConnectionStrategies: this.connectionStrategies,
-            identificationStrategy: this.identificationStrategy
+            interceptPlugins: this.interceptPlugins,
         });
         this.stopCallback = () => {
             bestStrategyResolver.stop();
@@ -57,7 +54,10 @@ export abstract class BaseMessageEventListenerConnectionClient<
             this.stopCallback = undefined;
         }
         initialConnectionChannel.destroy(true);
-        const resolvedConnectionChannel = this.buildConnectionChannel(resolvedConnection.identificationChecker);
+        const resolvedConnectionChannel = this.buildConnectionChannel();
+        resolvedConnectionChannel.interceptorsComposer.addInterceptors(
+            ...resolvedConnection.connectionChannelInterceptors
+        );
         return {
             connectionChannel: resolvedConnectionChannel,
             connectionStrategy: resolvedConnection.connectionStrategy,
@@ -69,7 +69,5 @@ export abstract class BaseMessageEventListenerConnectionClient<
         this.stopCallback = undefined;
     }
 
-    protected abstract buildConnectionChannel(
-        identificationChecker?: IBaseConnectionIdentificationChecker,
-    ): BaseConnectionChannel;
+    protected abstract buildConnectionChannel(): IBaseConnectionChannel;
 }

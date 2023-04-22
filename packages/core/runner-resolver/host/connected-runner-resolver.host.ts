@@ -1,6 +1,6 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { normalizeError } from '../../errors/normalize-error';
@@ -9,8 +9,8 @@ import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IPlugin } from '../../plugins/plugins';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
-import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { RunnerDefinitionCollection } from "../../runner/runner-definition.collection";
+import { RunnerEnvironmentHost } from '../../runner-environment/host/runner-environment.host';
 import { IActionWithId } from '../../types/action';
 import { RunnerConstructor } from '../../types/constructor';
 import { RunnerIdentifierConfigList } from "../../types/runner-identifier";
@@ -23,7 +23,7 @@ import { IRunnerResolverClientAction, IRunnerResolverClientInitRunnerAction, IRu
 import { IRunnerResolverHostDestroyedAction, IRunnerResolverHostErrorAction, IRunnerResolverHostRunnerInitedAction, IRunnerResolverHostSoftRunnerInitedAction, RunnerResolverHostAction } from './runner-resolver.host.actions';
 
 export interface IConnectedRunnerResolverHostConfig {
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyHost,
     runnerDefinitionCollection: RunnerDefinitionCollection<RunnerIdentifierConfigList>;
     plugins?: IPlugin[];
@@ -85,7 +85,7 @@ export class ConnectedRunnerResolverHost {
 
     public wrapRunner(
         runnerInstance: InstanceType<RunnerConstructor>,
-        connectionChannel: BaseConnectionChannel,
+        connectionChannel: IBaseConnectionChannel,
     ): void {
         const runnerEnvironmentHost = RunnerEnvironmentHost.initSync({
             token: this.runnerDefinitionCollection.getRunnerTokenByInstance(runnerInstance),

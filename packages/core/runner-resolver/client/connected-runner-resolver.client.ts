@@ -1,5 +1,5 @@
 import { ActionController } from '../../action-controller/action-controller';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { DataForSendRunner } from "../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
@@ -9,12 +9,12 @@ import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { TransferPluginSendData } from '../../plugins/transfer-plugin/base/transfer-plugin-data';
 import { ICollectionTransferPluginSendArrayData } from '../../plugins/transfer-plugin/collection-transfer-plugin/collection-transfer-plugin-data';
 import { RunnerTransferPlugin } from '../../plugins/transfer-plugin/runner-transfer-plugin/runner-transfer.plugin';
-import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../runner-environment/client/runner-environment.client';
-import { RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { ResolvedRunner } from '../../runner/resolved-runner';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { IRunnerDescription } from '../../runner/runner-description';
 import { RunnerController } from '../../runner/runner.controller';
+import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../runner-environment/client/runner-environment.client';
+import { RunnerEnvironmentClientCollection } from '../../runner-environment/client/runner-environment.client.collection';
 import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
@@ -27,7 +27,7 @@ import { IRunnerResolverHostAction, IRunnerResolverHostRunnerInitedAction, IRunn
 import { IRunnerResolverClientAction, IRunnerResolverClientDestroyAction, IRunnerResolverClientInitRunnerAction, IRunnerResolverClientSoftInitRunnerAction, RunnerResolverClientAction } from './runner-resolver.client.actions';
 
 export interface IConnectedRunnerResolverClientConfig {
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
     connectionStrategy: BaseConnectionStrategyClient,
     runnerDefinitionCollection: RunnerDefinitionCollection<RunnerIdentifierConfigList>;
     plugins?: IPlugin[],
@@ -151,7 +151,7 @@ export class ConnectedRunnerResolverClient {
 
     public wrapRunner(
         runnerInstance: InstanceType<RunnerConstructor>,
-        connectionChannel: BaseConnectionChannel
+        connectionChannel: IBaseConnectionChannel
     ): ResolvedRunner<RunnerConstructor> {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const runnerConstructor: RunnerConstructor = Object.getPrototypeOf(runnerInstance).constructor;

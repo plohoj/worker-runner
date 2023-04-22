@@ -26,7 +26,7 @@ export function pickResolverFactories<T extends RunnerResolverNamePart[]>(
 ): FilteredResolverFactories<T> {
     const resolverFactories = {} as Record<RunnerResolverNamePart, ResolverFactory>;
     for (const [key, factory] of Object.entries(allRunnerResolversFactories)) {
-        const isIncluded = filter.every(namePart => key.includes(namePart));
+        const isIncluded = filter.every(namePart => key.match(new RegExp(`(^|#)${namePart}(#|$)`)));
         if (isIncluded) {
             resolverFactories[key as RunnerResolverNamePart] = factory;
         }

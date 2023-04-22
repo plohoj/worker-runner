@@ -1,9 +1,8 @@
-import { IBaseConnectionIdentificationStrategyHost } from '../../connection-identification/strategy/base/base.connection-identification-strategy.host';
-import { ConnectionIdentificationStrategyComposerHost } from '../../connection-identification/strategy/composer/connection-identification-strategy.composer.host';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
+import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IPortConnectEventListenerTarget } from '../../types/targets/port-connect-event-listener-target';
-import { IBaseMessageEventListenerConnectionHostConfig } from '../base-message-event-listener/base-message-event-listener.connection-host';
 import { ConnectionHostHandler, IBaseConnectionHost } from '../base/base.connection-host';
+import { IBaseMessageEventListenerConnectionHostConfig } from '../base-message-event-listener/base-message-event-listener.connection-host';
 import { MessageEventConnectionHost } from '../message-event/message-event.connection-host';
 
 export interface ISharedWorkerConnectionHostConfig
@@ -16,17 +15,18 @@ export interface ISharedWorkerConnectionHostConfig
 export class SharedWorkerConnectionHost implements IBaseConnectionHost {
     public readonly target: IPortConnectEventListenerTarget;
     private readonly connectionStrategies: BaseConnectionStrategyHost[];
-    private readonly identificationStrategies: IBaseConnectionIdentificationStrategyHost[];
+    private readonly interceptPlugins: IInterceptPlugin[];
     private readonly connections: MessageEventConnectionHost[] = [];
     private handler!: ConnectionHostHandler;
 
     constructor(config: ISharedWorkerConnectionHostConfig) {
         this.target = config.target;
         this.connectionStrategies = config.connectionStrategies;
-        const identificationStrategies = config.identificationStrategies || [];
-        this.identificationStrategies = identificationStrategies.length > 1
-            ? [new ConnectionIdentificationStrategyComposerHost({ identificationStrategies })]
-            : identificationStrategies
+        this.interceptPlugins = config.plugins || [];
+    }
+
+    public registerPlugins(interceptPlugins: IInterceptPlugin[]): void {
+        this.interceptPlugins.unshift(...interceptPlugins);
     }
 
     public startListen(handler: ConnectionHostHandler): void {
@@ -47,7 +47,7 @@ export class SharedWorkerConnectionHost implements IBaseConnectionHost {
         const connection = new MessageEventConnectionHost({
             target: port,
             connectionStrategies: this.connectionStrategies,
-            identificationStrategies: this.identificationStrategies,
+            plugins: this.interceptPlugins,
         });
         this.connections.push(connection);
         connection.startListen(this.handler);

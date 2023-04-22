@@ -1,4 +1,4 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
@@ -10,7 +10,7 @@ export interface IPreparedForSendRunnerDataClient extends IPreparedForSendRunner
 }
 
 export interface IPreparedForSendProxyRunnerData extends IPreparedForSendRunnerDataBase {
-    proxyChannel: BaseConnectionChannel;
+    proxyChannel: IBaseConnectionChannel;
 }
 
 export abstract class BaseConnectionStrategyClient {
@@ -24,7 +24,7 @@ export abstract class BaseConnectionStrategyClient {
      * then the removal methods from the collection will be called.
      */
     public prepareRunnerForSend(
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
         environment: RunnerEnvironmentClient,
     ): IPreparedForSendRunnerDataClient | Promise<IPreparedForSendRunnerDataClient> {
         if (environment.isMarkedForTransfer) {
@@ -32,15 +32,15 @@ export abstract class BaseConnectionStrategyClient {
         }
         // TODO Check that the same strategy is used for environment
         return environment.cloneControl()
-            .then((connectionChannel: BaseConnectionChannel) =>
+            .then((connectionChannel: IBaseConnectionChannel) =>
                 this.prepareRunnerForSendByConnectionChannel(currentChannel, connectionChannel),
             );
     }
 
     protected prepareRunnerForSendByConnectionChannel(
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
         /** A connection channel that was obtained as a result of cloning or transferring Runner control */
-        resolvedChannel: BaseConnectionChannel,
+        resolvedChannel: IBaseConnectionChannel,
     ): IPreparedForSendRunnerDataClient {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
@@ -78,9 +78,9 @@ export abstract class BaseConnectionStrategyClient {
          * Can be original connection channel for Runner resolver client / Connection client
          * or modified for Environment client
          */
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
         receivedData: DataForSendRunner,
-    ): BaseConnectionChannel;
+    ): IBaseConnectionChannel;
 
-    protected abstract prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData;
+    protected abstract prepareRunnerProxyForSend(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData;
 }

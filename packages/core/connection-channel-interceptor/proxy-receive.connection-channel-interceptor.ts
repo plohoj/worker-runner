@@ -1,15 +1,15 @@
-import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { ConnectionChannelProxyData } from '../connection-channels/proxy.connection-channel';
 import { IAction } from '../types/action';
 import { ConnectionChannelInterceptorRejectEnum, IConnectionChannelInterceptor, IConnectionChannelInterceptResult, IConnectionChannelInterceptResultOptions } from './connection-channel-interceptor';
 
 export interface IProxyReceiveConnectionChannelInterceptor {
-    proxyConnectionChannel: BaseConnectionChannel;
+    proxyConnectionChannel: IBaseConnectionChannel;
     proxyData: ConnectionChannelProxyData,
 }
 
 export class ProxyReceiveConnectionChannelInterceptor implements IConnectionChannelInterceptor {
-    private readonly proxyConnectionChannel: BaseConnectionChannel;
+    private readonly proxyConnectionChannel: IBaseConnectionChannel;
     private readonly proxyData: ConnectionChannelProxyData;
 
     constructor(config: IProxyReceiveConnectionChannelInterceptor) {

@@ -1,6 +1,7 @@
 import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError } from '../../errors/runner-errors';
+import { isInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerController } from '../../runner/runner.controller';
@@ -26,8 +27,11 @@ export abstract class RunnerResolverClientBase<L extends RunnerIdentifierConfigL
         this.runnerDefinitionCollection = new RunnerDefinitionCollection({
             runners: config.runners || [],
         });
-        this.connection = config.connection;
         this.plugins = config.plugins;
+        this.connection = config.connection;
+        this.connection.registerPlugins?.(
+            this.plugins?.filter(isInterceptPlugin) || []
+        );
     }
 
     /** Launches and prepares RunnerResolver for work */

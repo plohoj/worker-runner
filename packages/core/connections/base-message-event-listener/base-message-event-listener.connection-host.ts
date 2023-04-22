@@ -1,11 +1,9 @@
 import { BestStrategyResolverHost } from '../../best-strategy-resolver/host/best-strategy-resolver.host';
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { IBaseConnectionIdentificationChecker } from '../../connection-identification/checker/base.connection-identification-checker';
-import { IBaseConnectionIdentificationStrategyHost } from '../../connection-identification/strategy/base/base.connection-identification-strategy.host';
-import { ConnectionIdentificationStrategyComposerHost } from '../../connection-identification/strategy/composer/connection-identification-strategy.composer.host';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
+import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
-import { IBaseConnectionHost, ConnectionHostHandler } from '../base/base.connection-host';
+import { ConnectionHostHandler, IBaseConnectionHost } from '../base/base.connection-host';
 
 export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessageEventListenerTarget> {
     target: T;
@@ -15,8 +13,8 @@ export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessag
      * Preference is given to left to right
      */
     connectionStrategies: BaseConnectionStrategyHost[],
-    /** All connection identification strategies will be used for the connection */
-    identificationStrategies?: IBaseConnectionIdentificationStrategyHost[];
+    /** All intercept plugins will be used for the connection */
+    plugins?: IInterceptPlugin[];
 }
 
 export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageEventListenerTarget>
@@ -24,18 +22,17 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
 {
     public readonly target: T;
     private readonly connectionStrategies: BaseConnectionStrategyHost[];
-    private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
+    private readonly interceptPlugins: IInterceptPlugin[];
     private stopCallback?: () => void;
 
     constructor(config: IBaseMessageEventListenerConnectionHostConfig<T>) {
         this.target = config.target;
         this.connectionStrategies = config.connectionStrategies;
-        const identificationStrategies = config.identificationStrategies || [];
-        if (identificationStrategies.length > 0) {
-            this.identificationStrategy = identificationStrategies.length === 1
-                ? identificationStrategies[0]
-                : new ConnectionIdentificationStrategyComposerHost({ identificationStrategies })
-        }
+        this.interceptPlugins = config.plugins || [];
+    }
+
+    public registerPlugins(interceptPlugins: IInterceptPlugin[]): void {
+        this.interceptPlugins.unshift(...interceptPlugins);
     }
 
     public startListen(handler: ConnectionHostHandler): void {
@@ -45,13 +42,19 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
             connectionChannel: initialConnectionChannel,
             availableStrategies: this.connectionStrategies,
             sendPingAction: true,
-            identificationStrategy: this.identificationStrategy,
+            interceptPlugins: this.interceptPlugins,
         });
         bestStrategyResolver.run(
-            resolvedConnection => handler({
-                connectionChannel: this.buildConnectionChannel(resolvedConnection.identificationChecker),
-                connectionStrategy: resolvedConnection.connectionStrategy,
-            }),
+            resolvedConnection => {
+                const resolvedConnectionChannel = this.buildConnectionChannel();
+                resolvedConnectionChannel.interceptorsComposer.addInterceptors(
+                    ...resolvedConnection.connectionChannelInterceptors
+                );
+                handler({
+                    connectionChannel: resolvedConnectionChannel,
+                    connectionStrategy: resolvedConnection.connectionStrategy,
+                })
+            },
             error => {
                 throw error;
             },
@@ -67,7 +70,5 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         this.stopCallback?.();
     }
 
-    protected abstract buildConnectionChannel(
-        identificationChecker?: IBaseConnectionIdentificationChecker
-    ): BaseConnectionChannel;
+    protected abstract buildConnectionChannel(): IBaseConnectionChannel;
 }

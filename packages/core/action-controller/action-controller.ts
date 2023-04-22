@@ -1,4 +1,4 @@
-import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
@@ -12,12 +12,12 @@ export interface IPromiseMethods<T = unknown, E = unknown> {
 }
 
 export interface IActionControllerConfig {
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
     disconnectErrorFactory?: DisconnectErrorFactory;
 }
 
 /**
- * Wrapper over the base implementation of the action exchange methods {@link BaseConnectionChannel}.
+ * Wrapper over the base implementation of the action exchange methods {@link IBaseConnectionChannel}.
  * Implements an action identification.
  * Allows to get a promise for actions that are guaranteed to receive one response action.
  * Also allows to track actions by type or ID.
@@ -28,7 +28,7 @@ export class ActionController {
         <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
     public readonly actionHandlerController: EventHandlerController<IAction>;
     public readonly destroyHandlerController = new EventHandlerController<void>();
-    public readonly connectionChannel: BaseConnectionChannel;
+    public readonly connectionChannel: IBaseConnectionChannel;
 
     private readonly disconnectErrorFactory: DisconnectErrorFactory;
     private readonly handlersByIdMap = new Map<WorkerRunnerIdentifier, Set<ActionHandler<IActionWithId>>>();

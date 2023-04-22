@@ -1,4 +1,4 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ConnectionChannelProxyData, ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { IdentifierGenerator, WorkerRunnerIdentifier } from '../../utils/identifier-generator';
@@ -29,9 +29,9 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
     }
 
     public resolveConnectionForRunner(
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
         sendData: DataForSendRunner,
-    ): BaseConnectionChannel {
+    ): IBaseConnectionChannel {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }
@@ -51,7 +51,7 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
                 message: 'Received unexpected data that was prepared to connect Runner'
             });
         }
-        const connectionChannel: BaseConnectionChannel = new ProxyConnectionChannel(currentChannel, proxyData);
+        const connectionChannel: IBaseConnectionChannel = new ProxyConnectionChannel(currentChannel, proxyData);
         return connectionChannel;
     }
 
@@ -66,7 +66,7 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
                 : RepeatConnectionClientRunnerSendDataFields.NewHostId;
     }
 
-    protected prepareRunnerProxyForSend(currentChannel: BaseConnectionChannel): IPreparedForSendProxyRunnerData {
+    protected prepareRunnerProxyForSend(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData {
         const identifier: WorkerRunnerIdentifier = this.identifierGenerator.generate();
         const proxyChannel = new ProxyConnectionChannel(currentChannel, [this.prepareRunnerProxyKey, identifier]);
         return {

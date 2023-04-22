@@ -2,11 +2,11 @@ import { BaseConnectionStrategyClient, IPreparedForSendRunnerDataClient } from '
 import { DataForSendRunner } from "../../../connection-strategies/base/prepared-for-send-data";
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { ConnectionClosedError, RunnerDestroyError } from '../../../errors/runner-errors';
-import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
-import { RunnerEnvironmentClientCollection } from '../../../runner-environment/client/runner-environment.client.collection';
 import { ResolvedRunner } from '../../../runner/resolved-runner';
 import { IRunnerDescription } from '../../../runner/runner-description';
-import { RunnerController, RUNNER_ENVIRONMENT_CLIENT } from '../../../runner/runner.controller';
+import { RUNNER_ENVIRONMENT_CLIENT, RunnerController } from '../../../runner/runner.controller';
+import { RunnerEnvironmentClient, RunnerEnvironmentClientFactory } from '../../../runner-environment/client/runner-environment.client';
+import { RunnerEnvironmentClientCollection } from '../../../runner-environment/client/runner-environment.client.collection';
 import { RunnerConstructor } from '../../../types/constructor';
 import { RunnerToken } from '../../../types/runner-identifier';
 import { ErrorCollector } from '../../../utils/error-collector';

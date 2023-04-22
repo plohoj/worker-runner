@@ -1,5 +1,5 @@
-import { RunnerEnvironmentClientFactory } from '../runner-environment/client/runner-environment.client';
 import { IRunnerDescription } from '../runner/runner-description';
+import { RunnerEnvironmentClientFactory } from '../runner-environment/client/runner-environment.client';
 import { ErrorSerializationPluginsResolver } from './error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { IErrorSerializationPlugin, isErrorSerializationPlugin } from './error-serialization-plugin/base/error-serialization.plugin';
 import { CorePluginsPack } from './pack/core.plugins-pack';

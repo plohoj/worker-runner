@@ -1,4 +1,4 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
 import { IdentifierGenerator } from '../../utils/identifier-generator';
 import { BaseConnectionStrategyHost, IPreparedForSendRunnerDataHost } from '../base/base.connection-strategy-host';
@@ -21,14 +21,14 @@ export class RepeatConnectionStrategyHost extends BaseConnectionStrategyHost{
     }
 
     public prepareRunnerForSend(
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
     ): IPreparedForSendRunnerDataHost {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }
         const newHostId = this.identifierGenerator.generate();
         const proxyKey = RepeatConnectionClientRunnerSendDataFields.HostId;
-        const connectionChannel: BaseConnectionChannel = new ProxyConnectionChannel(currentChannel, [proxyKey, newHostId]);
+        const connectionChannel: IBaseConnectionChannel = new ProxyConnectionChannel(currentChannel, [proxyKey, newHostId]);
         const sendData: IRepeatConnectionNewHostRunnerSendData = {
             [RepeatConnectionClientRunnerSendDataFields.NewHostId]: newHostId,
         };

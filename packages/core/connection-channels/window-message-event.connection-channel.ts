@@ -1,4 +1,3 @@
-import { IBaseConnectionIdentificationChecker } from '../connection-identification/checker/base.connection-identification-checker';
 import { IAction } from '../types/action';
 import { MessageEventHandler } from '../types/message-event-handler';
 import { IMessageEventListenerTarget } from '../types/targets/message-event-listener-target';
@@ -29,19 +28,12 @@ export class WindowMessageEventConnectionChannel
     }
 
     protected override nativeSendAction(action: IAction, transfer?: Transferable[]): void {
-        this.identificationChecker?.attachIdentifier(action);
         this.postMessageTarget.postMessage(action, this.targetOrigin, transfer);
     }
 
-    protected override buildMessageHandler(
-        identificationChecker?: IBaseConnectionIdentificationChecker | undefined
-    ): MessageEventHandler<unknown> {
-        const originalMessageHandler = super.buildMessageHandler(identificationChecker);
-        return (event: MessageEvent<unknown>) => {
-            if (event.origin.search(this.targetOrigin) === 0) {
-                originalMessageHandler(event);
-            }
+    protected override readonly messageHandler: MessageEventHandler<unknown> = event => {
+        if (event.origin.search(this.targetOrigin) === 0) { // Domain name is the same from the first letter
+            this.actionHandler(event.data as IAction)
         }
-    }
-
+    };
 }

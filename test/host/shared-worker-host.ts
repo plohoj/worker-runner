@@ -1,4 +1,4 @@
-import { DirectionConnectionIdentificationStrategyHost, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, SharedWorkerConnectionHost } from '@worker-runner/core';
+import { DirectionInterceptPlugin, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, SharedWorkerConnectionHost } from '@worker-runner/core';
 import { RunnerResolverHost } from '@worker-runner/promise';
 import { RxRunnerResolverHost } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
@@ -12,10 +12,10 @@ new RunnerResolverHost({
             new MessageChannelConnectionStrategyHost(),
             new RepeatConnectionStrategyHost(),
         ],
-        identificationStrategies: [
-            new DirectionConnectionIdentificationStrategyHost({
-                clientIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
-                hostIdentifier: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+        plugins: [
+            new DirectionInterceptPlugin({
+                from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
+                to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
             }),
         ],
     }),
@@ -23,17 +23,17 @@ new RunnerResolverHost({
 
 new RxRunnerResolverHost({
     runners,
+    plugins: [
+        new DirectionInterceptPlugin({
+            from: RX_CONNECTION_IDENTIFIER_WORKER,
+            to: RX_CONNECTION_IDENTIFIER_WORKER,
+        }),
+    ],
     connection: new SharedWorkerConnectionHost({
         target: self,
         connectionStrategies: [
             new MessageChannelConnectionStrategyHost(),
             new RepeatConnectionStrategyHost(),
-        ],
-        identificationStrategies: [
-            new DirectionConnectionIdentificationStrategyHost({
-                clientIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-                hostIdentifier: RX_CONNECTION_IDENTIFIER_WORKER,
-            }),
         ],
     }),
 }).run();

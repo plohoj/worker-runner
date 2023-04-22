@@ -1,4 +1,4 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { BaseConnectionStrategyClient, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerDataClient } from '../base/base.connection-strategy-client';
@@ -12,17 +12,17 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
     public readonly type: ConnectionStrategyEnum = ConnectionStrategyEnum.MessageChannel;
 
     public resolveConnectionForRunner(
-        currentChannel: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
         receivedData: DataForSendRunner,
-    ): BaseConnectionChannel {
+    ): IBaseConnectionChannel {
         return new MessagePortConnectionChannel({
             target: (receivedData satisfies DataForSendRunner as unknown as IMessageChannelConnectionRunnerSendData).port,
         });
     }
 
     protected override prepareRunnerForSendByConnectionChannel(
-        currentChannel: BaseConnectionChannel,
-        resolvedConnection: BaseConnectionChannel,
+        currentChannel: IBaseConnectionChannel,
+        resolvedConnection: IBaseConnectionChannel,
     ): IPreparedForSendRunnerDataClient {
         if (resolvedConnection instanceof MessagePortConnectionChannel) {
             const port = resolvedConnection.target;

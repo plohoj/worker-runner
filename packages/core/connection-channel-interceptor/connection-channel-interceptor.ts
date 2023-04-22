@@ -1,15 +1,15 @@
-import { BaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { IAction } from '../types/action';
 
 export enum ConnectionChannelInterceptorRejectEnum {
     /** The processing call by subsequent interceptors handlers will be interrupted immediately */
     Hard = 'HARD',
-    /** The send/receive action will be rejected, but subsequent interceptors handlers calls will not be interrupted */
+    /** The send/receive Action will be rejected, but subsequent interceptors handlers calls will not be interrupted */
     Soft = 'SOFT',
 }
 
 export interface IConnectionChannelInterceptResult {
-    /** Field indicating that the sending/receiving action is rejected */
+    /** Field indicating that the sending/receiving Action is rejected */
     rejected?: ConnectionChannelInterceptorRejectEnum;
     /** Original or modified (immutable) Action */
     action?: IAction;
@@ -18,28 +18,32 @@ export interface IConnectionChannelInterceptResult {
 export interface IConnectionChannelInterceptResultOptions extends IConnectionChannelInterceptResult {
     /** Original Action */
     initialAction: IAction;
+    /**
+     * Used to determine which interceptors softly rejected the sending/receiving Action.
+     * Useful for cases when interceptor needs to know it is the only one that rejected the sending/receiving Action
+     */
     rejectedBy?: IConnectionChannelInterceptor[];
 }
 
 export interface IConnectionChannelInterceptor {
-    /** Method of intercepting an action to be sent */
+    /** Method of intercepting an Action to be sent */
     interceptSend?(action: IAction): IConnectionChannelInterceptResult;
     /**
-     * The method is called after all interceptors have processed the sending action
+     * The method is called after all interceptors have processed the sending Action
      * or after processing has been interrupted
      */
     interceptSendResult?(options: IConnectionChannelInterceptResultOptions): void;
 
-    /** Method of intercepting an action to be sent */
+    /** Method of intercepting an Action to be sent */
     interceptReceive?(action: IAction): IConnectionChannelInterceptResult;
     /**
-     * The method is called after all interceptors have processed the sending action
+     * The method is called after all interceptors have processed the sending Action
      * or after processing has been interrupted
      */
     interceptReceiveResult?(options: IConnectionChannelInterceptResultOptions): void;
 
     /** Registration of the connection channel for which the interceptor will be used */
-    register?(connectionChannel: BaseConnectionChannel): void;
+    register?(connectionChannel: IBaseConnectionChannel): void;
 
     /**
      * If the method returns the Promise, it means that the interceptor cannot be destroyed right now.

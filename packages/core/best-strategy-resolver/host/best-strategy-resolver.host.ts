@@ -1,23 +1,23 @@
-import { BaseConnectionChannel } from '../../connection-channels/base.connection-channel';
-import { IBaseConnectionIdentificationChecker } from '../../connection-identification/checker/base.connection-identification-checker';
-import { IBaseConnectionIdentificationStrategyHost } from '../../connection-identification/strategy/base/base.connection-identification-strategy.host';
+import { IConnectionChannelInterceptor } from '../../connection-channel-interceptor/connection-channel-interceptor';
+import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { ConnectionStrategyEnum } from '../../connection-strategies/connection-strategy.enum';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
+import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { isAction } from '../../utils/is-action';
-import { IBestStrategyResolverClientConnectAction, BestStrategyResolverClientActions } from '../client/best-strategy-resolver.client.actions';
+import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../client/best-strategy-resolver.client.actions';
 import { BestStrategyResolverHostActions, IBestStrategyResolverHostConnectedAction, IBestStrategyResolverHostPingAction } from "./best-strategy-resolver.host.actions";
 
 export interface IBestStrategyResolverHostConfig {
-    connectionChannel: BaseConnectionChannel;
+    connectionChannel: IBaseConnectionChannel;
     sendPingAction: boolean;
     availableStrategies: BaseConnectionStrategyHost[];
-    identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
+    interceptPlugins: IInterceptPlugin[];
 }
 
 export interface IBestStrategyResolverHostResolvedConnection {
     connectionStrategy: BaseConnectionStrategyHost;
-    identificationChecker?: IBaseConnectionIdentificationChecker;
+    connectionChannelInterceptors: IConnectionChannelInterceptor[];
 }
 
 /**
@@ -25,21 +25,21 @@ export interface IBestStrategyResolverHostResolvedConnection {
  * The exchange uses the principle of ping-pong
  * 
  * **WARNING**: To get the best result of receiving a message through the {@link MessagePort},
- * running the {@link BaseConnectionChannel} will be called in {@link run} method
+ * running the {@link IBaseConnectionChannel} will be called in {@link run} method
  */
 export class BestStrategyResolverHost {
-    private readonly connectionChannel: BaseConnectionChannel;
+    private readonly connectionChannel: IBaseConnectionChannel;
     private readonly sendPingAction: boolean;
     private readonly availableStrategies: BaseConnectionStrategyHost[];
     private readonly availableStrategiesTypes: Array<ConnectionStrategyEnum | string>;
-    private readonly identificationStrategy?: IBaseConnectionIdentificationStrategyHost;
+    private readonly interceptPlugins: IInterceptPlugin[];
     private stopCallback?: () => void;
 
     constructor(config: IBestStrategyResolverHostConfig) {
         this.connectionChannel = config.connectionChannel;
         this.sendPingAction = config.sendPingAction;
         this.availableStrategies = config.availableStrategies;
-        this.identificationStrategy = config.identificationStrategy;
+        this.interceptPlugins = config.interceptPlugins;
         this.availableStrategiesTypes
             = this.availableStrategies.map(availableStrategy => availableStrategy.type)
     }
@@ -61,10 +61,6 @@ export class BestStrategyResolverHost {
                 type: BestStrategyResolverHostActions.Connected,
                 strategies: this.availableStrategiesTypes,
             };
-            const identificationChecker = this.identificationStrategy?.checkIdentifier(action, connectedAction);
-            if (identificationChecker === false) {
-                return;
-            }
 
             wasReceivedConnectAction = true;
 
@@ -83,7 +79,12 @@ export class BestStrategyResolverHost {
             if (bestStrategy) {
                 next({
                     connectionStrategy: bestStrategy,
-                    identificationChecker,
+                    connectionChannelInterceptors: this.interceptPlugins
+                        .map(plugin => plugin.getInterceptorAfterConnect?.({type: BestStrategyResolverHostActions.Connected}))
+                        // eslint-disable-next-line unicorn/no-array-callback-reference
+                        .filter(Boolean as unknown as (interceptor: IConnectionChannelInterceptor | undefined) =>
+                            interceptor is IConnectionChannelInterceptor
+                        ),
                 });
             } else {
                 error(new WorkerRunnerCommonConnectionStrategyError());
@@ -93,6 +94,14 @@ export class BestStrategyResolverHost {
             this.connectionChannel.actionHandlerController.removeHandler(handler);
             this.stopCallback = undefined
         };
+        this.connectionChannel.interceptorsComposer.addInterceptors(
+            ...this.interceptPlugins
+                .map(plugin => plugin.getInterceptorBeforeConnect?.())
+                // eslint-disable-next-line unicorn/no-array-callback-reference
+                .filter(Boolean as unknown as (interceptor: IConnectionChannelInterceptor | undefined) =>
+                    interceptor is IConnectionChannelInterceptor
+                )
+        );
         this.connectionChannel.actionHandlerController.addHandler(handler);
         this.connectionChannel.run();
         // TODO setTimeout - Crutch for synchronous calls. Because on the client side what happens is:
@@ -101,6 +110,7 @@ export class BestStrategyResolverHost {
         // 3) Sent a duplicate Connect action;
         // TODO The problem of duplicate connections is not completely solved
         // It is preferable to use the algorithm to check the heartbeat
+        // TODO Need add PONG action? 
         setTimeout(() => {
             if (!wasReceivedConnectAction && this.sendPingAction) {
                 const pingAction: IBestStrategyResolverHostPingAction = {
