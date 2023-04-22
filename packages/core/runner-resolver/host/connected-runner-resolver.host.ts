@@ -1,5 +1,5 @@
 import { ActionController } from '../../action-controller/action-controller';
-import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
+import { BestStrategyResolverClientActions, IBestStrategyResolverClientPingAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
@@ -102,7 +102,7 @@ export class ConnectedRunnerResolverHost {
     }
 
     private handleAction = async (
-        action: IRunnerResolverClientAction & IActionWithId | IBestStrategyResolverClientConnectAction,
+        action: IRunnerResolverClientAction & IActionWithId | IBestStrategyResolverClientPingAction,
     ): Promise<void> => {
         try {
             switch (action.type) {
@@ -114,7 +114,7 @@ export class ConnectedRunnerResolverHost {
                     await this.handleDestroy(action.id)
                     break;
                 // Ignore side effects of connection establishment
-                case BestStrategyResolverClientActions.Connect:
+                case BestStrategyResolverClientActions.Ping:
                     return;
                 default:
                     throw new WorkerRunnerUnexpectedError({

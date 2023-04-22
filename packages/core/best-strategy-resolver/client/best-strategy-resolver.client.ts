@@ -4,9 +4,10 @@ import { BaseConnectionStrategyClient } from '../../connection-strategies/base/b
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
 import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
+import { IAction } from '../../types/action';
 import { isAction } from '../../utils/is-action';
 import { BestStrategyResolverHostActions, IBestStrategyResolverHostAction } from '../host/best-strategy-resolver.host.actions';
-import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from './best-strategy-resolver.client.actions';
+import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction, IBestStrategyResolverClientPingAction } from './best-strategy-resolver.client.actions';
 
 export interface IBestStrategyResolverClientConfig {
     connectionChannel: IBaseConnectionChannel;
@@ -47,12 +48,20 @@ export class BestStrategyResolverClient {
         return new Promise<IBestStrategyResolverClientResolvedConnection>((resolve, reject) => {
             // eslint-disable-next-line prefer-const
             let stopCallback: () => void;
+            let connectActionWasSended = false;
             const handler = (action: unknown) => {
                 if (!isAction<IBestStrategyResolverHostAction>(action)) {
                     return;
                 }
-                if (action.type === BestStrategyResolverHostActions.Ping) {
-                    this.sendConnectAction();
+                const isPingOrPongAction
+                    = action.type === BestStrategyResolverHostActions.Ping
+                    || action.type === BestStrategyResolverHostActions.Pong
+                if (isPingOrPongAction && !connectActionWasSended) {
+                    connectActionWasSended = true;
+                    this.connectionChannel.sendAction({
+                        type: BestStrategyResolverClientActions.Connect,
+                        strategies: this.availableConnectionStrategies.map(strategy => strategy.type),
+                    } satisfies IBestStrategyResolverClientConnectAction as IAction);
                     return;
                 }
                 if (action.type !== BestStrategyResolverHostActions.Connected) {
@@ -102,19 +111,13 @@ export class BestStrategyResolverClient {
             );
             this.connectionChannel.actionHandlerController.addHandler(handler);
             this.connectionChannel.run();
-            this.sendConnectAction();
+            this.connectionChannel.sendAction({
+                type: BestStrategyResolverClientActions.Ping,
+            } satisfies IBestStrategyResolverClientPingAction);
         });
     }
 
     public stop(): void {
         this.rejectCallback?.();
-    }
-
-    private sendConnectAction() {
-        const connectAction: IBestStrategyResolverClientConnectAction = {
-            type: BestStrategyResolverClientActions.Connect,
-            strategies: this.availableConnectionStrategies.map(strategy => strategy.type),
-        };
-        this.connectionChannel.sendAction(connectAction);
     }
 }

@@ -4,9 +4,10 @@ import { BaseConnectionStrategyHost } from '../../connection-strategies/base/bas
 import { ConnectionStrategyEnum } from '../../connection-strategies/connection-strategy.enum';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
 import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
+import { IAction } from '../../types/action';
 import { isAction } from '../../utils/is-action';
-import { BestStrategyResolverClientActions, IBestStrategyResolverClientConnectAction } from '../client/best-strategy-resolver.client.actions';
-import { BestStrategyResolverHostActions, IBestStrategyResolverHostConnectedAction, IBestStrategyResolverHostPingAction } from "./best-strategy-resolver.host.actions";
+import { BestStrategyResolverClientActions, IBestStrategyResolverClientAction } from '../client/best-strategy-resolver.client.actions';
+import { BestStrategyResolverHostActions, IBestStrategyResolverHostConnectedAction, IBestStrategyResolverHostPingAction, IBestStrategyResolverHostPongAction } from "./best-strategy-resolver.host.actions";
 
 export interface IBestStrategyResolverHostConfig {
     connectionChannel: IBaseConnectionChannel;
@@ -48,21 +49,19 @@ export class BestStrategyResolverHost {
         next: (resolvedConnection: IBestStrategyResolverHostResolvedConnection) => void,
         error: (error: WorkerRunnerCommonConnectionStrategyError) => void
     ): void {
-        let wasReceivedConnectAction = false;
         const handler = (action: unknown) => {
-            if (!isAction<IBestStrategyResolverClientConnectAction>(action)) {
+            if (!isAction<IBestStrategyResolverClientAction>(action)) {
+                return;
+            }
+            if (action.type === BestStrategyResolverClientActions.Ping) {
+                this.connectionChannel.sendAction({
+                    type: BestStrategyResolverHostActions.Pong,
+                } satisfies IBestStrategyResolverHostPongAction);
                 return;
             }
             if (action.type !== BestStrategyResolverClientActions.Connect) {
                 return;
             }
-
-            const connectedAction: IBestStrategyResolverHostConnectedAction = {
-                type: BestStrategyResolverHostActions.Connected,
-                strategies: this.availableStrategiesTypes,
-            };
-
-            wasReceivedConnectAction = true;
 
             let bestStrategyEnum: ConnectionStrategyEnum | string | undefined;
             // The client has priority in choosing strategies
@@ -75,7 +74,10 @@ export class BestStrategyResolverHost {
             const bestStrategy: BaseConnectionStrategyHost | undefined = this.availableStrategies
                 .find(availableStrategy => availableStrategy.type === bestStrategyEnum);
 
-            this.connectionChannel.sendAction(connectedAction);
+            this.connectionChannel.sendAction({
+                type: BestStrategyResolverHostActions.Connected,
+                strategies: this.availableStrategiesTypes,
+            } satisfies IBestStrategyResolverHostConnectedAction as IAction);
             if (bestStrategy) {
                 next({
                     connectionStrategy: bestStrategy,
@@ -104,21 +106,9 @@ export class BestStrategyResolverHost {
         );
         this.connectionChannel.actionHandlerController.addHandler(handler);
         this.connectionChannel.run();
-        // TODO setTimeout - Crutch for synchronous calls. Because on the client side what happens is:
-        // 1) Sent a Connect action;
-        // 2) Got the Ping action;
-        // 3) Sent a duplicate Connect action;
-        // TODO The problem of duplicate connections is not completely solved
-        // It is preferable to use the algorithm to check the heartbeat
-        // TODO Need add PONG action? 
-        setTimeout(() => {
-            if (!wasReceivedConnectAction && this.sendPingAction) {
-                const pingAction: IBestStrategyResolverHostPingAction = {
-                    type: BestStrategyResolverHostActions.Ping,
-                };
-                this.connectionChannel.sendAction(pingAction);
-            }
-        }, 100);
+        this.connectionChannel.sendAction({
+            type: BestStrategyResolverHostActions.Ping,
+        } satisfies IBestStrategyResolverHostPingAction);
     }
 
     public stop(): void {
