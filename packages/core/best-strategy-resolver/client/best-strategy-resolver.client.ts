@@ -1,6 +1,7 @@
 import { IConnectionChannelInterceptor } from '../../connection-channel-interceptor/connection-channel-interceptor';
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { WorkerRunnerCommonConnectionStrategyError } from '../../errors/worker-runner-error';
 import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
@@ -99,7 +100,7 @@ export class BestStrategyResolverClient {
             };
             this.rejectCallback = () => {
                 stopCallback();
-                reject(new ConnectionClosedError());
+                reject(new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionError }));
             };
             this.connectionChannel.interceptorsComposer.addInterceptors(
                 ...this.interceptPlugins

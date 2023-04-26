@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ProxyReceiveConnectionChannelInterceptor, ResolvedRunner, RUNNER_ENVIRONMENT_CLIENT, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, ProxyReceiveConnectionChannelInterceptor, ResolvedRunner, RUNNER_ENVIRONMENT_CLIENT, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RxRunnerEmitError, RX_WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/rx';
 import { lastValueFrom, noop, Observable, NEVER, tap, of } from 'rxjs';
 import { each } from '../client/utils/each';
@@ -52,10 +52,12 @@ each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
             await expectAsync(
                 lastValueFrom(observable),
             ).toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     // token: RxStubRunner.name, // TODO Use Runner name in plugins for informative error messages
                     // runnerName: RxStubRunner.name,
                 }),
+                disconnectReason: DisconnectReason.RunnerDestroyed,
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -70,10 +72,12 @@ each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
             await expectAsync(
                 lastValueFrom(observable)
             ).toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     // token: RxStubRunner.name,
                     // runnerName: RxStubRunner.name,
                 }),
+                disconnectReason: DisconnectReason.RunnerDestroyed,
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -135,10 +139,12 @@ each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
             await expectAsync(
                 lastValueFrom(observable),
             ).toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     // token: RxStubRunner.name,
                     // runnerName: RxStubRunner.name,
                 }),
+                disconnectReason: DisconnectReason.RunnerDestroyed,
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));

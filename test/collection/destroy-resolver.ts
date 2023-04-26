@@ -1,4 +1,4 @@
-import { ConnectionClosedError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
 import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
@@ -28,7 +28,10 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             await resolver.destroy();
 
             await expectAsync(resolver.destroy()).toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    disconnectReason: DisconnectReason.ConnectionNotYetEstablished,
+                }),
+                disconnectReason: DisconnectReason.ConnectionNotYetEstablished,
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -42,7 +45,10 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
 
             await expectAsync(resolver.resolve(ExecutableStubRunner))
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.ConnectionNotYetEstablished,
+                    }),
+                    disconnectReason: DisconnectReason.ConnectionNotYetEstablished,
                     name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));

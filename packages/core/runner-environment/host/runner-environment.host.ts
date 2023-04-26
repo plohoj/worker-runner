@@ -1,10 +1,11 @@
 import { ActionController } from '../../action-controller/action-controller';
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { normalizeError } from '../../errors/normalize-error';
-import { ConnectionClosedError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
-import { IWorkerRunnerErrorConfig, WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
+import { ConnectionClosedError, IConnectionClosedErrorConfig, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound } from '../../errors/runner-errors';
+import { WorkerRunnerUnexpectedError } from '../../errors/worker-runner-error';
 import { ErrorSerializationPluginsResolver } from '../../plugins/error-serialization-plugin/base/error-serialization-plugins.resolver';
 import { PluginsResolver } from '../../plugins/plugins.resolver';
 import { ARRAY_TRANSFER_TYPE } from '../../plugins/transfer-plugin/array-transfer-plugin/array-transfer-plugin-data';
@@ -16,6 +17,7 @@ import { RunnerDefinitionCollection } from '../../runner/runner-definition.colle
 import { IRunnerDescription } from '../../runner/runner-description';
 import { ActionHandler, IActionWithId } from '../../types/action';
 import { IRunnerMethodResult, RunnerConstructor } from '../../types/constructor';
+import { IDisconnectErrorFactoryOptions } from '../../types/disconnect-error-factory';
 import { RunnerToken } from "../../types/runner-identifier";
 import { ErrorCollector } from '../../utils/error-collector';
 import { EventHandlerController } from '../../utils/event-handler-controller';
@@ -98,7 +100,9 @@ export class RunnerEnvironmentHost {
 
     public get runnerInstance(): InstanceType<RunnerConstructor> {
         if (!this._runnerInstance) {
-            throw new ConnectionClosedError(this.getConnectionClosedConfig());
+            throw new ConnectionClosedError(this.getConnectionClosedConfig({
+                disconnectReason: DisconnectReason.ConnectionNotYetEstablished
+            }));
         }
         return this._runnerInstance;
     }
@@ -113,8 +117,9 @@ export class RunnerEnvironmentHost {
      * by calling the {@link ActionController.run} method.
      */
     public static waitAndResponseDestroyedAction(actionController: ActionController) {
+        const disconnectReason = DisconnectReason.RunnerDestroyed;
         function destroyActionByTimeout(): void {
-            actionController.destroy();
+            actionController.destroy({ disconnectReason });
             console.warn('Timeout waiting for an action from the Environment client to resubmit the Destroy action');
         }
         const timeoutKey = setTimeout(destroyActionByTimeout, WAIT_FOR_RESPONSE_DESTROYED_ACTION_TIMEOUT);
@@ -122,7 +127,7 @@ export class RunnerEnvironmentHost {
             actionController.sendAction<IRunnerEnvironmentHostDestroyedAction>({
                 type: RunnerEnvironmentHostAction.DESTROYED,
             });
-            actionController.destroy();
+            actionController.destroy({ disconnectReason });
             clearTimeout(timeoutKey);
         }
         actionController.actionHandlerController.addHandler(afterDisconnectHandler);
@@ -176,7 +181,7 @@ export class RunnerEnvironmentHost {
                     ],
                 });
             } finally {
-                actionController.destroy();
+                actionController.destroy({ disconnectReason: DisconnectReason.ConnectionError });
             }
             throw notFoundConstructorError;
         }
@@ -185,7 +190,7 @@ export class RunnerEnvironmentHost {
         try {
             receivedData = await environmentHost.transferPluginsResolver.receiveData(receiveDataConfig);
         } catch(error) {
-            actionController.destroy();
+            actionController.destroy({ disconnectReason: DisconnectReason.ConnectionError });
             throw error
         }
 
@@ -205,7 +210,7 @@ export class RunnerEnvironmentHost {
                     ],
                 });
             } finally {
-                actionController.destroy();
+                actionController.destroy({ disconnectReason: DisconnectReason.ConnectionError });
             }
             throw constructError;
         }
@@ -302,7 +307,7 @@ export class RunnerEnvironmentHost {
                 id: actionId,
             });
             this.connectDataMap.delete(actionController);
-            actionController.destroy();
+            actionController.destroy({ disconnectReason: DisconnectReason.RunnerDisconnected });
         }
     }
 
@@ -371,14 +376,20 @@ export class RunnerEnvironmentHost {
             actionController,
             data: methodResult as TransferPluginDataType,
         };
-        if (!actionController.connectionChannel.isConnected) {
+        const { disconnectReason: disconnectReasonBeforeTransferData } = actionController.connectionChannel;
+        if (disconnectReasonBeforeTransferData) {
             await this.transferPluginsResolver.cancelTransferData(transferDataConfig);
-            throw new ConnectionClosedError(this.getConnectionClosedConfig());
+            throw new ConnectionClosedError(this.getConnectionClosedConfig({
+                disconnectReason: disconnectReasonBeforeTransferData
+            }));
         }
         const preparedData = await this.transferPluginsResolver.transferData(transferDataConfig);
-        if (!actionController.connectionChannel.isConnected) {
+        const { disconnectReason: disconnectReasonAfterTransferData } = actionController.connectionChannel;
+        if (disconnectReasonAfterTransferData) {
             await preparedData.cancel?.();
-            throw new ConnectionClosedError(this.getConnectionClosedConfig());
+            throw new ConnectionClosedError(this.getConnectionClosedConfig({
+                disconnectReason: disconnectReasonAfterTransferData
+            }));
         }
         actionController.sendActionResponse<IRunnerEnvironmentHostResponseAction>({
             type: RunnerEnvironmentHostAction.RESPONSE,
@@ -455,7 +466,7 @@ export class RunnerEnvironmentHost {
                                     type: RunnerEnvironmentHostAction.DESTROYED,
                                 });
                             }
-                            iteratedActionController.destroy();
+                            iteratedActionController.destroy({ disconnectReason: DisconnectReason.RunnerDestroyed });
                         } else {
                             iteratedActionController.actionHandlerController.removeHandler(connectData.handler);
                             RunnerEnvironmentHost.waitAndResponseDestroyedAction(iteratedActionController);
@@ -478,7 +489,8 @@ export class RunnerEnvironmentHost {
     private initActionController(connectionChannel: IBaseConnectionChannel): ActionController {
         const actionController =  new ActionController({
             connectionChannel,
-            disconnectErrorFactory: () => new ConnectionClosedError(this.getConnectionClosedConfig()),
+            disconnectErrorFactory: disconnectReason =>
+                new ConnectionClosedError(this.getConnectionClosedConfig(disconnectReason)),
         });
         actionController.run();
         return actionController;
@@ -517,10 +529,14 @@ export class RunnerEnvironmentHost {
         actionController.actionHandlerController.addHandler(handler);
     }
 
-    private getConnectionClosedConfig(): IWorkerRunnerErrorConfig {
+    private getConnectionClosedConfig(options: IDisconnectErrorFactoryOptions): IConnectionClosedErrorConfig {
         return {
-            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(this.runnerDescription),
-        }
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                ...this.runnerDescription,
+                ...options,
+            }),
+            ...options,
+        };
     }
 
     private handleOwnMetadataAction(actionController: ActionController, actionId: WorkerRunnerIdentifier): void {

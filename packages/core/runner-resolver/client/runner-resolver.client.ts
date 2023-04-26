@@ -1,5 +1,5 @@
 import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../../connections/base/base.connection-client';
-import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { isInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IPlugin } from '../../plugins/plugins';
@@ -47,9 +47,7 @@ export abstract class RunnerResolverClientBase<L extends RunnerIdentifierConfigL
     /** Returns a runner control object that will call the methods of the source instance */
     public async resolve(identifier: AvailableRunnerIdentifier<L>, ...args: IRunnerParameter[]): Promise<RunnerController> {
         if (!this.connectedResolver) { // TODO Check connection validation everywhere
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-            });
+            throw new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionNotYetEstablished });
         }
         return this.connectedResolver.resolve(identifier, ...args);
     }
@@ -58,9 +56,7 @@ export abstract class RunnerResolverClientBase<L extends RunnerIdentifierConfigL
     public async destroy(): Promise<void> {
         try {
             if (!this.connectedResolver) {
-                throw new ConnectionClosedError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-                });
+                throw new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionNotYetEstablished });
             }
             try {
                 await this.connectedResolver.destroy();

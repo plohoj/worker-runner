@@ -1,13 +1,29 @@
 import { ConnectionChannelInterceptorsComposer } from '../connection-channel-interceptor/connection-channel-interceptors-composer';
+import { DisconnectReason } from '../connections/base/disconnect-reason';
 import { ActionHandler, IAction } from '../types/action';
 import { EventHandlerController } from '../utils/event-handler-controller';
+
+export interface IBaseConnectionChannelDestroyOptions {
+    saveConnectionOpened?: boolean;
+    disconnectReason: DisconnectReason;
+}
 
 /** A wrapper for any type of connection that implements a set of methods for exchanging actions */
 export interface IBaseConnectionChannel {
     readonly actionHandlerController: EventHandlerController<IAction>;
-    readonly destroyEndHandlerController: EventHandlerController<void>;
+    /** the event that indicates the start of the process of destroying the connection */
+    readonly destroyStartHandlerController: EventHandlerController<DisconnectReason>;
+    /**
+     * The event indicating that the connection destruction process is complete,
+     * including destruction of all Interceptor plugins and proxies
+     */
+    readonly destroyFinishHandlerController: EventHandlerController<DisconnectReason>;
     readonly interceptorsComposer: ConnectionChannelInterceptorsComposer;
-    readonly isConnected: boolean
+    /**
+     * Indicates the reason of the disconnection.
+     * If field has no value, the connection has been established and is active
+     */
+    readonly disconnectReason?: DisconnectReason;
 
     actionHandler: ActionHandler;
     /** 
@@ -18,27 +34,25 @@ export interface IBaseConnectionChannel {
     run(): void;
     sendAction(action: IAction, transfer?: Transferable[]): void;
     /** If the connection has a proxy, then the connection will not be terminated until all proxies are destroyed. */
-    destroy(saveConnectionOpened?: boolean): void;
+    destroy(options: IBaseConnectionChannelDestroyOptions): void;
 }
 
 /** A wrapper for any type of connection that implements a set of methods for exchanging actions */
 export abstract class BaseConnectionChannel implements IBaseConnectionChannel {
 
     public readonly actionHandlerController = new EventHandlerController<IAction>();
-    public readonly destroyEndHandlerController = new EventHandlerController<void>();
+    public readonly destroyStartHandlerController = new EventHandlerController<DisconnectReason>();
+    public readonly destroyFinishHandlerController = new EventHandlerController<DisconnectReason>();
     public readonly interceptorsComposer: ConnectionChannelInterceptorsComposer
         = new ConnectionChannelInterceptorsComposer({ connectionChannel: this });
+    public disconnectReason?: DisconnectReason = DisconnectReason.ConnectionNotYetEstablished;
+
     protected saveConnectionOpened = false;
 
-    private _isConnected = false;
     private destroyProcess$?: void | Promise<void>;
 
-    public get isConnected() {
-        return this._isConnected;
-    }
-
     public run(): void {
-        this._isConnected = true;
+        this.disconnectReason = undefined;
         this.saveConnectionOpened = false;
     }
 
@@ -54,13 +68,14 @@ export abstract class BaseConnectionChannel implements IBaseConnectionChannel {
         );
     }
 
-    public destroy(saveConnectionOpened = false): void {
-        this._isConnected = false;
-        this.saveConnectionOpened = saveConnectionOpened;
+    public destroy(options: IBaseConnectionChannelDestroyOptions): void {
+        this.disconnectReason = options.disconnectReason;
+        this.saveConnectionOpened = options?.saveConnectionOpened || false;
         this.actionHandlerController.clear();
         if (this.destroyProcess$) {
             return;
         }
+        this.destroyStartHandlerController.dispatch(options.disconnectReason);
         this.destroyProcess$ = this.interceptorsComposer.destroy();
         if (this.destroyProcess$) {
             void this.destroyProcess$.finally(() => {
@@ -82,11 +97,10 @@ export abstract class BaseConnectionChannel implements IBaseConnectionChannel {
     }
 
     protected afterDestroy(): void {
-        this.destroyEndHandlerController.dispatch();
-        this.destroyEndHandlerController.clear();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.destroyFinishHandlerController.dispatch(this.disconnectReason!);
+        this.destroyFinishHandlerController.clear();
     }
 
     protected abstract nativeSendAction(action: IAction, transfer?: Transferable[]): void;
 }
-
-// TODO implements disconnect methods for cases when the Internet connection is lost

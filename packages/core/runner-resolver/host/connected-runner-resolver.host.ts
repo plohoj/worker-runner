@@ -2,6 +2,7 @@ import { ActionController } from '../../action-controller/action-controller';
 import { BestStrategyResolverClientActions, IBestStrategyResolverClientPingAction } from '../../best-strategy-resolver/client/best-strategy-resolver.client.actions';
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyHost } from '../../connection-strategies/base/base.connection-strategy-host';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { normalizeError } from '../../errors/normalize-error';
 import { RunnerInitError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
@@ -77,7 +78,7 @@ export class ConnectedRunnerResolverHost {
                     id: actionId,
                 });
             }
-            this.actionController.destroy();
+            this.actionController.destroy({ disconnectReason: DisconnectReason.ResolverDestroyed });
             this.destroyHandlerController.dispatch();
             this.destroyHandlerController.clear();
         }

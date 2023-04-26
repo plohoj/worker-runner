@@ -1,5 +1,6 @@
 import { CORE_ERROR_CODE_MAP } from '../../errors/core-error-code-map';
-import { CoreErrorCodeMapSerializationPlugin } from '../error-serialization-plugin/core-error-code-map/core-error-code-map-serialization.plugin';
+import { ConnectionClosedErrorSerializationPlugin } from '../error-serialization-plugin/core/connection-closed-error-serialization.plugin';
+import { CoreErrorCodeMapSerializationPlugin } from '../error-serialization-plugin/core/core-error-code-map-serialization.plugin';
 import { FallbackErrorSerializationPlugin } from '../error-serialization-plugin/fallback/fallback-error-serialization.plugin';
 import { NATIVE_ERROR_CODE_MAP } from '../error-serialization-plugin/native/native-error-code-map';
 import { NativeErrorSerializationPlugin } from '../error-serialization-plugin/native/native-error-serialization.plugin';
@@ -18,6 +19,7 @@ export class CorePluginsPack implements IPluginsPack {
             new DataTransferPlugin(),
             new JsonTransferPlugin(),
 
+            new ConnectionClosedErrorSerializationPlugin(),
             new CoreErrorCodeMapSerializationPlugin({
                 errorMap: CORE_ERROR_CODE_MAP,
             }),

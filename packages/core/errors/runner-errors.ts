@@ -1,13 +1,20 @@
+import { DisconnectReason } from '../connections/base/disconnect-reason';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 import { combineErrorConfig, IWorkerRunnerErrorConfig, IWorkerRunnerMultipleErrorConfig, WorkerRunnerError, WorkerRunnerMultipleError } from './worker-runner-error';
 
+export type IConnectionClosedErrorConfig = IWorkerRunnerErrorConfig & {
+    disconnectReason: DisconnectReason;
+}
+
 export class ConnectionClosedError extends WorkerRunnerError {
-    constructor(config: IWorkerRunnerErrorConfig = {}) {
+    public readonly disconnectReason: DisconnectReason;
+    constructor(config: IConnectionClosedErrorConfig) {
         super(combineErrorConfig(config, {
             name: ConnectionClosedError.name,
-            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED(config),
             captureOpt: ConnectionClosedError,
         }));
+        this.disconnectReason = config.disconnectReason;
     }
 }
 
@@ -45,7 +52,9 @@ export class RunnerDestroyError extends WorkerRunnerMultipleError {
     constructor(config: IWorkerRunnerMultipleErrorConfig = {}) {
         super(combineErrorConfig(config, {
             name: RunnerDestroyError.name,
-            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(),
+            message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                disconnectReason: DisconnectReason.RunnerDestroyed
+            }),
             captureOpt: RunnerDestroyError,
         }));
     }

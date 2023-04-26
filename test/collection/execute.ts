@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ResolvedRunner, RunnerDataTransferError, RunnerExecuteError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, ResolvedRunner, RunnerDataTransferError, RunnerExecuteError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
@@ -75,10 +75,12 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
                     name: RunnerDataTransferError.name,
                     stack: jasmine.stringMatching(/.+/),
                     originalErrors: [errorContaining(ConnectionClosedError, {
-                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                            disconnectReason: DisconnectReason.RunnerDestroyed,
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     })],
@@ -146,15 +148,19 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             });
         });
 
-        it('destroyed runner', async () => {
+        it('should throw an error when executing a method for a Runner that has been destroyed', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+
             await executableStubRunner.destroy();
+
             await expectAsync(executableStubRunner.amount(53, 95))
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
@@ -191,10 +197,12 @@ each({
             await executableStubRunner.destroy();
 
             await expectAsync(executeResponse$).toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     token: EXECUTABLE_STUB_RUNNER_TOKEN,
                     runnerName: ExecutableStubRunner.name,
                 }),
+                disconnectReason: DisconnectReason.RunnerDestroyed,
                 name: ConnectionClosedError.name,
                 stack: jasmine.stringMatching(/.+/),
             }));
@@ -227,10 +235,12 @@ each(pickResolverFactories('Local', 'Repeat'), (mode, resolverFactory) =>
                 stack: jasmine.stringMatching(/.+/),
                 originalErrors: [
                     errorContaining(ConnectionClosedError, {
-                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                            disconnectReason: DisconnectReason.RunnerDestroyed,
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     }),

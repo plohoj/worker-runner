@@ -1,5 +1,6 @@
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { MessagePortConnectionChannel } from '../../connection-channels/message-port.connection-channel';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { BaseConnectionStrategyClient, IPreparedForSendProxyRunnerData, IPreparedForSendRunnerDataClient } from '../base/base.connection-strategy-client';
 import { DataForSendRunner } from "../base/prepared-for-send-data";
@@ -26,14 +27,17 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
     ): IPreparedForSendRunnerDataClient {
         if (resolvedConnection instanceof MessagePortConnectionChannel) {
             const port = resolvedConnection.target;
-            resolvedConnection.destroy(true);
+            resolvedConnection.destroy({
+                saveConnectionOpened: true,
+                disconnectReason: DisconnectReason.ConnectionTransfer,
+            });
             return {
                 data: {port} satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,
                 transfer: [port as MessagePort],
                 cancel: async () => {
                     const connectionChannel = new MessagePortConnectionChannel({target: port});
                     await RunnerEnvironmentClient.disconnectConnection(connectionChannel);
-                    connectionChannel.destroy();
+                    connectionChannel.destroy({ disconnectReason: DisconnectReason.ConnectionError });
                 }
             }
         }

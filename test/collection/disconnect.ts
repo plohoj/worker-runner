@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ResolvedRunner, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, ResolvedRunner, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
 import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
@@ -28,34 +28,44 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner) as ResolvedRunner<
                     WithOtherInstanceStubRunner<typeof storageData>>;
+
             await executableStubRunner.disconnect();
+
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
                 .toBeResolvedTo(storageData);
         });
 
-        it('after disconnect', async () => {
+        it('should throw an error when disconnecting after disconnecting', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+
             await executableStubRunner.disconnect();
+
             await expectAsync(executableStubRunner.disconnect())
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.RunnerDisconnected,
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
+                    disconnectReason: DisconnectReason.RunnerDisconnected,
                     name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
 
-        it('after destroy', async () => {
+        it('should throw a disconnect error after destroying', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+
             await executableStubRunner.destroy();
+
             await expectAsync(executableStubRunner.disconnect())
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
                     name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));

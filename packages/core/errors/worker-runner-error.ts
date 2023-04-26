@@ -2,6 +2,7 @@ import { AbstractConstructor, Constructor } from '../types/constructor';
 import { WORKER_RUNNER_ERROR_MESSAGES } from './error-message';
 
 export interface IRunnerErrorConfigBase {
+    // TODO The name can only really be changed for UnexpectedError
     name?: string; // TODO deprecated?
     message?: string;
 }

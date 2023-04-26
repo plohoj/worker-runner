@@ -1,5 +1,6 @@
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { ProxyConnectionChannel } from '../../connection-channels/proxy.connection-channel';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { RunnerEnvironmentClient } from '../../runner-environment/client/runner-environment.client';
 import { ConnectionStrategyEnum } from '../connection-strategy.enum';
 import { DataForSendRunner, IPreparedForSendRunnerDataBase } from './prepared-for-send-data';
@@ -50,17 +51,18 @@ export abstract class BaseConnectionStrategyClient {
         resolvedChannel.actionHandlerController.addHandler(action => preparedProxyData.proxyChannel.sendAction(action));
         preparedProxyData.proxyChannel.run();
         // eslint-disable-next-line promise/always-return
-        void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then(() => {
-            preparedProxyData.proxyChannel.destroy();
-            resolvedChannel.destroy();
+        void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then((disconnectReason) => {
+            preparedProxyData.proxyChannel.destroy({ disconnectReason });
+            resolvedChannel.destroy({ disconnectReason });
         });
         return {
             data: preparedProxyData.data,
             transfer: preparedProxyData.transfer,
             cancel: async () => {
-                preparedProxyData.proxyChannel.destroy();
+                const disconnectReason = DisconnectReason.ConnectionError
+                preparedProxyData.proxyChannel.destroy({ disconnectReason });
                 await RunnerEnvironmentClient.disconnectConnection(resolvedChannel);
-                resolvedChannel.destroy();
+                resolvedChannel.destroy({ disconnectReason });
             }
         };
     }

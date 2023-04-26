@@ -44,11 +44,11 @@ export class ProxyReceiveConnectionChannelInterceptor implements IConnectionChan
     }
 
     public canBeDestroyed(): true | Promise<true> {
-        if (!this.proxyConnectionChannel.isConnected) {
+        if (this.proxyConnectionChannel.disconnectReason) {
             return true;
         }
         return new Promise(resolve => {
-            this.proxyConnectionChannel.destroyEndHandlerController.addHandler(() => resolve(true));
+            this.proxyConnectionChannel.destroyFinishHandlerController.addHandler(() => resolve(true));
         })
     }
 }

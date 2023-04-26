@@ -1,4 +1,4 @@
-import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
+import { IBaseConnectionChannel, IBaseConnectionChannelDestroyOptions } from '../connection-channels/base.connection-channel';
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
@@ -27,7 +27,6 @@ export class ActionController {
     public readonly sendActionResponse: 
         <T extends IAction>(action: T & IActionWithId, transfer?: Transferable[]) => void;
     public readonly actionHandlerController: EventHandlerController<IAction>;
-    public readonly destroyHandlerController = new EventHandlerController<void>();
     public readonly connectionChannel: IBaseConnectionChannel;
 
     private readonly disconnectErrorFactory: DisconnectErrorFactory;
@@ -40,15 +39,17 @@ export class ActionController {
         this.connectionChannel = config.connectionChannel;
         this.sendActionResponse = this.sendAction;
         this.actionHandlerController = config.connectionChannel.actionHandlerController;
-        this.disconnectErrorFactory = config.disconnectErrorFactory || this.defaultDisconnectErrorFactory;
+        this.disconnectErrorFactory = config.disconnectErrorFactory
+            || (options => new ConnectionClosedError(options)) satisfies DisconnectErrorFactory;
     }
 
     public async resolveAction<I extends IAction = IAction, O extends IAction = IAction>(
         action: I,
         transfer?: Transferable[],
     ): Promise<O & IActionWithId> {
-        if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory();
+        const { disconnectReason } = this.connectionChannel;
+        if (disconnectReason) {
+            throw this.disconnectErrorFactory({ disconnectReason });
         }
         const actionId = this.generateActionIdentifier();
         const actionWidthId: IActionWithId = {
@@ -73,8 +74,9 @@ export class ActionController {
     }
 
     public sendAction = <T extends IAction>(action: T, transfer?: Transferable[]): void => {
-        if (!this.connectionChannel.isConnected) {
-            throw this.disconnectErrorFactory();
+        const { disconnectReason } = this.connectionChannel;
+        if (disconnectReason) {
+            throw this.disconnectErrorFactory({ disconnectReason });
         }
         this.connectionChannel.sendAction(action, transfer);
     }
@@ -86,18 +88,14 @@ export class ActionController {
     }
 
     /** Stops listening to all events and calls the destroy method on the Connection channel */
-    public destroy(saveConnectionOpened = false): void {
-        this.rejectResolingAllActions();
-        this.destroyHandlerController.dispatch();
-        this.destroyHandlerController.clear();
-        this.connectionChannel.destroy(saveConnectionOpened);
+    public destroy(options: IBaseConnectionChannelDestroyOptions): void {
+        this.rejectResolvingAllActions(this.disconnectErrorFactory(options));
+        this.connectionChannel.destroy(options);
         this.handlersByIdMap.clear();
     }
 
     /** Interrupt resolving all actions and throw an error */
-    public rejectResolingAllActions(
-        error: WorkerRunnerError = this.disconnectErrorFactory()
-    ): void {
+    public rejectResolvingAllActions(error: WorkerRunnerError): void {
         for (const reject of this.resolveActionRejectSet) {
             reject(error);
         }
@@ -126,10 +124,6 @@ export class ActionController {
         if (handlers.size === 0) {
             this.handlersByIdMap.delete(actionId);
         }
-    }
-
-    private readonly defaultDisconnectErrorFactory = (): ConnectionClosedError => {
-        return new ConnectionClosedError();
     }
 
     private readonly actionHandler = (action: IActionWithId) => {

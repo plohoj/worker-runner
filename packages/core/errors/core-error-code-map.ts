@@ -1,12 +1,10 @@
 import { WorkerRunnerCoreErrorCode } from './core-error-code';
-import { ConnectionClosedError, RunnerDataTransferError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound, RunnerResolverHostDestroyError } from './runner-errors';
+import { RunnerDataTransferError, RunnerDestroyError, RunnerExecuteError, RunnerInitError, RunnerNotFound, RunnerResolverHostDestroyError } from './runner-errors';
 import { WorkerRunnerErrorConstructor, WorkerRunnerUnexpectedError } from './worker-runner-error';
 
 export type ICoreCodeToErrorMap = Record<string, WorkerRunnerErrorConstructor>
 
 export const CORE_ERROR_CODE_MAP: ICoreCodeToErrorMap = {
-    [WorkerRunnerCoreErrorCode.CONNECTION_CLOSED]: ConnectionClosedError,
-
     [WorkerRunnerCoreErrorCode.RUNNER_INIT_ERROR]: RunnerInitError,
     [WorkerRunnerCoreErrorCode.RUNNER_NOT_FOUND]: RunnerNotFound,
     [WorkerRunnerCoreErrorCode.RUNNER_EXECUTE_ERROR]: RunnerExecuteError,

@@ -1,5 +1,5 @@
 import { LocalPortalConnectionChannel } from '../../connection-channels/local-portal.connection-channel';
-import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { ConnectionClosedError } from '../../errors/runner-errors';
 import { RunnerController } from '../../runner/runner.controller';
 import { RunnerConstructor } from '../../types/constructor';
@@ -13,7 +13,7 @@ export declare class RunnerResolverLocalBase<L extends RunnerIdentifierConfigLis
     declare protected readonly host: RunnerResolverHostBase<L>;
 }
 
-// TODO Need to implement the configuration token after adding constructing resolver/
+// TODO Need to implement the configuration token after adding constructing resolver
 /**
  * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
  * The original Runner instance will be executed in the same area in which it was wrapped.
@@ -23,9 +23,7 @@ export function runnerResolverLocalWrapRunnerFunction<R extends InstanceType<Run
     runnerInstance: R
 ): RunnerController {
     if (!this.connectedResolver) {
-        throw new ConnectionClosedError({
-            message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-        });
+        throw new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionNotYetEstablished });
     }
     const localChannels = LocalPortalConnectionChannel.build();
     const resolvedRunner = this.connectedResolver

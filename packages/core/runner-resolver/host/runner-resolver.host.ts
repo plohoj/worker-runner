@@ -1,6 +1,6 @@
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { IBaseConnectionHost, IEstablishedConnectionHostData } from '../../connections/base/base.connection-host';
-import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { ConnectionClosedError, RunnerResolverHostDestroyError } from '../../errors/runner-errors';
 import { isInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IPlugin } from '../../plugins/plugins';
@@ -64,9 +64,7 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
     ): void {
         const connectedResolver = this.connectedResolvers.values().next().value as ConnectedRunnerResolverHost | undefined;
         if (!connectedResolver) {
-            throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-            });
+            throw new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionNotYetEstablished });
         }
         connectedResolver.wrapRunner(runnerInstance, connectionChannel);
     }

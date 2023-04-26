@@ -1,4 +1,4 @@
-import { ConnectionClosedError, RunnerDefinitionCollection, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, RunnerDefinitionCollection, RunnerDestroyError, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
 import { pickResolverFactories } from '../client/utils/pick-resolver-factories';
@@ -18,9 +18,11 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             await resolver.destroy();
         });
 
-        it('simple', async () => {
+        it('should destroy Runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
+
             const destroyData = await executableStubRunner.destroy();
+
             expect(destroyData).toBe(undefined);
         });
 
@@ -43,8 +45,8 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             }));
         });
 
-        it('which is used', async () => {
-            const executableStubRunner = await resolver .resolve(ExecutableStubRunner);
+        it('should throw an error when calling a method from a second level Runner via a first level Runner, when the second level Runner has already been destroyed', async () => {
+            const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
             const withOtherInstanceStubRunner = await resolver
                 .resolve(WithOtherInstanceStubRunner, executableStubRunner);
 
@@ -52,27 +54,31 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
 
             await expectAsync(withOtherInstanceStubRunner.getInstanceStage())
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    name: ConnectionClosedError.name,
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });
 
-        it('that has already been destroyed', async () => {
+        it('should throw an error when destroying an already destroyed Runner', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
 
             await executableStubRunner.destroy();
 
             await expectAsync(executableStubRunner.destroy())
                 .toBeRejectedWith(errorContaining(ConnectionClosedError, {
-                    name: ConnectionClosedError.name,
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         token: EXECUTABLE_STUB_RUNNER_TOKEN,
                         runnerName: ExecutableStubRunner.name,
                     }),
+                    disconnectReason: DisconnectReason.RunnerDestroyed,
+                    name: ConnectionClosedError.name,
                     stack: jasmine.stringMatching(/.+/),
                 }));
         });

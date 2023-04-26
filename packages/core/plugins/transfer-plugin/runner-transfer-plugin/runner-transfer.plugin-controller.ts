@@ -1,5 +1,6 @@
 import { BaseConnectionStrategyClient, IPreparedForSendRunnerDataClient } from '../../../connection-strategies/base/base.connection-strategy-client';
 import { DataForSendRunner } from "../../../connection-strategies/base/prepared-for-send-data";
+import { DisconnectReason } from '../../../connections/base/disconnect-reason';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../../errors/error-message';
 import { ConnectionClosedError, RunnerDestroyError } from '../../../errors/runner-errors';
 import { ResolvedRunner } from '../../../runner/resolved-runner';
@@ -95,9 +96,14 @@ export class RunnerTransferPluginController implements ITransferPluginController
         // Before adding a runner to the collection,
         // we check the fact that the runner was not destroyed.
         // If the check fails, a connection error will be thrown.
-        if (!connectionChannel.isConnected) {
+        const { disconnectReason } = connectionChannel;
+        if (disconnectReason) {
             throw new ConnectionClosedError({
-                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(environmentClient.runnerDescription),
+                message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                    ...environmentClient.runnerDescription,
+                    disconnectReason,
+                }),
+                disconnectReason,
             });
         }
         this.environmentCollection.add(environmentClient);
@@ -117,7 +123,7 @@ export class RunnerTransferPluginController implements ITransferPluginController
             transferData satisfies IRunnerTransferPluginData as unknown as DataForSendRunner,
         );
         await RunnerEnvironmentClient.disconnectConnection(connectionChannel);
-        connectionChannel.destroy();
+        connectionChannel.destroy({ disconnectReason: DisconnectReason.ConnectionError });
     }
 
     public destroy(): Promise<void> {

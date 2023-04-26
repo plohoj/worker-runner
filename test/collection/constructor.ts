@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ResolvedRunner, RunnerDataTransferError, RunnerDefinitionCollection, RunnerInitError, RunnerNotFound, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, ResolvedRunner, RunnerDataTransferError, RunnerDefinitionCollection, RunnerInitError, RunnerNotFound, WORKER_RUNNER_ERROR_MESSAGES } from '@worker-runner/core';
 import { RunnerResolverLocal } from '@worker-runner/promise';
 import { each } from '../client/utils/each';
 import { errorContaining } from '../client/utils/error-containing';
@@ -76,7 +76,7 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
             await localResolver.destroy();
         });
 
-        it('with destroyed Resolved Runner in arguments', async () => {
+        it('should throw an error when the argument for the Runner constructor is a Runner that has already been destroyed', async () => {
             const executableStubRunner = await resolver.resolve(ExecutableStubRunner);
 
             await executableStubRunner.destroy();
@@ -88,10 +88,12 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
                     name: RunnerDataTransferError.name,
                     stack: jasmine.stringMatching(/.+/),
                     originalErrors: [errorContaining(ConnectionClosedError, {
-                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                            disconnectReason: DisconnectReason.RunnerDestroyed,
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     })],
@@ -146,10 +148,12 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
                 stack: jasmine.stringMatching(/.+/),
                 originalErrors: [
                     errorContaining(ConnectionClosedError, {
-                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED({
+                        message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                            disconnectReason: DisconnectReason.RunnerDestroyed,
                             token: EXECUTABLE_STUB_RUNNER_TOKEN,
                             runnerName: ExecutableStubRunner.name,
                         }),
+                        disconnectReason: DisconnectReason.RunnerDestroyed,
                         name: ConnectionClosedError.name,
                         stack: jasmine.stringMatching(/.+/),
                     }),

@@ -1,3 +1,4 @@
+import { DisconnectReason } from '../connections/base/disconnect-reason';
 import { RunnerToken } from "../types/runner-identifier";
 
 export interface IRunnerMessageConfig {
@@ -44,7 +45,26 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     CONSTRUCTOR_NOT_FOUND(config: Readonly<IRunnerMessageConfig> = {}): string {
         return `Runner constructor${this.formatRunnerInfo(config, 'for')} not found`;
     },
-    CONNECTION_WAS_CLOSED(config: Readonly<IRunnerMessageConfig> = {}): string {
+    CONNECTION_CLOSED(config: Readonly<IRunnerMessageConfig & {disconnectReason: DisconnectReason}>): string {
+        switch (config.disconnectReason) {
+            case DisconnectReason.ConnectionNotYetEstablished:
+                return `Connection${this.formatRunnerInfo(config, 'for')} has not yet been established`;
+            case DisconnectReason.ConnectionError:
+                return `An error occurred while establishing a connection${this.formatRunnerInfo(config, 'for')}`;
+            case DisconnectReason.ConnectionLost:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was lost`;
+            case DisconnectReason.ConnectionTransfer:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was interrupted because the original connection channel has been transferred to another connection instance`;
+            case DisconnectReason.ResolverDestroyed:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was interrupted because the Resolver was destroyed`;
+            case DisconnectReason.RunnerDestroyed:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was interrupted because the Runner was destroyed`;
+            case DisconnectReason.RunnerDisconnected:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was interrupted because the .disconnect() method was called for Runner`;
+            case DisconnectReason.RunnerTransfer:
+                return `Connection${this.formatRunnerInfo(config, 'for')} was interrupted because control of the Runner was transferred to another area`;
+        }
+
         return `Connection${this.formatRunnerInfo(config, 'with')} was closed`;
     },
 
@@ -62,9 +82,6 @@ export const WORKER_RUNNER_ERROR_MESSAGES = {
     },
     RUNNER_RESOLVER_HOST_DESTROY_ERROR(): string {
         return `An error occurred while destroying RunnerResolverHost`;
-    },
-    RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(): string {
-        return 'Connection not established';
     },
     COMMON_CONNECTION_STRATEGY_ERROR(): string {
         return `Common connection strategy for Client and Host not found`;

@@ -2,6 +2,7 @@ import { ActionController } from '../../action-controller/action-controller';
 import { IBaseConnectionChannel } from '../../connection-channels/base.connection-channel';
 import { BaseConnectionStrategyClient } from '../../connection-strategies/base/base.connection-strategy-client';
 import { DataForSendRunner } from "../../connection-strategies/base/prepared-for-send-data";
+import { DisconnectReason } from '../../connections/base/disconnect-reason';
 import { WORKER_RUNNER_ERROR_MESSAGES } from '../../errors/error-message';
 import { ConnectionClosedError, RunnerResolverClientDestroyError } from '../../errors/runner-errors';
 import { IPlugin } from '../../plugins/plugins';
@@ -79,10 +80,9 @@ export class ConnectedRunnerResolverClient {
         let environmentClient: RunnerEnvironmentClient | undefined;
         try {
             const token: RunnerToken = this.getTokenByIdentifier(identifier);
-            if (!this.actionController?.connectionChannel.isConnected) {
-                throw new ConnectionClosedError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-                });
+            const { disconnectReason: disconnectReasonBeforeTransferData } = this.actionController.connectionChannel;
+            if (disconnectReasonBeforeTransferData) {
+                throw new ConnectionClosedError({ disconnectReason: disconnectReasonBeforeTransferData });
             }
             const runnerDescription: IRunnerDescription = {
                 token,
@@ -96,12 +96,11 @@ export class ConnectedRunnerResolverClient {
                 actionController: this.actionController,
                 data: new TransferRunnerArray(args),
             });
-            if (!this.actionController?.connectionChannel.isConnected) {
+            const { disconnectReason: disconnectReasonAfterTransferData } = this.actionController.connectionChannel;
+            if (disconnectReasonAfterTransferData) {
                 await preparedData.cancel?.();
                 await transferPluginsResolver.destroy();
-                throw new ConnectionClosedError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.RUNNER_RESOLVER_CONNECTION_NOT_ESTABLISHED(),
-                });
+                throw new ConnectionClosedError({ disconnectReason: disconnectReasonAfterTransferData });
             }
 
             type IInitAction = IRunnerResolverHostRunnerInitedAction | IRunnerResolverHostSoftRunnerInitedAction;
@@ -137,9 +136,14 @@ export class ConnectedRunnerResolverClient {
             // Before adding a runner to the collection,
             // we check the fact that the runner was not destroyed.
             // If the check fails, a connection error will be thrown.
-            if (!connectionChannel.isConnected) {
+            const { disconnectReason: runnerDisconnectReason } = connectionChannel;
+            if (runnerDisconnectReason) {
                 throw new ConnectionClosedError({
-                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_WAS_CLOSED(runnerDescription),
+                    message: WORKER_RUNNER_ERROR_MESSAGES.CONNECTION_CLOSED({
+                        ...runnerDescription,
+                        disconnectReason: runnerDisconnectReason,
+                    }),
+                    disconnectReason: runnerDisconnectReason,
                 });
             }
             this.environmentCollection.add(environmentClient);
@@ -201,7 +205,7 @@ export class ConnectedRunnerResolverClient {
                 stopAtFirstError: false,
                 errorCollector,
             }),
-            () => this.actionController.destroy(),
+            () => this.actionController.destroy({ disconnectReason: DisconnectReason.ResolverDestroyed }),
         ], {errorCollector});
     }
 

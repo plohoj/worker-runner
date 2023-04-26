@@ -4,6 +4,7 @@ import { BaseConnectionStrategyHost } from '../../connection-strategies/base/bas
 import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
 import { ConnectionHostHandler, IBaseConnectionHost } from '../base/base.connection-host';
+import { DisconnectReason } from '../base/disconnect-reason';
 
 export interface IBaseMessageEventListenerConnectionHostConfig<T extends IMessageEventListenerTarget> {
     target: T;
@@ -61,7 +62,10 @@ export abstract class BaseMessageEventListenerConnectionHost<T extends IMessageE
         );
         this.stopCallback = () => {
             bestStrategyResolver.stop();
-            initialConnectionChannel.destroy(true);
+            initialConnectionChannel.destroy({
+                saveConnectionOpened: true,
+                disconnectReason: DisconnectReason.ResolverDestroyed,
+            });
             this.stopCallback = undefined;
         }
     }

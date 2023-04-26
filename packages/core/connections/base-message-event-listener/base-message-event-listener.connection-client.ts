@@ -4,6 +4,7 @@ import { BaseConnectionStrategyClient } from '../../connection-strategies/base/b
 import { IInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plugin';
 import { IMessageEventListenerTarget } from '../../types/targets/message-event-listener-target';
 import { IBaseConnectionClient, IEstablishedConnectionClientData } from '../base/base.connection-client';
+import { DisconnectReason } from '../base/disconnect-reason';
 
 export interface IBaseMessageEventListenerConnectionClientConfig<T extends IMessageEventListenerTarget> {
     target: T;
@@ -53,7 +54,10 @@ export abstract class BaseMessageEventListenerConnectionClient<
         } finally {
             this.stopCallback = undefined;
         }
-        initialConnectionChannel.destroy(true);
+        initialConnectionChannel.destroy({
+            saveConnectionOpened: true,
+            disconnectReason: DisconnectReason.ConnectionTransfer,
+        });
         const resolvedConnectionChannel = this.buildConnectionChannel();
         resolvedConnectionChannel.interceptorsComposer.addInterceptors(
             ...resolvedConnection.connectionChannelInterceptors

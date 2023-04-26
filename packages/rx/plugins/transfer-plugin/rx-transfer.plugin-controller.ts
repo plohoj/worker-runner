@@ -1,4 +1,4 @@
-import { ConnectionClosedError, ErrorSerializationPluginsResolver, ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig, ITransferPluginPreparedData, ITransferPluginReceivedData, ITransferPluginsResolverReceiveDataConfig, normalizeError, PLUGIN_CANNOT_PROCESS_DATA, ProxyConnectionChannel, TransferPluginReceivedData, TransferPluginSendData, TransferPluginsResolver, WorkerRunnerIdentifier, WorkerRunnerUnexpectedError } from '@worker-runner/core';
+import { ConnectionClosedError, DisconnectReason, ErrorSerializationPluginsResolver, ITransferPluginController, ITransferPluginControllerConfig, ITransferPluginControllerReceiveDataConfig, ITransferPluginControllerTransferDataConfig, ITransferPluginPreparedData, ITransferPluginReceivedData, ITransferPluginsResolverReceiveDataConfig, normalizeError, PLUGIN_CANNOT_PROCESS_DATA, ProxyConnectionChannel, TransferPluginReceivedData, TransferPluginSendData, TransferPluginsResolver, WorkerRunnerIdentifier, WorkerRunnerUnexpectedError } from '@worker-runner/core';
 import { catchError, concatMap, defer, EMPTY, finalize, from, isObservable, map, merge, mergeMap, Observable, of, shareReplay, Subject, takeUntil, takeWhile, tap } from 'rxjs';
 import { RxRunnerEmitError, RxSubscriptionNotFoundError } from '../../errors/runner-errors';
 import { observeEvent } from '../../utils/observe-event';
@@ -74,7 +74,7 @@ export class RxTransferPluginController implements ITransferPluginController {
                                     dataType: preparedData.type,
                                     data: preparedData.data,
                                 }
-                                if (!proxyConnection.isConnected) {
+                                if (proxyConnection.disconnectReason) {
                                     await preparedData.cancel?.();
                                 }
                                 proxyConnection.sendAction(emitAction, preparedData.transfer)
@@ -106,16 +106,16 @@ export class RxTransferPluginController implements ITransferPluginController {
                 }
             }),
             catchError((error: unknown) => {
-                if (config.actionController.connectionChannel.isConnected) {
-                    sendErrorEmit(error);
-                } else {
+                if (config.actionController.connectionChannel.disconnectReason) {
                     throw error;
+                } else {
+                    sendErrorEmit(error);
                 }
                 return EMPTY;
             }),
             takeUntil(destroySubject),
-            takeUntil(observeEvent(config.actionController.destroyHandlerController)),
-            finalize(() => proxyConnection.destroy()),
+            takeUntil(observeEvent(config.actionController.connectionChannel.destroyStartHandlerController)),
+            finalize(() => proxyConnection.destroy({ disconnectReason: DisconnectReason.ConnectionTransfer })),
         ).subscribe()
         proxyConnection.run();
 
@@ -136,15 +136,19 @@ export class RxTransferPluginController implements ITransferPluginController {
         let wasPreviouslySubscribed = false;
 
         const observable = defer(() => {
-            if (wasPreviouslySubscribed || !config.actionController.connectionChannel.isConnected) {
-                throw new ConnectionClosedError();
+            const { disconnectReason, destroyStartHandlerController } = config.actionController.connectionChannel;
+            if (disconnectReason) {
+                throw new ConnectionClosedError({ disconnectReason }); 
+            }
+            if (wasPreviouslySubscribed) {
+                throw new ConnectionClosedError({ disconnectReason: DisconnectReason.ConnectionError });
             }
             wasPreviouslySubscribed = true;
             return merge(
                 observeEvent<IRxTransferPluginHostActions>(proxyConnection.actionHandlerController),
-                observeEvent(config.actionController.destroyHandlerController).pipe(
-                    tap(() => {
-                        throw new ConnectionClosedError();
+                observeEvent(destroyStartHandlerController).pipe(
+                    tap(disconnectReason => {
+                        throw new ConnectionClosedError({ disconnectReason });
                     }),
                 ) as Observable<never>,
                 defer(() => { // Send a subscribe action after the listen action has started
@@ -193,7 +197,7 @@ export class RxTransferPluginController implements ITransferPluginController {
                     proxyConnection.sendAction(unsubscribeAction);
                 }}
             ),
-            tap({finalize: () => proxyConnection.destroy()}),
+            tap({finalize: () => proxyConnection.destroy({ disconnectReason: DisconnectReason.ConnectionTransfer })}),
             shareReplay({refCount: true}),
         )
 
