@@ -34,6 +34,8 @@ export { ErrorSerializationPluginsResolver } from './plugins/error-serialization
 export { IErrorSerializationPlugin } from './plugins/error-serialization-plugin/base/error-serialization.plugin';
 export { CoreErrorCodeMapSerializationPlugin } from './plugins/error-serialization-plugin/core/core-error-code-map-serialization.plugin';
 export { DirectionInterceptPlugin } from './plugins/intercept-plugin/direction/direction-intercept.plugin';
+export { HeartbeatInterceptPlugin } from './plugins/intercept-plugin/heartbeat/heartbeat-intercept.plugin';
+export { HeartbeatAction } from './plugins/intercept-plugin/heartbeat/heartbeat.actions';
 export { IPluginsPack } from './plugins/pack/plugins-pack';
 export { PLUGIN_CANNOT_PROCESS_DATA } from './plugins/plugin-cannot-process-data';
 export { IPlugin } from './plugins/plugins';

@@ -11,7 +11,23 @@ export interface IPreparedForSendRunnerDataClient extends IPreparedForSendRunner
 }
 
 export interface IPreparedForSendProxyRunnerData extends IPreparedForSendRunnerDataBase {
-    proxyChannel: IBaseConnectionChannel;
+    /**
+     * Intermediate proxy connection channel data.
+     *
+     * An intermediate proxy channel is used when the current connection strategy
+     * is not capable of establishing a connection bypassing the current connection
+     * and needs to duplicate Action from the Runner client environment
+     * through the current connection.
+     *
+     * Actions received on the original connection channel from the Runner environment
+     * will be duplicated to the intermediate proxy channel connection.
+     * Actions received on the intermediate proxy channel connection
+     * will also be duplicated to the original connection channel from the Runner environment
+     *
+     * The intermediate proxy channel will proxy data over the current connection
+     * (which is where the data for the connection to the intermediate proxy channel will be sent)
+     */
+    intermediateProxyChannel: IBaseConnectionChannel;
 }
 
 export abstract class BaseConnectionStrategyClient {
@@ -20,9 +36,15 @@ export abstract class BaseConnectionStrategyClient {
     public abstract readonly type: ConnectionStrategyEnum | string;
 
     /**
-     * Preparing the Runner to send a copy or transfer data of the control as an argument or method execute result
-     * If the {@link EnvironmentClient} is marked as transferable,
-     * then the removal methods from the collection will be called.
+     * Prepares connection data to control Runner, to send a copy or transfer control.
+     * Runner can be passed as an argument or as the result of a method execution.
+     * If {@link RunnerEnvironmentClient} is marked as transferable, the instance will be removed from the collection.
+     * @param currentChannel - current connection channel for Resolver (client only)
+     * or Runner environment (client or host).
+     * Through this connection channel the data of the new connection (when copying)
+     * or data of the old connection (when transferring control) with {@link environment} will be sent.
+     * @param environment - Runner's client environment for which a new connection will be created
+     * or a proxy-connection will be created to the old connection
      */
     public prepareRunnerForSend(
         currentChannel: IBaseConnectionChannel,
@@ -38,31 +60,63 @@ export abstract class BaseConnectionStrategyClient {
             );
     }
 
+    /**
+     * @param currentChannel - current connection channel for Resolver (client only)
+     * or Runner environment (client or host).
+     * Through this connection channel the data of the new connection (when copying)
+     * or data of the old connection (when transferring control) with {@link RunnerEnvironmentClient} will be sent.
+     * @param resolvedChannel - a connection channel that was obtained as a result of cloning or transferring Runner control
+     * @returns 
+     */
     protected prepareRunnerForSendByConnectionChannel(
         currentChannel: IBaseConnectionChannel,
-        /** A connection channel that was obtained as a result of cloning or transferring Runner control */
         resolvedChannel: IBaseConnectionChannel,
     ): IPreparedForSendRunnerDataClient {
         if (currentChannel instanceof ProxyConnectionChannel) {
             currentChannel = currentChannel.getRootOriginalChannel();
         }
-        const preparedProxyData = this.prepareRunnerProxyForSend(currentChannel);
-        preparedProxyData.proxyChannel.actionHandlerController.addHandler(action => resolvedChannel.sendAction(action));
-        resolvedChannel.actionHandlerController.addHandler(action => preparedProxyData.proxyChannel.sendAction(action));
-        preparedProxyData.proxyChannel.run();
-        // eslint-disable-next-line promise/always-return
-        void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then((disconnectReason) => {
-            preparedProxyData.proxyChannel.destroy({ disconnectReason });
-            resolvedChannel.destroy({ disconnectReason });
+        const { data, intermediateProxyChannel, transfer } = this.prepareIntermediateProxy(currentChannel);
+        intermediateProxyChannel.actionHandlerController.addHandler(action => resolvedChannel.sendAction(action));
+        resolvedChannel.actionHandlerController.addHandler(action => intermediateProxyChannel.sendAction(action));
+        intermediateProxyChannel.run();
+        void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then(disconnectReason => {
+            if (!intermediateProxyChannel.disconnectReason) {
+                intermediateProxyChannel.destroy({ disconnectReason });
+            }
+            // eslint-disable-next-line promise/always-return
+            if (!resolvedChannel.disconnectReason) {
+                resolvedChannel.destroy({ disconnectReason });
+            }
+        });
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        intermediateProxyChannel.destroyFinishHandlerController.addHandler(async disconnectReason => {
+            if (!resolvedChannel.disconnectReason) {
+                await RunnerEnvironmentClient.disconnectConnection(resolvedChannel);
+            }
+            if (!resolvedChannel.disconnectReason) {
+                resolvedChannel.destroy({ disconnectReason });
+            }
+        });
+        resolvedChannel.destroyFinishHandlerController.addHandler(disconnectReason => {
+            if (!intermediateProxyChannel.disconnectReason) {
+                // TODO Send ConnectionLost Action to intermediateProxyChannel
+                intermediateProxyChannel.destroy({ disconnectReason });
+            }
         });
         return {
-            data: preparedProxyData.data,
-            transfer: preparedProxyData.transfer,
+            data,
+            transfer,
             cancel: async () => {
                 const disconnectReason = DisconnectReason.ConnectionError
-                preparedProxyData.proxyChannel.destroy({ disconnectReason });
-                await RunnerEnvironmentClient.disconnectConnection(resolvedChannel);
-                resolvedChannel.destroy({ disconnectReason });
+                if (!intermediateProxyChannel.disconnectReason) {
+                    intermediateProxyChannel.destroy({ disconnectReason });
+                }
+                if (!resolvedChannel.disconnectReason) {
+                    await RunnerEnvironmentClient.disconnectConnection(resolvedChannel);
+                }
+                if (!resolvedChannel.disconnectReason) {
+                    resolvedChannel.destroy({ disconnectReason });
+                }
             }
         };
     }
@@ -84,5 +138,26 @@ export abstract class BaseConnectionStrategyClient {
         receivedData: DataForSendRunner,
     ): IBaseConnectionChannel;
 
-    protected abstract prepareRunnerProxyForSend(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData;
+    /**
+     * Preparing intermediate proxy connection channel data.
+     * 
+     * An intermediate proxy channel is used when the current connection strategy
+     * is not capable of establishing a connection bypassing the current connection
+     * and needs to duplicate Action from the Runner client environment
+     * through the current connection ({@link currentChannel}).
+     * 
+     * Actions received on the original connection channel from the Runner environment
+     * will be duplicated to the intermediate proxy channel connection.
+     * Actions received on the intermediate proxy channel connection
+     * will also be duplicated to the original connection channel from the Runner environment
+     * 
+     * The intermediate proxy channel will proxy data over the current connection ({@link currentChannel})
+     * (which is where the data for the connection to the intermediate proxy channel will be sent)
+     * 
+     * @param currentChannel - current connection channel for Resolver (client only)
+     * or Runner environment (client or host).
+     * Through this connection channel the data of the new connection (when copying)
+     * or data of the old connection (when transferring control) with {@link RunnerEnvironmentClient} will be sent.
+     */
+    protected abstract prepareIntermediateProxy(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData;
 }

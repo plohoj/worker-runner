@@ -4,7 +4,7 @@ export type RunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     = R extends RunnerConstructor<any, infer A>
         ? ResolvedRunnerArguments<A>
-        : never;
+        : unknown[];
 
 export class RunnerResolverClient<L extends RunnerIdentifierConfigList = []> extends RunnerResolverClientBase<L> {
 

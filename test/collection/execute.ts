@@ -123,7 +123,7 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
         it('with delay exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
-            await expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, 6))
+            await expectAsync(errorStubRunner.throwErrorInPromise(exceptionError, 4))
                 .toBeRejectedWith(errorContaining(RunnerExecuteError, {
                         message: exceptionError,
                         name: RunnerExecuteError.name,
@@ -137,7 +137,7 @@ each(pickResolverFactories(), (mode, resolverFactory) =>
         it('with delay stack trace exceptions', async () => {
             const errorStubRunner = await resolver.resolve(ErrorStubRunner);
             const exceptionError = 'METHOD_EXCEPTION_DELAY';
-            await expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, 7))
+            await expectAsync(errorStubRunner.throwErrorTraceInPromise(exceptionError, 5))
                 .toBeRejectedWith(errorContaining(Error, {
                     message: exceptionError,
                     name: Error.name,

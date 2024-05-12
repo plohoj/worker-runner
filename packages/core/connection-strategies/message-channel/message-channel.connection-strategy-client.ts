@@ -44,11 +44,11 @@ export class MessageChannelConnectionStrategyClient extends BaseConnectionStrate
         return super.prepareRunnerForSendByConnectionChannel(currentChannel, resolvedConnection);
     }
 
-    protected prepareRunnerProxyForSend(): IPreparedForSendProxyRunnerData {
+    protected prepareIntermediateProxy(): IPreparedForSendProxyRunnerData {
         const messageChannel = new MessageChannel();
-        const proxyChannel = new MessagePortConnectionChannel({target: messageChannel.port1});
+        const intermediateProxyChannel = new MessagePortConnectionChannel({target: messageChannel.port1});
         return {
-            proxyChannel,
+            intermediateProxyChannel,
             data: {
                 port: messageChannel.port2,
             } satisfies IMessageChannelConnectionRunnerSendData as unknown as DataForSendRunner,

@@ -1,4 +1,5 @@
 import { ProxyReceiveConnectionChannelInterceptor } from '../connection-channel-interceptor/proxy-receive.connection-channel-interceptor';
+import { DisconnectReason } from '../connections/base/disconnect-reason';
 import { IAction } from '../types/action';
 import { JsonLike } from '../types/json-like';
 import { WorkerRunnerIdentifier } from '../utils/identifier-generator';
@@ -26,6 +27,12 @@ export class ProxyConnectionChannel extends BaseConnectionChannel {
     public override run(): void {
         this.originalChannel.interceptorsComposer.addInterceptors(this.proxyInterceptor);
         super.run();
+        this.originalChannel.destroyStartHandlerController.addHandler((disconnectReason => {
+            // If the original connection was lost, the proxy connection must also be closed
+            if (disconnectReason === DisconnectReason.ConnectionLost) {
+                this.destroy({disconnectReason});
+            }
+        }));
     }
 
     public getRootOriginalChannel(): IBaseConnectionChannel {

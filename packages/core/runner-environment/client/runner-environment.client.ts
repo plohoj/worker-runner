@@ -50,7 +50,7 @@ const DISCONNECT_ACTION_ID = 'DISCONNECT_ID' satisfies string as unknown as Work
 export class RunnerEnvironmentClient {
     public readonly runnerDescription: IRunnerDescription;
 
-    public readonly destroyHandlerController = new EventHandlerController<void>();
+    public readonly destroyHandlerController = new EventHandlerController<DisconnectReason>();
 
     private readonly actionController: ActionController;
     private readonly connectionStrategy: BaseConnectionStrategyClient;
@@ -126,10 +126,7 @@ export class RunnerEnvironmentClient {
         const environmentClient: RunnerEnvironmentClient = new this(config);
         environmentClient.resolvedRunner = new config.runnerControllerConstructor(environmentClient);
         environmentClient.actionController.run();
-        // TODO Move into the Connection Strategy a check for the need to send an Initiated action
-        environmentClient.actionController.sendAction<IRunnerEnvironmentClientInitiatedAction>({
-            type: RunnerEnvironmentClientAction.INITIATED,
-        });
+        environmentClient.afterInit();
         return environmentClient;
     }
 
@@ -164,10 +161,7 @@ export class RunnerEnvironmentClient {
             const runnerControllerConstructor = environmentClient.runnerDefinitionCollection
                 .defineRunnerController(config.token, ownMetadataAction.methodsNames);
             environmentClient.resolvedRunner = new runnerControllerConstructor(environmentClient);
-            // TODO Move into the Connection Strategy a check for the need to send an Initiated action
-            environmentClient.actionController.sendAction<IRunnerEnvironmentClientInitiatedAction>({
-                type: RunnerEnvironmentClientAction.INITIATED,
-            });
+            environmentClient.afterInit();
             return environmentClient;
         }
     }
@@ -307,9 +301,22 @@ export class RunnerEnvironmentClient {
             disconnectReason: DisconnectReason.RunnerTransfer,
             saveConnectionOpened: true,
         });
-        this.destroyHandlerController.dispatch();
+        this.destroyHandlerController.dispatch(DisconnectReason.RunnerTransfer);
         this.destroyHandlerController.clear();
         return this.actionController.connectionChannel;
+    }
+
+    private afterInit(): void {
+        // TODO Move into the Connection Strategy a check for the need to send an Initiated action
+        this.actionController.sendAction<IRunnerEnvironmentClientInitiatedAction>({
+            type: RunnerEnvironmentClientAction.INITIATED,
+        });
+        this.actionController.connectionChannel.destroyStartHandlerController.addHandler((disconnectReason => {
+            if (disconnectReason === DisconnectReason.ConnectionLost) {
+                // If the connection is lost, then destroy the Runner without sending the Action to the host
+                void this.handleDestroy({disconnectReason});
+            }
+        }));
     }
 
     private handleDestroy(options: { disconnectReason: DisconnectReason }): Promise<void> {
@@ -327,7 +334,7 @@ export class RunnerEnvironmentClient {
                 await this.transferPluginsResolver.destroy();
             } finally {
                 this.actionController.destroy(options);
-                this.destroyHandlerController.dispatch();
+                this.destroyHandlerController.dispatch(options.disconnectReason);
                 this.destroyHandlerController.clear();
             }
         })();

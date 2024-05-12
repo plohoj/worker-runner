@@ -29,6 +29,8 @@ export function createApartClientHostResolvers<
     const result: IApartRunnerResolversManager<C, H> = {
         client: runnerResolverClient,
         host: runnerResolverHost,
+        clientPort: messageChannel.port1,
+        hostPort: messageChannel.port2,
         async run(): Promise<void> {
             messageChannel.port1.start();
             messageChannel.port2.start();
@@ -36,10 +38,16 @@ export function createApartClientHostResolvers<
             await runnerResolverClient.run();
         },
         async destroy(): Promise<void> {
-            await runnerResolverClient.destroy();
-            await runnerResolverHost.destroy();
-            messageChannel.port1.close();
-            messageChannel.port2.close();
+            try {
+                await runnerResolverClient.destroy();
+            } finally {
+                try {
+                    await runnerResolverHost.destroy();
+                } finally {
+                    messageChannel.port1.close();
+                    messageChannel.port2.close();
+                }
+            }
         },
     };
     return result;

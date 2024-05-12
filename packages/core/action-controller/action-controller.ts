@@ -1,4 +1,5 @@
 import { IBaseConnectionChannel, IBaseConnectionChannelDestroyOptions } from '../connection-channels/base.connection-channel';
+import { DisconnectReason } from '../connections/base/disconnect-reason';
 import { ConnectionClosedError } from '../errors/runner-errors';
 import { WorkerRunnerError } from '../errors/worker-runner-error';
 import { ActionHandler, IAction, IActionWithId } from '../types/action';
@@ -41,6 +42,8 @@ export class ActionController {
         this.actionHandlerController = config.connectionChannel.actionHandlerController;
         this.disconnectErrorFactory = config.disconnectErrorFactory
             || (options => new ConnectionClosedError(options)) satisfies DisconnectErrorFactory;
+        this.connectionChannel.destroyStartHandlerController.addHandler(this.destroyHandler);
+        this.connectionChannel.destroyFinishHandlerController.addHandler(this.destroyHandler);
     }
 
     public async resolveAction<I extends IAction = IAction, O extends IAction = IAction>(
@@ -89,9 +92,7 @@ export class ActionController {
 
     /** Stops listening to all events and calls the destroy method on the Connection channel */
     public destroy(options: IBaseConnectionChannelDestroyOptions): void {
-        this.rejectResolvingAllActions(this.disconnectErrorFactory(options));
         this.connectionChannel.destroy(options);
-        this.handlersByIdMap.clear();
     }
 
     /** Interrupt resolving all actions and throw an error */
@@ -126,10 +127,15 @@ export class ActionController {
         }
     }
 
-    private readonly actionHandler = (action: IActionWithId) => {
+    private readonly actionHandler = (action: IActionWithId): void => {
         const handlers = this.handlersByIdMap.get(action.id) || [];
         for (const handler of handlers) {
             handler(action);
         }
     };
+
+    private destroyHandler = (disconnectReason: DisconnectReason): void => {
+        this.handlersByIdMap.clear();
+        this.rejectResolvingAllActions(this.disconnectErrorFactory({ disconnectReason }));
+    }
 }

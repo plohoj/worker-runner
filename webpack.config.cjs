@@ -2,7 +2,6 @@
 const CircularDependencyPlugin = require('circular-dependency-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { BannerPlugin } = require('webpack');
 const path = require('path');
 
@@ -106,7 +105,9 @@ module.exports = {
     mode: 'development',
     resolve: {
         extensions: ['.js', '.ts'],
-        plugins: [new TsconfigPathsPlugin()],
+        alias: {
+            '@worker-runner': path.resolve('packages')
+        }
     },
     devtool: 'inline-source-map',
 };

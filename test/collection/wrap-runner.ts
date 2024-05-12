@@ -15,7 +15,7 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             await resolver.destroy();
         });
 
-        it('after disconnect', async () => {
+        it('should destroy the wrapped Runner argument for the wrapped Runner only once after disconnecting all links', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -25,8 +25,10 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             const resolvedExecutableStubRunner = resolver.wrapRunner(executableStubRunner);
             const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
             const resolvedWithOtherInstanceResolverStub = resolver.wrapRunner(withOtherInstanceResolverStub);
+
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
                 .toBeResolved(storageData);
+
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
@@ -34,7 +36,7 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             expect(destroySpy).toHaveBeenCalled();
         });
 
-        it('after destroy', async () => {
+        it('should destroy the wrapped Runner argument for the wrapped Runner only once after destroy original Runner', async () => {
             const storageData = {
                 id: 5326,
                 type: 'STORAGE_DATA',
@@ -44,8 +46,10 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             const resolvedExecutableStubRunner = resolver.wrapRunner(executableStubRunner);
             const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
             const resolvedWithOtherInstanceResolverStub = resolver.wrapRunner(withOtherInstanceResolverStub);
+
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
                 .toBeResolved(storageData);
+
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
@@ -62,6 +66,7 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             }
 
             const resolvedRunnerSub = resolver.wrapRunner(runnerSub);
+
             await expectAsync(resolvedRunnerSub.getHelloMessage()).toBeResolvedTo(helloMessage)
         });
     }),

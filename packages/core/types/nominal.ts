@@ -4,6 +4,6 @@ declare const nominal: unique symbol;
  * A type that allows to define a unique unknown type that will not overlap with other unknown types
  * @see https://github.com/microsoft/TypeScript/issues/202
  */
-export type Nominal<T> = {
+export type Nominal<T extends symbol> = {
     readonly [nominal]: T;
 }

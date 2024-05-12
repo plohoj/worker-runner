@@ -66,11 +66,11 @@ export class RepeatConnectionStrategyClient extends BaseConnectionStrategyClient
                 : RepeatConnectionClientRunnerSendDataFields.NewHostId;
     }
 
-    protected prepareRunnerProxyForSend(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData {
+    protected prepareIntermediateProxy(currentChannel: IBaseConnectionChannel): IPreparedForSendProxyRunnerData {
         const identifier: WorkerRunnerIdentifier = this.identifierGenerator.generate();
-        const proxyChannel = new ProxyConnectionChannel(currentChannel, [this.prepareRunnerProxyKey, identifier]);
+        const intermediateProxyChannel = new ProxyConnectionChannel(currentChannel, [this.prepareRunnerProxyKey, identifier]);
         return {
-            proxyChannel,
+            intermediateProxyChannel,
             data: {[this.newRunnerProxySendDataKey]: identifier} as unknown as DataForSendRunner,
         };
     }

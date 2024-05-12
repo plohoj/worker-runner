@@ -6,6 +6,8 @@ export interface IApartRunnerResolversManager<
 > {
     client: C;
     host: H;
+    clientPort: MessagePort;
+    hostPort: MessagePort;
     run(): Promise<void>;
     destroy(): Promise<void>;
 }

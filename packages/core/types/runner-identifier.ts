@@ -42,7 +42,11 @@ export type RunnerByToken<L extends RunnerIdentifierConfigList, T extends Runner
             ? TOR extends IRunnerIdentifierConfig
                 ? T extends TOR['token']
                     ? isLiteralString<TOR['token']> extends true
-                        ? Exclude<TOR['runner'], undefined>
+                        ? 'runner' extends keyof TOR
+                            ? Exclude<TOR['runner'], undefined>
+                            // If the configuration specifies a token but does not specify a Runner type,
+                            // then the Runner type is unknown
+                            : unknown
                         : never
                     : never
                 : never
@@ -66,7 +70,10 @@ export type RunnerByIdentifier<L extends RunnerIdentifierConfigList, I extends R
         : I extends RunnerToken
             ? RunnerByToken<L, I> extends never
                 ? isLiteralString<I> extends true
-                    ? RunnersWithoutLiteralToken<L>
+                    ? RunnersWithoutLiteralToken<L> extends never
+                        // If there are no suitable Runners in the list, return unknown
+                        ? unknown
+                        : RunnersWithoutLiteralToken<L>
                     : AnyRunnerFromList<L>
                 : RunnerByToken<L, I>
-            : unknown;
+            : I;

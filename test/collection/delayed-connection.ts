@@ -11,7 +11,7 @@ each(pickApartResolverFactories(), (mode, resolverFactory) =>
             // eslint-disable-next-line @typescript-eslint/unbound-method
             const originalRunMethod = apartResolversManager.host.run;
             spyOn(apartResolversManager.host, 'run').and.callFake(function(this: typeof RunnerResolverHost) {
-                setTimeout(originalRunMethod.bind(this), 9);
+                setTimeout(originalRunMethod.bind(this), 4);
             });
 
             await expectAsync(apartResolversManager.run()).toBeResolved();

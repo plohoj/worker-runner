@@ -1,4 +1,4 @@
-import { DirectionInterceptPlugin, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, SharedWorkerConnectionHost } from '@worker-runner/core';
+import { DirectionInterceptPlugin, HeartbeatInterceptPlugin, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyHost, SharedWorkerConnectionHost } from '@worker-runner/core';
 import { RunnerResolverHost } from '@worker-runner/promise';
 import { RxRunnerResolverHost } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
@@ -17,6 +17,7 @@ new RunnerResolverHost({
                 from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
             }),
+            new HeartbeatInterceptPlugin(),
         ],
     }),
 }).run();
@@ -28,6 +29,7 @@ new RxRunnerResolverHost({
             from: RX_CONNECTION_IDENTIFIER_WORKER,
             to: RX_CONNECTION_IDENTIFIER_WORKER,
         }),
+        new HeartbeatInterceptPlugin(),
     ],
     connection: new SharedWorkerConnectionHost({
         target: self,

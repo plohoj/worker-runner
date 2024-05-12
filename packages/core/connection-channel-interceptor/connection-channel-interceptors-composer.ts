@@ -1,6 +1,6 @@
 import { IBaseConnectionChannel } from '../connection-channels/base.connection-channel';
 import { IAction } from '../types/action';
-import { IConnectionChannelInterceptResultOptions, IConnectionChannelInterceptor, IConnectionChannelInterceptResult, ConnectionChannelInterceptorRejectEnum } from './connection-channel-interceptor';
+import { ConnectionChannelInterceptorRejectEnum, IConnectionChannelInterceptResult, IConnectionChannelInterceptResultOptions, IConnectionChannelInterceptor } from './connection-channel-interceptor';
 
 export interface IConnectionChannelInterceptorsComposerConfig {
     connectionChannel: IBaseConnectionChannel;
@@ -66,7 +66,8 @@ export class ConnectionChannelInterceptorsComposer implements IConnectionChannel
         });
         this.checkInterceptorsDestroy(this.interceptors);
         if (this.destroyPromises) {
-            return this.destroyPromise$.finally(() => this.destroyProcess());
+            this.destroyPromise$ = this.destroyPromise$.finally(() => this.destroyProcess());
+            return this.destroyPromise$;
         }
         this.destroyProcess();
     }

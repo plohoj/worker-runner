@@ -11,7 +11,11 @@ export interface IBaseConnectionChannelDestroyOptions {
 /** A wrapper for any type of connection that implements a set of methods for exchanging actions */
 export interface IBaseConnectionChannel {
     readonly actionHandlerController: EventHandlerController<IAction>;
-    /** the event that indicates the start of the process of destroying the connection */
+    /**
+     * The event that indicates the start of the process of destroying the connection.
+     * The connection may not be destroyed for a long time because of the interceptors.
+     * In the case of a proxy interceptor, the connection will not be closed until the proxy connection will be closed
+     */
     readonly destroyStartHandlerController: EventHandlerController<DisconnectReason>;
     /**
      * The event indicating that the connection destruction process is complete,

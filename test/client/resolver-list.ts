@@ -1,4 +1,4 @@
-import { DirectionInterceptPlugin, IframeConnectionClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, SharedWorkerConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
+import { DirectionInterceptPlugin, HeartbeatInterceptPlugin, IframeConnectionClient, MessageChannelConnectionStrategyClient, MessageChannelConnectionStrategyHost, RepeatConnectionStrategyClient, RepeatConnectionStrategyHost, RunnerIdentifierConfigList, SharedWorkerConnectionClient, WorkerConnectionClient } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverHost, RunnerResolverLocal } from "@worker-runner/promise";
 import { RxRunnerResolverClient, RxRunnerResolverHost, RxRunnerResolverLocal } from '@worker-runner/rx';
 import { PROMISE_CONNECTION_IDENTIFIER_IFRAME_CLIENT, PROMISE_CONNECTION_IDENTIFIER_IFRAME_HOST, PROMISE_CONNECTION_IDENTIFIER_WORKER, RX_CONNECTION_IDENTIFIER_IFRAME_CLIENT, RX_CONNECTION_IDENTIFIER_IFRAME_HOST, RX_CONNECTION_IDENTIFIER_WORKER } from '../common/connection-identifier';
@@ -76,6 +76,7 @@ const resolvers = {
                     from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                     to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
+                new HeartbeatInterceptPlugin(),
             ],
         }),
     }),
@@ -89,6 +90,7 @@ const resolvers = {
                     from: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                     to: PROMISE_CONNECTION_IDENTIFIER_WORKER,
                 }),
+                new HeartbeatInterceptPlugin(),
             ],
         }),
     }),
@@ -153,6 +155,7 @@ const resolvers = {
                 from: RX_CONNECTION_IDENTIFIER_WORKER,
                 to: RX_CONNECTION_IDENTIFIER_WORKER,
             }),
+            new HeartbeatInterceptPlugin(),
         ],
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,
@@ -166,6 +169,7 @@ const resolvers = {
                 from: RX_CONNECTION_IDENTIFIER_WORKER,
                 to: RX_CONNECTION_IDENTIFIER_WORKER,
             }),
+            new HeartbeatInterceptPlugin(),
         ],
         connection: new SharedWorkerConnectionClient({
             target: sharedWorker.port,

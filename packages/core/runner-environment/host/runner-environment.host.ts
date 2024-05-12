@@ -271,6 +271,12 @@ export class RunnerEnvironmentHost {
 
     /** The destruction process can be triggered by parallel calls */
     public handleDestroy(): Promise<void>;
+    /**
+     * @param actionController - If an ActionController is specified,
+     * it will be used to send a success or error response to the destroy request
+     * @param actionId - the action identifier will be used when sending a success or error response
+     * to the destroy request  
+     */
     public handleDestroy(actionController: ActionController, actionId: WorkerRunnerIdentifier): Promise<void>;
     public async handleDestroy(actionController?: ActionController, actionId?: WorkerRunnerIdentifier): Promise<void> {
         const hasDestroyProcess = !!this.destroyProcess;
@@ -397,6 +403,15 @@ export class RunnerEnvironmentHost {
             responseType: preparedData.type,
             response: preparedData.data,
         }, preparedData.transfer);
+    }
+
+    private onConnectionLost(actionController: ActionController) {
+        // If the connection is lost, then delete connection without sending the Action to the client
+        this.connectDataMap.delete(actionController);
+        if (this.connectDataMap.size === 0) {
+            // If all connections is lost, then destroy the Runner without sending the Action to the client
+            void this.handleDestroy();
+        }
     }
 
     private sendActionsToDestroyTriggers (
@@ -527,6 +542,12 @@ export class RunnerEnvironmentHost {
         });
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         actionController.actionHandlerController.addHandler(handler);
+        actionController.connectionChannel.destroyStartHandlerController.addHandler((disconnectReason => {
+            // If the connection is lost, then destroy the Runner without sending the Action to the host 
+            if (disconnectReason === DisconnectReason.ConnectionLost) {
+                this.onConnectionLost(actionController);
+            }
+        }))
     }
 
     private getConnectionClosedConfig(options: IDisconnectErrorFactoryOptions): IConnectionClosedErrorConfig {
