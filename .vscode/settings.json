@@ -26,5 +26,6 @@
         "chanel"
     ],
     "git.branchProtection": ["master"],
-    "typescript.preferences.importModuleSpecifier": "project-relative"
+    "typescript.preferences.importModuleSpecifier": "project-relative",
+    "eslint.workingDirectories": ["./"]
 }

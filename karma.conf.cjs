@@ -34,4 +34,5 @@ const karmaConfig = {
 /**
  * @param {import('karma').Config} config 
  */
+// eslint-disable-next-line unicorn/no-anonymous-default-export
 module.exports = (config) => config.set(karmaConfig);

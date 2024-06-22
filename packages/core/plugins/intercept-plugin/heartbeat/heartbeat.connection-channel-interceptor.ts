@@ -40,6 +40,7 @@ export class HeartbeatConnectionChannelInterceptor implements IConnectionChannel
     public interceptReceive(action: IAction | IHeartbeatPulseAction): IConnectionChannelInterceptResult {
         clearTimeout(this.receiveTimerKey);
         this.setReceiveTimeoutTimer();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         if (action.type === HeartbeatAction.HeartbeatPulse) {
             return {
                 rejected: ConnectionChannelInterceptorRejectEnum.Hard,

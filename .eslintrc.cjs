@@ -185,6 +185,7 @@ module.exports = {
             }
         ],
         "unicorn/switch-case-braces": ["warn", "avoid"],
+        "@typescript-eslint/no-redundant-type-constituents": 'off',
 
         // plugin:es
         'es/no-symbol': 'error',

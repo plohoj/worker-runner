@@ -8,6 +8,7 @@ import { EXECUTABLE_STUB_RUNNER_TOKEN, ExecutableStubRunner } from '../common/st
 async function waitHeartbeatPulseAction(port: MessagePort): Promise<void> {
     await lastValueFrom(
         fromEvent<MessageEvent<IAction>>(port, 'message').pipe(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
             filter(event => event.data.type === HeartbeatAction.HeartbeatPulse),
             take(1),
         )

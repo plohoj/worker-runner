@@ -106,7 +106,7 @@ each(pickResolverFactories('Rx'), (mode, resolverFactory) =>
             };
             const rxStubRunner = await resolver.resolve(RxStubRunner);
             const expectedProperty: Record<string, unknown> = {
-                message: errorData.toString(),
+                message: String(errorData),
                 name: RxRunnerEmitError.name,
             };
             if (!isIE) {

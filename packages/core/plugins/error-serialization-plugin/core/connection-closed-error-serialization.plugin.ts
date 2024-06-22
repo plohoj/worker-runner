@@ -11,6 +11,7 @@ export interface ISerializedConnectionClosedError extends ISerializedError {
 
 export class ConnectionClosedErrorSerializationPlugin implements IErrorSerializationPlugin {
     public deserializeError(serializedError: ISerializedError): DeserializedError | typeof PLUGIN_CANNOT_PROCESS_DATA {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         const isConnectionClosedError = serializedError.type satisfies SerializedErrorType as unknown as string
             === WorkerRunnerCoreErrorCode.CONNECTION_CLOSED;
         if (!isConnectionClosedError) {

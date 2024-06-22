@@ -1,7 +1,6 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable import/no-named-as-default-member */
 /* eslint-disable import/order */
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -56,9 +55,7 @@ async function getDataFromJsonFile(path) {
 }
 
 await Promise.all([
-    // eslint-disable-next-line unicorn/prefer-top-level-await
     updateVersion(`./package.json`, versionType),
-    // eslint-disable-next-line unicorn/prefer-top-level-await
     updateVersion(`./package-lock.json`, versionType, true),
     ... moduleNames.map(moduleName => 
         updateVersion(`./packages/${moduleName}/package.json`),
