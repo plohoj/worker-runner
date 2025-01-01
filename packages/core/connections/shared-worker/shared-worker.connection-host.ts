@@ -11,7 +11,6 @@ export interface ISharedWorkerConnectionHostConfig
     target: IPortConnectEventListenerTarget;
 }
 
-// TODO Need a PING PONG check that the connection is still stable and the tab has not been closed
 export class SharedWorkerConnectionHost implements IBaseConnectionHost {
     public readonly target: IPortConnectEventListenerTarget;
     private readonly connectionStrategies: BaseConnectionStrategyHost[];

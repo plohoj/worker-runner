@@ -1,3 +1,5 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { RunnerConstructor } from "./constructor";
 
 /**
@@ -6,44 +8,48 @@ import { RunnerConstructor } from "./constructor";
  */
 export type RunnerToken = string;
 
-export type RunnerIdentifier<R extends RunnerConstructor = RunnerConstructor> = RunnerToken | R;
-
-export type IRunnerIdentifierConfig<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken> = {
+export type IRunnerTokenIdentifier<
+    R extends RunnerConstructor | undefined = RunnerConstructor,
+    T extends RunnerToken = RunnerToken
+> = {
     token: T;
     runner?: R;
 }
 
-export type RunnerIdentifierConfigList = ReadonlyArray<IRunnerIdentifierConfig | RunnerConstructor>;
+export class RunnerTokenIdentifier<
+    R extends RunnerConstructor | undefined = undefined,
+    T extends RunnerToken = RunnerToken
+> {
+    token: T;
+    runner?: R;
 
-export type AvailableRunnersFromList<L extends RunnerIdentifierConfigList>
-    = L extends ArrayLike<infer TOR>
-        ? TOR extends IRunnerIdentifierConfig
-            ? undefined extends TOR['runner'] 
-                ? never
-                : TOR['runner']
-            : TOR
-        : never;
+    constructor(config: IRunnerTokenIdentifier<R, T> | {token: T}) {
+        this.token = config.token;
+        if ((config as IRunnerTokenIdentifier).runner) {
+            this.runner = (config as IRunnerTokenIdentifier).runner as R;
+        }
+    }
+}
 
-export type AvailableRunnerIdentifier<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList>
-     = AvailableRunnersFromList<L> | RunnerIdentifier;
+export type AnyRunnerIdentifier<R extends RunnerConstructor = RunnerConstructor, T extends RunnerToken = RunnerToken>
+    = T | R | IRunnerTokenIdentifier<R, T> | IRunnerTokenIdentifier<undefined, T>;
 
-export type AnyRunnerFromList<L extends RunnerIdentifierConfigList>
-    = L extends ArrayLike<infer TOR>
-        ? TOR extends IRunnerIdentifierConfig
-            ? Exclude<TOR['runner'], undefined>
-            : TOR
-        : never;
+export type RunnerIdentifierConfigList = (
+    | IRunnerTokenIdentifier<RunnerConstructor>
+    | IRunnerTokenIdentifier<undefined>
+    | RunnerConstructor
+)[];
 
 type isLiteralString<T extends string> = string extends T ? false : true;
 
 export type RunnerByToken<L extends RunnerIdentifierConfigList, T extends RunnerToken>
     = isLiteralString<T> extends true
-        ? L extends ArrayLike<infer TOR>
-            ? TOR extends IRunnerIdentifierConfig
-                ? T extends TOR['token']
-                    ? isLiteralString<TOR['token']> extends true
-                        ? 'runner' extends keyof TOR
-                            ? Exclude<TOR['runner'], undefined>
+        ? L extends ArrayLike<infer IOR>
+            ? IOR extends IRunnerTokenIdentifier<infer IR, infer IT>
+                ? T extends IT
+                    ? isLiteralString<IT> extends true
+                        ? 'runner' extends keyof IOR
+                            ? Exclude<IOR['runner'], undefined>
                             // If the configuration specifies a token but does not specify a Runner type,
                             // then the Runner type is unknown
                             : unknown
@@ -51,29 +57,53 @@ export type RunnerByToken<L extends RunnerIdentifierConfigList, T extends Runner
                     : never
                 : never
             : never
-        :never;
-
-type RunnersWithoutLiteralToken<L extends RunnerIdentifierConfigList>
-    = L extends ArrayLike<infer TOR>
-        ? TOR extends IRunnerIdentifierConfig
-            ? isLiteralString<TOR['token']> extends true
-                ? never
-                : 'runner' extends keyof TOR 
-                    ? Exclude<TOR['runner'], undefined>
-                    : never
-            : TOR
         : never;
 
-export type RunnerByIdentifier<L extends RunnerIdentifierConfigList, I extends RunnerIdentifier>
+export type RunnerByTokenIdentifier<L extends RunnerIdentifierConfigList, I extends IRunnerTokenIdentifier>
+    = Exclude<I['runner'], undefined> extends never
+        ? RunnerByLiteralOrNonLiteralToken<L, I['token']>
+        : Exclude<I['runner'], undefined>;
+
+type RunnersWithoutLiteralToken<L extends RunnerIdentifierConfigList>
+    = L extends ArrayLike<infer IOR>
+        ? IOR extends IRunnerTokenIdentifier<infer _IR extends RunnerConstructor, infer IT>
+            ? isLiteralString<IT> extends true
+                ? never
+                : 'runner' extends keyof IOR
+                    ? Exclude<IOR['runner'], undefined>
+                    : never
+            : IOR extends RunnerConstructor
+                ? IOR
+                : never
+        : never;
+
+export type AllRunnersFromList<L extends RunnerIdentifierConfigList>
+    = L extends ArrayLike<infer IOR>
+        ? IOR extends IRunnerTokenIdentifier<infer IR extends RunnerConstructor>
+            ? IR
+            : IOR extends RunnerConstructor
+                ? IOR
+                : never
+        : never;
+
+export type AvailableRunnerIdentifier<L extends RunnerIdentifierConfigList = RunnerIdentifierConfigList>
+     = AllRunnersFromList<L> | AnyRunnerIdentifier;
+
+type RunnerByLiteralOrNonLiteralToken<L extends RunnerIdentifierConfigList, T extends RunnerToken>
+    = RunnerByToken<L, T> extends never
+        ? isLiteralString<T> extends true
+            ? RunnersWithoutLiteralToken<L> extends never
+                // If there are no suitable Runners in the list, return unknown
+                ? unknown
+                : RunnersWithoutLiteralToken<L>
+            : AllRunnersFromList<L>
+        : RunnerByToken<L, T>
+
+export type RunnerByAnyIdentifier<L extends RunnerIdentifierConfigList, I extends AnyRunnerIdentifier>
     = I extends RunnerConstructor
         ? I
         : I extends RunnerToken
-            ? RunnerByToken<L, I> extends never
-                ? isLiteralString<I> extends true
-                    ? RunnersWithoutLiteralToken<L> extends never
-                        // If there are no suitable Runners in the list, return unknown
-                        ? unknown
-                        : RunnersWithoutLiteralToken<L>
-                    : AnyRunnerFromList<L>
-                : RunnerByToken<L, I>
-            : I;
+            ? RunnerByLiteralOrNonLiteralToken<L, I>
+            : I extends IRunnerTokenIdentifier
+                ? RunnerByTokenIdentifier<L, I>
+                : never;

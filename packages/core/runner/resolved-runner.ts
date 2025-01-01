@@ -10,12 +10,14 @@ export type ResolvedData<T>
         : T;
 
 type ResolvedRunnerArgument<T> = T extends IRunnerSerializedParameter
-    ? T extends TransferableJsonLike
-        ? T extends JsonLike
-            ? T
-            : TransferRunnerData<T>
-        :T
-    : never;
+    ? T extends ResolvedRunner<unknown>
+        ? T
+        : T extends TransferableJsonLike
+            ? T extends JsonLike
+                ? T
+                : TransferRunnerData<T>
+            : T
+        : never;
 
 export type ResolvedRunnerArguments<T extends unknown[]> = { [P in keyof T]: ResolvedRunnerArgument<T[P]> };
 

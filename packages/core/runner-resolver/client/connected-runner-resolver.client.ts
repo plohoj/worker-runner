@@ -19,7 +19,7 @@ import { RunnerEnvironmentClientCollection } from '../../runner-environment/clie
 import { TransferRunnerArray } from '../../transfer-data/transfer-runner-array';
 import { IActionWithId } from '../../types/action';
 import { IRunnerParameter, RunnerConstructor } from '../../types/constructor';
-import { RunnerIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
+import { AnyRunnerIdentifier, IRunnerTokenIdentifier, RunnerIdentifierConfigList, RunnerToken } from "../../types/runner-identifier";
 import { ErrorCollector } from '../../utils/error-collector';
 import { parallelPromises } from '../../utils/parallel-promises';
 import { ParallelQueueController } from '../../utils/parallel-queue-controller';
@@ -75,7 +75,7 @@ export class ConnectedRunnerResolverClient {
      *
      * Returns a runner control object that will call the methods of the source instance
      */
-    public async resolve(identifier: RunnerIdentifier, ...args: IRunnerParameter[]): Promise<RunnerController> {
+    public async resolve(identifier: AnyRunnerIdentifier, ...args: IRunnerParameter[]): Promise<RunnerController> {
         const completeFunction = this.initializationQueueController.reserve();
         let environmentClient: RunnerEnvironmentClient | undefined;
         try {
@@ -209,16 +209,21 @@ export class ConnectedRunnerResolverClient {
         ], {errorCollector});
     }
 
-    private getTokenByIdentifier(identifier: RunnerIdentifier): RunnerToken {
+    private getTokenByIdentifier(identifier: AnyRunnerIdentifier): RunnerToken {
         if (typeof identifier === 'string') {
             return identifier;
         }
-        const softToken = this.runnerDefinitionCollection.getRunnerTokenSoft(identifier);
+
+        if ((identifier as IRunnerTokenIdentifier).token) {
+            return (identifier as IRunnerTokenIdentifier).token;
+        }
+
+        const softToken = this.runnerDefinitionCollection.getRunnerTokenSoft(identifier as RunnerConstructor);
         if (softToken) {
             return softToken;
         }
-        const token = RunnerDefinitionCollection.generateTokenForRunnerConstructor(identifier);
-        this.runnerDefinitionCollection.defineRunnerConstructor(token, identifier);
+        const token = RunnerDefinitionCollection.generateTokenForRunnerConstructor(identifier as RunnerConstructor);
+        this.runnerDefinitionCollection.defineRunnerConstructor(token, identifier as RunnerConstructor);
         return token;
     }
 

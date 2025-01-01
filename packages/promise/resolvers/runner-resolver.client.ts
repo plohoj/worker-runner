@@ -1,4 +1,4 @@
-import { RunnerResolverClientBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, RunnerIdentifierConfigList, RunnerByIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier } from '@worker-runner/core';
+import { RunnerResolverClientBase, ResolvedRunner, ResolvedRunnerArguments, RunnerConstructor, RunnerIdentifierConfigList, RunnerByAnyIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier } from '@worker-runner/core';
 
 export type RunnerArguments<R extends RunnerConstructor>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,6 +10,6 @@ export class RunnerResolverClient<L extends RunnerIdentifierConfigList = []> ext
 
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
-        ...args: RunnerArguments<RunnerByIdentifier<L, I>>
-    ) => Promise<ResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;
+        ...args: RunnerArguments<RunnerByAnyIdentifier<L, I>>
+    ) => Promise<ResolvedRunner<InstanceTypeOrUnknown<RunnerByAnyIdentifier<L, I>>>>;
 }

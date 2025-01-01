@@ -29,6 +29,7 @@ export class ParallelQueueController<T> {
         });
         return (): HalfPromisedIteratorResult<T> => {
             if (events.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 return events.shift()!;
             }
             if (this.amount === 0) {
@@ -36,9 +37,11 @@ export class ParallelQueueController<T> {
             }
             return new Promise<T>(resolve => {
                 if (events.length > 0) { // If the event happened while the promise initialization was in the queue
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     resolve(events.shift()!);
                 }
                 handleTrigger = () => {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     resolve(events.shift()!);
                 }
             })

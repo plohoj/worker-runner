@@ -80,12 +80,14 @@ export abstract class BaseConnectionStrategyClient {
         resolvedChannel.actionHandlerController.addHandler(action => intermediateProxyChannel.sendAction(action));
         intermediateProxyChannel.run();
         void RunnerEnvironmentClient.waitDisconnectedOrDestroyedAction(resolvedChannel).then(disconnectReason => {
-            if (!intermediateProxyChannel.disconnectReason) {
-                intermediateProxyChannel.destroy({ disconnectReason });
-            }
-            // eslint-disable-next-line promise/always-return
+            // Closing the resolvedChannel first, otherwise closing the intermediate proxy connection
+            // will trigger the sending of an action to disconnect Runner
             if (!resolvedChannel.disconnectReason) {
                 resolvedChannel.destroy({ disconnectReason });
+            }
+            // eslint-disable-next-line promise/always-return
+            if (!intermediateProxyChannel.disconnectReason) {
+                intermediateProxyChannel.destroy({ disconnectReason });
             }
         });
         // eslint-disable-next-line @typescript-eslint/no-misused-promises

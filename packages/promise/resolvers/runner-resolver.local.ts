@@ -1,4 +1,4 @@
-import { AvailableRunnersFromList, BaseConnectionStrategyHost, IPlugin, LocalPortalConnectionChannel, MessageChannelConnectionStrategyHost, PortalConnectionClient, PortalConnectionHost, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
+import { AllRunnersFromList, BaseConnectionStrategyHost, IPlugin, LocalPortalConnectionChannel, MessageChannelConnectionStrategyHost, PortalConnectionClient, PortalConnectionHost, ResolvedRunner, RunnerConstructor, RunnerIdentifierConfigList, runnerResolverLocalWrapRunnerFunction } from '@worker-runner/core';
 import { RunnerResolverClient } from './runner-resolver.client';
 import { RunnerResolverHost } from './runner-resolver.host';
 
@@ -13,7 +13,7 @@ export class RunnerResolverLocal<L extends RunnerIdentifierConfigList = []> exte
      * Wraps the Runner and returns a Runner control object that will call the methods of the original Runner instance.
      * The original Runner instance will be executed in the same area in which it was wrapped.
      */
-    declare public wrapRunner: <R extends InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>>(
+    declare public wrapRunner: <R extends InstanceType<AllRunnersFromList<L> | RunnerConstructor>>(
         runnerInstance: R
     ) => ResolvedRunner<R>;
 

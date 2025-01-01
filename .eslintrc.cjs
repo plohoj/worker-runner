@@ -128,6 +128,13 @@ module.exports = {
                 Symbol: "Don't use Symbol because it causes bugs in IE11",
             }
         }],
+        "@typescript-eslint/no-unused-vars": ["error",
+            {
+                "args": "after-used",
+            }
+        ],
+        "@typescript-eslint/no-non-null-assertion": "warn",
+        "@typescript-eslint/no-empty-function": "warn",
 
         // plugin:import
         'import/order': [

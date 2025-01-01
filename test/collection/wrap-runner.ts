@@ -23,17 +23,17 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const executableStubRunner = new ExecutableStubRunner(storageData);
             const resolvedExecutableStubRunner = resolver.wrapRunner(executableStubRunner);
-            const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
+            const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner<typeof storageData>();
             const resolvedWithOtherInstanceResolverStub = resolver.wrapRunner(withOtherInstanceResolverStub);
 
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
-                .toBeResolved(storageData);
+                .toBeResolvedTo(storageData);
 
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedExecutableStubRunner.disconnect();
-            expect(destroySpy).toHaveBeenCalled();
+            expect(destroySpy).toHaveBeenCalledOnceWith();
         });
 
         it('should destroy the wrapped Runner argument for the wrapped Runner only once after destroy original Runner', async () => {
@@ -44,17 +44,17 @@ each(pickResolverFactories('Local'), (mode, resolverFactory) =>
             const destroySpy = spyOn(ExecutableStubRunner.prototype, 'destroy');
             const executableStubRunner = new ExecutableStubRunner(storageData);
             const resolvedExecutableStubRunner = resolver.wrapRunner(executableStubRunner);
-            const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner();
+            const withOtherInstanceResolverStub = new WithOtherInstanceStubRunner<typeof storageData>();
             const resolvedWithOtherInstanceResolverStub = resolver.wrapRunner(withOtherInstanceResolverStub);
 
             await expectAsync(resolvedWithOtherInstanceResolverStub.pullInstanceStage(resolvedExecutableStubRunner))
-                .toBeResolved(storageData);
+                .toBeResolvedTo(storageData);
 
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedWithOtherInstanceResolverStub.destroy();
             expect(destroySpy).not.toHaveBeenCalled();
             await resolvedExecutableStubRunner.destroy();
-            expect(destroySpy).toHaveBeenCalled();
+            expect(destroySpy).toHaveBeenCalledOnceWith();
         });
 
         it('should wrap Runner without configuration', async () => {

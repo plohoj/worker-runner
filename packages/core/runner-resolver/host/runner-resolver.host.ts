@@ -6,7 +6,7 @@ import { isInterceptPlugin } from '../../plugins/intercept-plugin/intercept.plug
 import { IPlugin } from '../../plugins/plugins';
 import { RunnerDefinitionCollection } from '../../runner/runner-definition.collection';
 import { RunnerConstructor } from '../../types/constructor';
-import { AvailableRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
+import { AllRunnersFromList, RunnerIdentifierConfigList } from "../../types/runner-identifier";
 import { ErrorCollector } from '../../utils/error-collector';
 import { parallelPromises } from '../../utils/parallel-promises';
 import { ConnectedRunnerResolverHost } from './connected-runner-resolver.host';
@@ -17,6 +17,11 @@ export type IRunnerResolverHostConfigBase<L extends RunnerIdentifierConfigList> 
 } & ({
     runners: L
 } | {
+    /**
+     * @inner A collection of Runner definitions.
+     * Used for Local Resolver of Runners, so that when a previously unknown Runner is wrapped,
+     * the host area will instantly get information about the Runner
+     */
     runnerDefinitionCollection: RunnerDefinitionCollection<L>
 });
 
@@ -39,10 +44,22 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
         );
     }
 
+    /**
+     * Launches the listening connection specified in the configuration
+     * through which communication with RunnerResolver in the client area will happen
+     */
     public run(): void {
         this.connection.startListen(this.newConnectionHandler);
     }
 
+    /**
+     * Destroying of all resolved Runners instance.
+     * After destroying all instances of resolved Runners, the host area informs all client areas to stop communicating.
+     * After the communication is terminated, it can be restarted using the {@link run} method.
+     *
+     * WARNING: The original connection through which the communication happens will not be closed,
+     * it must be closed manually.
+     */
     public async destroy(): Promise<void> {
         try {
             await parallelPromises({
@@ -58,8 +75,13 @@ export abstract class RunnerResolverHostBase<L extends RunnerIdentifierConfigLis
         }
     }
 
+    /**
+     * @inner Method that establishes a connection for asynchronous control of a Runner instance
+     * that has already been created outside of the Runner Resolver.
+     * Used for Local Resolver.
+     */
     public wrapRunner(
-        runnerInstance: InstanceType<AvailableRunnersFromList<L> | RunnerConstructor>,
+        runnerInstance: InstanceType<AllRunnersFromList<L> | RunnerConstructor>,
         connectionChannel: IBaseConnectionChannel,
     ): void {
         const connectedResolver = this.connectedResolvers.values().next().value as ConnectedRunnerResolverHost | undefined;

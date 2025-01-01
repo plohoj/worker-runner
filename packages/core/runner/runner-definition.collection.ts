@@ -2,7 +2,7 @@ import { WORKER_RUNNER_ERROR_MESSAGES } from "../errors/error-message";
 import { RunnerNotFound } from "../errors/runner-errors";
 import { Constructor, RunnerConstructor } from "../types/constructor";
 import { JsonLike } from "../types/json-like";
-import { AvailableRunnersFromList, RunnerToken, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
+import { AllRunnersFromList, RunnerToken, RunnerIdentifierConfigList, RunnerByToken } from "../types/runner-identifier";
 import { IRunnerControllerConstructor, RunnerController, RUNNER_ENVIRONMENT_CLIENT } from "./runner.controller";
 
 interface IRunnerDefinitionCollectionOptions<M extends RunnerIdentifierConfigList> {
@@ -35,7 +35,7 @@ export class RunnerDefinitionCollection<L extends RunnerIdentifierConfigList = R
         return this.runnerTokenMap.get(runner);
     }
 
-    public getRunnerToken<R extends AvailableRunnersFromList<L>>(runner: R): RunnerToken {
+    public getRunnerToken<R extends AllRunnersFromList<L>>(runner: R): RunnerToken {
         const runnerToken = this.getRunnerTokenSoft(runner);
         if (!runnerToken) {
             throw new RunnerNotFound({
@@ -47,7 +47,7 @@ export class RunnerDefinitionCollection<L extends RunnerIdentifierConfigList = R
         return runnerToken;
     }
 
-    public getRunnerTokenByInstance<R extends AvailableRunnersFromList<L>>(runnerInstance: InstanceType<R>): RunnerToken {
+    public getRunnerTokenByInstance<R extends AllRunnersFromList<L>>(runnerInstance: InstanceType<R>): RunnerToken {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return this.getRunnerToken(Object.getPrototypeOf(runnerInstance).constructor);
     }
@@ -98,7 +98,7 @@ export class RunnerDefinitionCollection<L extends RunnerIdentifierConfigList = R
             controllerConstructor: this.resolveRunnerControllerConstructor(runnerConstructor),
             runnerConstructor,
         };
-        this.runnerTokenMap.set(runnerConstructor as AvailableRunnersFromList<L>, token);
+        this.runnerTokenMap.set(runnerConstructor as AllRunnersFromList<L>, token);
     }
 
     public defineRunnerController<T extends RunnerToken = RunnerToken>(
@@ -125,13 +125,13 @@ export class RunnerDefinitionCollection<L extends RunnerIdentifierConfigList = R
     private applyRunnerIdentifierConfigList(runnerIdentifierConfigList: L): void {
         for (const identifierConfig of runnerIdentifierConfigList) {
             let token: RunnerToken;
-            let runnerConstructor: AvailableRunnersFromList<L> | undefined;
+            let runnerConstructor: AllRunnersFromList<L> | undefined;
             if ('token' in identifierConfig) {
                 token = identifierConfig.token;
-                runnerConstructor = identifierConfig.runner as AvailableRunnersFromList<L> | undefined;
+                runnerConstructor = identifierConfig.runner as AllRunnersFromList<L> | undefined;
             } else {
                 token = RunnerDefinitionCollection.generateTokenForRunnerConstructor(identifierConfig);
-                runnerConstructor = identifierConfig as AvailableRunnersFromList<L>;
+                runnerConstructor = identifierConfig as AllRunnersFromList<L>;
             }
             if (runnerConstructor) {
                 this.defineRunnerConstructor(token, runnerConstructor);

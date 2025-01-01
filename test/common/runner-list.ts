@@ -1,3 +1,4 @@
+import { AnyRunnerIdentifier } from '@worker-runner/core';
 import { ErrorStubRunner } from './stubs/error-stub.runner';
 import { ExecutableStubRunner, EXECUTABLE_STUB_RUNNER_TOKEN } from './stubs/executable-stub.runner';
 import { ExtendedStubRunner, EXTENDED_STUB_RUNNER_TOKEN } from './stubs/extended-stub.runner';
@@ -20,4 +21,4 @@ export const runners = [
     RxStubRunner,
     WithLocalResolverStub,
     WithTransferableRunnerStub,
-];
+] satisfies AnyRunnerIdentifier[];

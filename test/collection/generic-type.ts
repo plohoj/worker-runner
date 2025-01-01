@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { IRunnerIdentifierConfig, PortalConnectionClient, ResolvedRunner, RunnerIdentifier } from "@worker-runner/core";
+import { IRunnerTokenIdentifier, PortalConnectionClient, ResolvedRunner, RunnerTokenIdentifier } from "@worker-runner/core";
 import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promise";
 
 // Type check:
@@ -15,7 +15,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
     class Runner2 { declare method2: () => void; declare method12: () => void }
     class Runner3 { declare method3: () => void; }
 
-    // simple token
+    // Simple token
     async () => {
         const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
@@ -74,7 +74,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check3.method12();
     }
 
-    // literally token
+    // Literally token
     async () => {
         const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
@@ -125,7 +125,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check3.method12();
     }
 
-    // not exist literally token
+    // Not exist literally token
     async () => {
         const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
@@ -199,7 +199,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check4.method12();
     }
 
-    // runner instance from list
+    // Runner instance from list
     async () => {
         const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
@@ -242,7 +242,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check3.method12();
     }
 
-    // not exist runner instance
+    // Not exist runner instance
     async () => {
         const check0 = await new RunnerResolverLocal({runners: [
             Runner1,
@@ -297,12 +297,12 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         check3.method3();
     }
 
-    // soft token
+    // Soft token
     async () => {
         const check0 = await new RunnerResolverClient({
             connection: connectionStub,
             runners: [
-                {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1>,
+                {token: 'Runner1'} as IRunnerTokenIdentifier<typeof Runner1>,
                 Runner2,
             ]}
         // The configuration is similar to {token: string, runner: typeof Runner1}.
@@ -316,7 +316,7 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         const check1 = await new RunnerResolverClient({
             connection: connectionStub,
             runners: [
-                {token: 'Runner1'} as IRunnerIdentifierConfig<typeof Runner1, 'Runner1'>,
+                {token: 'Runner1'} as IRunnerTokenIdentifier<typeof Runner1, 'Runner1'>,
                 Runner2,
             ]
         // For Runner1, the token "Runner1" is specified in the configuration.
@@ -326,23 +326,24 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         // @ts-expect-error
         check1.method2();
         check1.method12();
+
+        const check2 = await new RunnerResolverClient({
+            connection: connectionStub,
+            runners: [
+                {token: 'Runner1'} as IRunnerTokenIdentifier<typeof Runner1, 'Runner1'>,
+                Runner2,
+            ]
+        }).resolve('Runner1' as string) satisfies ResolvedRunner<Runner1 | Runner2>;
+        // @ts-expect-error
+        check2.method1();
+        // @ts-expect-error
+        check2.method2();
+        check2.method12();
     }
 
-    // soft identifier
+    // Soft identifier
     async () => {
-        const identifier = 'Runner1' as RunnerIdentifier<typeof Runner1>;
         const check0 = await new RunnerResolverClient({
-            connection: connectionStub,
-            runners: []
-        // No configuration is specified for RunnerResolverClient,
-        // but the identifier will be used as a token, in addition the identifier has information about the return type
-        }).resolve(identifier) satisfies ResolvedRunner<Runner1>;
-        check0.method1();
-        // @ts-expect-error
-        check0.method2();
-        check0.method12();
-
-        const check1 = await new RunnerResolverClient({
             connection: connectionStub,
             runners: [
                 {token: 'Runner1'},
@@ -356,11 +357,11 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         // Only Runner2 will be returned
         }).resolve('Runner3') satisfies ResolvedRunner<Runner2>;
         // @ts-expect-error
-        check1.method1();
-        check1.method2();
-        check1.method12();
+        check0.method1();
+        check0.method2();
+        check0.method12();
 
-        const check2 = await new RunnerResolverClient({
+        const check1 = await new RunnerResolverClient({
             connection: connectionStub,
             runners: [
                 {token: 'Runner1' as const},
@@ -371,11 +372,68 @@ import { RunnerResolverClient, RunnerResolverLocal } from "@worker-runner/promis
         // In addition the resolve method accepts any arguments to the Runner constructor
         }).resolve('Runner1', 'fake: args') satisfies ResolvedRunner<unknown>;
         // @ts-expect-error
+        check1.method1();
+        // @ts-expect-error
+        check1.method2();
+        // @ts-expect-error
+        check1.method12();
+    }
+
+    // Token identifier
+    async () => {
+        const identifierWithTokenAndRunner0 = new RunnerTokenIdentifier<typeof Runner1, 'Runner1'>({token: 'Runner1'});
+        const check0 = await new RunnerResolverClient({
+            connection: connectionStub,
+            runners: []
+        // No configuration is specified for RunnerResolverClient,
+        // but the identifier will be used as a token, in addition the identifier has information about the return type
+        }).resolve(identifierWithTokenAndRunner0) satisfies ResolvedRunner<Runner1>;
+        check0.method1();
+        // @ts-expect-error
+        check0.method2();
+        check0.method12();
+
+        const identifierWithTokenAndRunner1 = new RunnerTokenIdentifier<typeof Runner1, 'Runner1'>({token: 'Runner1'});
+        const check1 = await new RunnerResolverClient({
+            connection: connectionStub,
+            runners: [
+                identifierWithTokenAndRunner1,
+                Runner2,
+            ],
+        // For Runner1, the token "Runner1" is specified in the configuration.
+        // Therefore Runner1 will be found and returned by the token
+        }).resolve('Runner1') satisfies ResolvedRunner<Runner1>;
+        check1.method1();
+        // @ts-expect-error
+        check1.method2();
+        check1.method12();
+
+        const identifierWithOnlyToken = new RunnerTokenIdentifier({token: 'Runner1' as const});
+        const check2 = await new RunnerResolverClient({
+            connection: connectionStub,
+            runners: [
+                {token: 'Runner1' as const, runner: Runner1},
+                Runner2,
+            ],
+        }).resolve(identifierWithOnlyToken) satisfies ResolvedRunner<Runner1>;
         check2.method1();
         // @ts-expect-error
         check2.method2();
-        // @ts-expect-error
         check2.method12();
+
+        const identifierWithOnlySoftToken = new RunnerTokenIdentifier({token: 'Runner1' as string});
+        const check3 = await new RunnerResolverClient({
+            connection: connectionStub,
+            runners: [
+                {token: 'Runner1' as const, runner: Runner1},
+                Runner2,
+            ],
+        }).resolve(identifierWithOnlySoftToken) satisfies ResolvedRunner<Runner1 | Runner2>;
+        // @ts-expect-error
+        check3.method1();
+        // @ts-expect-error
+        check3.method2();
+        check3.method12();
     }
 
     // TODO generic test for Rx

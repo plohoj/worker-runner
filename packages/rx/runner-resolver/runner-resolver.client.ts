@@ -1,4 +1,4 @@
-import { RunnerResolverClientBase, RunnerConstructor, RunnerIdentifierConfigList, RunnerByIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier, IRunnerResolverClientBaseConfig } from '@worker-runner/core';
+import { RunnerResolverClientBase, RunnerConstructor, RunnerIdentifierConfigList, RunnerByAnyIdentifier, InstanceTypeOrUnknown, AvailableRunnerIdentifier, IRunnerResolverClientBaseConfig } from '@worker-runner/core';
 import { RxWorkerRunnerPlugin } from '../plugins/rx-worker-runner-plugin';
 import { RxResolvedRunner, RxResolvedRunnerArguments } from '../runner/resolved-runner';
 
@@ -12,8 +12,8 @@ export class RxRunnerResolverClient<L extends RunnerIdentifierConfigList = []> e
 
     declare public resolve: <I extends AvailableRunnerIdentifier<L>>(
         identifier: I,
-        ...args: RxRunnerArguments<RunnerByIdentifier<L, I>>
-    ) => Promise<RxResolvedRunner<InstanceTypeOrUnknown<RunnerByIdentifier<L, I>>>>;
+        ...args: RxRunnerArguments<RunnerByAnyIdentifier<L, I>>
+    ) => Promise<RxResolvedRunner<InstanceTypeOrUnknown<RunnerByAnyIdentifier<L, I>>>>;
 
     constructor(config: IRunnerResolverClientBaseConfig<L>) {
         super({
